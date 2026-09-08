@@ -8,8 +8,8 @@ const navItems = [
   { label: '首页', to: '/' },
   { label: '语料检索', to: '/search' },
   { label: '语料上传', to: '/upload' },
-  { label: '需求广场', to: '/demands' },
   { label: '工具链', to: '/tools' },
+  { label: '需求广场', to: '/demands' },
   { label: '关于我们', to: '/about' },
 ]
 
@@ -80,7 +80,7 @@ export default function Header() {
             </div>
           ) : (
             <button type="button" className="login-trigger" onClick={() => openAuth()}>
-              <UserRound size={17} />登录
+              登录体验
             </button>
           )}
           <button

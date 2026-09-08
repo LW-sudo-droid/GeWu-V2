@@ -178,6 +178,12 @@ const emptyFacetFilters: CorpusFilterState = {
 const corpusSizeBuckets = ['1千以下', '1千-1万', '1万-10万', '10万-100万', '100万以上']
 const storageBuckets = ['<500GB', '500GB-1TB', '1-2TB', '>2TB']
 
+export function recordCoverImage(id: string) {
+  const [subject, num] = id.split('-')
+  const index = Math.min(Math.max(Number.parseInt(num ?? '1', 10) || 1, 1), 4)
+  return `${import.meta.env.BASE_URL}images/home/subject-${subject}-${index}.jpg`
+}
+
 export function recordDisplayMeta(item: CorpusRecord) {
   const index = Math.max(0, corpusRecords.findIndex((record) => record.id === item.id))
   return {
@@ -740,18 +746,9 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
               const cardTarget = `/search/datasets/${item.id}`
               return (
               <Link className="catalog-corpus-card" to={cardTarget} target="_blank" rel="noreferrer" key={item.id}>
-                <div className="quality-card-visual catalog-card-visual" aria-hidden="true">
+                <div className="quality-card-visual catalog-card-visual catalog-card-cover" aria-hidden="true">
+                  <img src={recordCoverImage(item.id)} alt="" loading="lazy" />
                   <span className={`card-status-overlay ${item.openness === '不公开' ? 'is-private' : 'is-partial'}`}>{item.openness === '不公开' ? '不公开' : '公开'}</span>
-                  <span className="visual-line visual-line-one" />
-                  <span className="visual-line visual-line-two" />
-                  <span className="visual-node node-one" />
-                  <span className="visual-node node-two" />
-                  <span className="visual-node node-three" />
-                  <span className="visual-node node-four" />
-                  <span className="visual-bar bar-one" />
-                  <span className="visual-bar bar-two" />
-                  <span className="visual-bar bar-three" />
-                  <span className="visual-bar bar-four" />
                 </div>
                 <div className="catalog-card-meta-row">
                   <div className="catalog-card-tags">
