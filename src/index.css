@@ -10396,6 +10396,8 @@ body {
   border: 0;
   border-radius: 999px;
   box-shadow: 0 14px 30px rgba(21, 30, 52, .16);
+  white-space: nowrap;
+  flex: none;
 }
 
 .hero-section {

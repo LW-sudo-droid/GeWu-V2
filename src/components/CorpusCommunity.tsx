@@ -41,7 +41,6 @@ type CategoryDefinition = {
 const MAP_WIDTH = 760
 const MAP_HEIGHT = 520
 const MAP_PADDING = 22
-const DEFAULT_PROVINCE = '北京市'
 
 const categoryDefinitions: CategoryDefinition[] = [
   {
@@ -201,7 +200,7 @@ function formatMetric(metric: CommunityMetric) {
 export default function CorpusCommunity() {
   const [geoData, setGeoData] = useState<ProvinceCollection | null>(null)
   const [loadError, setLoadError] = useState(false)
-  const [activeProvince, setActiveProvince] = useState<string>(DEFAULT_PROVINCE)
+  const [activeProvince, setActiveProvince] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -235,13 +234,14 @@ export default function CorpusCommunity() {
 
   const visibleMetrics = useMemo(() => categoryDefinitions.map((definition) => ({
     ...definition,
-    metric: provinceMetricOverrides[activeProvince]?.[definition.key]
-      ?? getProvinceMetric(activeProvince, definition),
+    metric: activeProvince === null
+      ? definition.national
+      : provinceMetricOverrides[activeProvince]?.[definition.key]
+        ?? getProvinceMetric(activeProvince, definition),
   })), [activeProvince])
 
   return (
-    <>
-      <section className="home-community" aria-labelledby="home-community-title">
+    <section className="home-community" aria-labelledby="home-community-title">
         <div className="home-community-inner">
           <h2 id="home-community-title">数据社区 · <span className="text-gradient-alt">共建共享</span></h2>
 
@@ -249,7 +249,7 @@ export default function CorpusCommunity() {
             <section
               className="home-community-map"
               aria-label="全国科学语料建设分布地图"
-              onMouseLeave={() => setActiveProvince(DEFAULT_PROVINCE)}
+              onMouseLeave={() => setActiveProvince(null)}
             >
               <header><MapPinned size={17} /><span>全国建设分布</span></header>
 
@@ -280,7 +280,7 @@ export default function CorpusCommunity() {
                           onMouseEnter={() => !isReference && setActiveProvince(name)}
                           onClick={() => !isReference && setActiveProvince(name)}
                           onFocus={() => !isReference && setActiveProvince(name)}
-                          onBlur={() => setActiveProvince(DEFAULT_PROVINCE)}
+                          onBlur={() => setActiveProvince(null)}
                           onKeyDown={(event) => {
                             if (!isReference && (event.key === 'Enter' || event.key === ' ')) {
                               event.preventDefault()
@@ -301,7 +301,7 @@ export default function CorpusCommunity() {
             </section>
 
             <aside className="home-community-summary" aria-live="polite">
-              <h3>{activeProvince}汇总</h3>
+              <h3>{activeProvince ?? '全国'}汇总</h3>
               <div className="home-community-cards">
                 {visibleMetrics.map(({ key, title, icon: CategoryIcon, metric }) => {
                   const formatted = formatMetric(metric)
@@ -311,10 +311,10 @@ export default function CorpusCommunity() {
                       <header>
                         <span className="community-category-icon"><CategoryIcon size={19} /></span>
                         <h4>{title}</h4>
-                        <div className="community-feature-tags">
-                          {features.map((feature) => <span key={feature}>{feature}</span>)}
-                        </div>
                       </header>
+                      <div className="community-card-tags">
+                        {features.map((feature) => <span key={feature}>{feature}</span>)}
+                      </div>
                       <div className="community-card-metrics">
                         <div><p><strong>{formatted.sets.value}</strong><em>{formatted.sets.unit}</em></p><span>语料集</span></div>
                         <div><p><strong>{formatted.rows.value}</strong><em>{formatted.rows.unit}</em></p><span>语料条数</span></div>
@@ -328,26 +328,29 @@ export default function CorpusCommunity() {
           </div>
         </div>
       </section>
+  )
+}
 
-      <section className="home-partners" aria-labelledby="home-partners-title">
-        <div className="home-partners-inner">
-          <h2 id="home-partners-title">合作伙伴</h2>
-          <div className="partner-marquee-stack" aria-label="语料共建方列表">
-            {partnerRows.map((row, index) => (
-              <div className={`partner-marquee-row ${index === 1 ? 'is-reverse' : ''}`} key={index}>
-                <div className="partner-marquee-track">
-                  {[...row, ...row].map((partner, partnerIndex) => (
-                    <div className="home-partner-card" key={`${partner.name}-${partnerIndex}`} aria-hidden={partnerIndex >= row.length}>
-                      {partner.logo ? <img src={partner.logo} alt="" /> : <i>{partner.name.slice(0, 2)}</i>}
-                      <strong>{partner.name}</strong>
-                    </div>
-                  ))}
-                </div>
+export function PartnersSection() {
+  return (
+    <section className="home-partners" aria-labelledby="home-partners-title">
+      <div className="home-partners-inner">
+        <h2 id="home-partners-title">合作伙伴</h2>
+        <div className="partner-marquee-stack" aria-label="语料共建方列表">
+          {partnerRows.map((row, index) => (
+            <div className={`partner-marquee-row ${index === 1 ? 'is-reverse' : ''}`} key={index}>
+              <div className="partner-marquee-track">
+                {[...row, ...row].map((partner, partnerIndex) => (
+                  <div className="home-partner-card" key={`${partner.name}-${partnerIndex}`} aria-hidden={partnerIndex >= row.length}>
+                    {partner.logo ? <img src={partner.logo} alt="" /> : <i>{partner.name.slice(0, 2)}</i>}
+                    <strong>{partner.name}</strong>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      </section>
-    </>
+      </div>
+    </section>
   )
 }

@@ -22,7 +22,7 @@ import {
 import { Link, useNavigate } from 'react-router'
 import { useApp } from '../context/app-context'
 import '../home-v2.css'
-import CorpusCommunity from '../components/CorpusCommunity'
+import CorpusCommunity, { PartnersSection } from '../components/CorpusCommunity'
 import SubjectShowcase from '../components/SubjectShowcase'
 import QualityCorpusDiscovery from '../components/QualityCorpusDiscovery'
 
@@ -127,9 +127,7 @@ export default function Home() {
             <span className="orbit-ring ring-outer" aria-hidden="true" />
             <span className="orbit-ring ring-middle" aria-hidden="true" />
             <span className="orbit-ring ring-inner" aria-hidden="true" />
-            <span className="orbit-dot dot-a" aria-hidden="true" />
             <span className="orbit-dot dot-b" aria-hidden="true" />
-            <span className="orbit-dot dot-c" aria-hidden="true" />
             <span className="orbit-dot dot-d" aria-hidden="true" />
             <div className="orbit-center">
               <span>科学语料</span>
@@ -229,6 +227,7 @@ export default function Home() {
       <SubjectShowcase />
       <CorpusCommunity />
       <QualityCorpusDiscovery />
+      <PartnersSection />
     </div>
   )
 }

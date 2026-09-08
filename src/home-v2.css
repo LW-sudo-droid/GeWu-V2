@@ -160,9 +160,7 @@
   box-shadow: 0 0 0 5px rgba(122, 165, 248, 0.2);
 }
 
-.orbit-dot.dot-a { left: 50%; top: 16px; margin-left: -4px; }
 .orbit-dot.dot-b { right: 36px; top: 50%; margin-top: -4px; background: #a78bfa; box-shadow: 0 0 0 5px rgba(167, 139, 250, 0.2); }
-.orbit-dot.dot-c { left: 42px; top: 50%; margin-top: -4px; background: #67e8f9; box-shadow: 0 0 0 5px rgba(103, 232, 249, 0.25); }
 .orbit-dot.dot-d { left: 50%; bottom: 24px; margin-left: -4px; background: #c4b5fd; box-shadow: 0 0 0 5px rgba(196, 181, 253, 0.25); }
 
 .orbit-spin {
@@ -177,11 +175,6 @@
   align-items: center;
   gap: 12px;
   animation: homeOrbitSpinRev 36s linear infinite;
-}
-
-.home-hero-orbit:hover .orbit-spin,
-.home-hero-orbit:hover .orbit-node {
-  animation-play-state: paused;
 }
 
 @keyframes homeOrbitSpin {
@@ -899,6 +892,8 @@
 
 .home-community-summary {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .home-community-map > header {
@@ -989,8 +984,10 @@
 .home-community-cards {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
   gap: 14px;
   min-width: 0;
+  flex: 1;
 }
 
 .home-community-card {
@@ -1007,7 +1004,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
+}
+
+.home-community-card {
+  display: flex;
+  flex-direction: column;
 }
 
 .community-category-icon {
@@ -1034,15 +1036,17 @@
   white-space: nowrap;
 }
 
-.community-feature-tags {
-  margin-left: auto;
+.community-card-tags {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: flex-end;
   gap: 8px;
+  margin-bottom: 14px;
 }
 
-.community-feature-tags span {
+.community-card-tags span {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #f0f4fa;
   font-size: 10.5px;
   color: var(--hv-text-3);
   white-space: nowrap;
@@ -1087,7 +1091,7 @@
 /* ---------- 合作伙伴 ---------- */
 .home-partners {
   background: #fff;
-  padding: 88px 0 96px;
+  padding: 8px 0 96px;
 }
 
 .home-partners-inner {
@@ -1171,7 +1175,7 @@
 /* ---------- 发现优质语料 ---------- */
 .home-quality {
   background: #fff;
-  padding: 8px 24px 96px;
+  padding: 88px 24px 96px;
 }
 
 .home-quality-inner {
