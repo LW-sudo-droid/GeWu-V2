@@ -19,28 +19,23 @@ const subjects: Array<'全部工具' | Subject> = ['全部工具', '数学', '�
 const suggestedKeywords = ['实验', '训练', '抽取', '图像', '对齐', '标注']
 const PAGE_SIZE = 12
 
+// 方案C-几何现代 图标
 const subjectIconPaths: Record<Subject, string> = {
-  数学: 'M4.75 3.5h14.5v1.3H4.75V3.5Zm1.85 5.2h2.65l2.1 4.55 2.1-4.55h2.65l-4.55 9.6h-1.85L6.6 8.7Zm10.2 0h2.35v9.6h-2.35V8.7Z',
-  物理: 'M12 4.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15Zm0 1.5a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm-2.9 4.2a.75.75 0 1 0-1.2.9l1.2-.9Zm2.9 1.8a2.4 2.4 0 1 0 0 4.8 2.4 2.4 0 0 0 0-4.8Zm0 1.5a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8Zm4.35-3.6a.75.75 0 1 0-1.2.9l1.2-.9Z',
-  化学: 'M12 4.5a1.5 1.5 0 0 1 1.5 1.5h-3A1.5 1.5 0 0 1 12 4.5Zm-3 2.25h6v.75h-6v-.75Zm.75 1.5h4.5l.75 6.75c.15 1.2-.75 2.25-1.95 2.25h-2.1c-1.2 0-2.1-1.05-1.95-2.25l.75-6.75Zm1.65 8.25h1.2v-6h-1.2v6Z',
-  天文: 'M12 3a6 6 0 0 0-5.92 5.02 4.5 4.5 0 0 0-.08 8.48h12a4.5 4.5 0 0 0-.08-8.48A6 6 0 0 0 12 3Zm0 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm-3 10.5h6v1.5H9v-1.5Z',
-  地理: 'M12 2.25a8.25 8.25 0 1 0 0 16.5 8.25 8.25 0 0 0 0-16.5Zm0 1.5a6.75 6.75 0 1 1 0 13.5 6.75 6.75 0 0 1 0-13.5Zm0 3a3.75 3.75 0 1 0 0 7.5 3.75 3.75 0 0 0 0-7.5Zm0 1.5a2.25 2.25 0 1 1 0 4.5 2.25 2.25 0 0 1 0-4.5Z',
-  生物: 'M12 3.75c-2.9 0-5.25 2.1-5.25 5.25 0 1.65.75 3.15 2.1 4.05-.45 1.2-1.35 2.1-2.55 2.55-.3.15-.45.45-.3.75.15.3.45.45.75.3 1.65-.6 2.85-1.8 3.45-3.45.15.015.3 0 .45 0h1.5c1.65 1.65 3.45 2.55 5.25 2.55.3 0 .6-.15.6-.45s-.3-.45-.6-.45c-1.5 0-2.85-.6-4.05-1.65-.75-.75-1.35-1.65-1.8-2.7 1.05-.9 1.8-2.25 1.8-3.75 0-3.15-2.35-5.25-5.25-5.25Zm0 1.5c2.1 0 3.75 1.5 3.75 3.75s-1.65 3.75-3.75 3.75S8.25 10.5 8.25 9c0-2.25 1.65-3.75 3.75-3.75Z',
+  数学: 'M18 4H6l6 8-6 8h12',
+  物理: 'M12 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5zM15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5z',
+  化学: 'M6 18h12M10 3h4M10 3v6l-4 9h12l-4-9V3',
+  天文: 'M12 3a6 6 0 0 0-6 6c0 1.5.5 3 1.5 4l-4 7h17l-4-7c1-1 1.5-2.5 1.5-4a6 6 0 0 0-6-6zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  地理: 'M12 12a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10zM2 12h20',
+  生物: 'M6 3v6c0 1.5 1 3 2 4l4 3-4 3c-1 1-2 2.5-2 4v2h12v-2c0-1.5-1-3-2-4l-4-3 4-3c1-1 2-2.5 2-4V3M8 7h8M8 17h8',
 }
 
 const subjectStyle: Record<Subject, { gradient: string; tagBg: string; tagText: string }> = {
-  数学: { gradient: 'linear-gradient(135deg, #c4b5fd 0%, #8b5cf6 100%)', tagBg: '#ede9fe', tagText: '#7c3aed' },
-  物理: { gradient: 'linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%)', tagBg: '#dbeafe', tagText: '#2563eb' },
-  化学: { gradient: 'linear-gradient(135deg, #67e8f9 0%, #06b6d4 100%)', tagBg: '#cffafe', tagText: '#0891b2' },
-  天文: { gradient: 'linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%)', tagBg: '#e0e7ff', tagText: '#4f46e5' },
-  地理: { gradient: 'linear-gradient(135deg, #86efac 0%, #22c55e 100%)', tagBg: '#dcfce7', tagText: '#16a34a' },
-  生物: { gradient: 'linear-gradient(135deg, #f0abfc 0%, #d946ef 100%)', tagBg: '#fae8ff', tagText: '#c026d3' },
-}
-
-function visiblePageNumbers(current: number, total: number) {
-  const start = Math.max(1, Math.min(current - 2, total - 4))
-  const end = Math.min(total, start + 4)
-  return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index)
+  数学: { gradient: 'linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%)', tagBg: '#f3e8ff', tagText: '#9333ea' },
+  物理: { gradient: 'linear-gradient(135deg, #c7d2fe 0%, #818cf8 100%)', tagBg: '#e0e7ff', tagText: '#4f46e5' },
+  化学: { gradient: 'linear-gradient(135deg, #a5f3fc 0%, #22d3ee 100%)', tagBg: '#cffafe', tagText: '#0891b2' },
+  天文: { gradient: 'linear-gradient(135deg, #ddd6fe 0%, #a78bfa 100%)', tagBg: '#ede9fe', tagText: '#7c3aed' },
+  地理: { gradient: 'linear-gradient(135deg, #bbf7d0 0%, #4ade80 100%)', tagBg: '#dcfce7', tagText: '#16a34a' },
+  生物: { gradient: 'linear-gradient(135deg, #f5d0fe 0%, #e879f9 100%)', tagBg: '#fae8ff', tagText: '#c026d3' },
 }
 
 function escapeRegExp(value: string) {
@@ -62,6 +57,15 @@ function highlightKeyword(text: string, keyword: string) {
       </mark>
     )
   })
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
 }
 
 export default function ToolMarket() {
@@ -89,7 +93,14 @@ export default function ToolMarket() {
   }, [keywordMatchedTools])
 
   const filteredTools = useMemo(() => {
-    return keywordMatchedTools.filter((tool) => subject === '全部工具' || tool.subject === subject)
+    let result = keywordMatchedTools
+    if (subject !== '全部工具') {
+      result = result.filter((tool) => tool.subject === subject)
+    } else {
+      // 全部工具时随机混排
+      result = shuffleArray(result)
+    }
+    return result
   }, [keywordMatchedTools, subject])
 
   const pageCount = Math.max(1, Math.ceil(filteredTools.length / PAGE_SIZE))
@@ -121,6 +132,16 @@ export default function ToolMarket() {
   const goToPage = (nextPage: number) => {
     setPage(Math.min(Math.max(nextPage, 1), pageCount))
     document.querySelector('.tool-market-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  // 计算显示的页码范围（最多5个，不显示尾页）
+  const getVisiblePages = () => {
+    let start = Math.max(1, page - 2)
+    let end = Math.min(pageCount, start + 4)
+    if (end - start < 4) {
+      start = Math.max(1, end - 4)
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
   }
 
   return (
@@ -187,7 +208,7 @@ export default function ToolMarket() {
         <div className="tool-results-panel">
           <header className="tool-results-header">
             <div>
-              <h2>全部工具</h2>
+              <h2>{subject === '全部工具' ? '全部工具' : subject}</h2>
               <p>共收录 <strong>{filteredTools.length}</strong> 条工具链</p>
             </div>
           </header>
@@ -205,7 +226,7 @@ export default function ToolMarket() {
                     <div className="tool-card-heading">
                       <span className="tool-card-icon" style={{ background: style.gradient }}>
                         <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d={subjectIconPaths[tool.subject]} fill="currentColor" />
+                          <path d={subjectIconPaths[tool.subject]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       </span>
                       <div className="tool-card-meta">
@@ -246,7 +267,7 @@ export default function ToolMarket() {
           {filteredTools.length > PAGE_SIZE && (
             <nav className="tool-market-pagination" aria-label="工具链分页">
               <button disabled={page === 1} onClick={() => goToPage(page - 1)} type="button">上一页</button>
-              {visiblePageNumbers(page, pageCount).map((pageNumber) => (
+              {getVisiblePages().map((pageNumber) => (
                 <button
                   aria-current={page === pageNumber ? 'page' : undefined}
                   className={page === pageNumber ? 'is-active' : ''}
