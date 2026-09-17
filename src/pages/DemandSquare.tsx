@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { loadPublishedPosts } from '../data/demand-posts'
+import './demand-square-v2.css'
 
 export type DemandStatus = '招募中' | '共建中' | '已完成'
 type DemandTab = '综合排序' | '招募中' | '共建中' | '已完成'
@@ -36,6 +37,7 @@ export type DemandPost = {
   comments: number
   template: 'blue' | 'mint' | 'violet'
   image?: 'finance' | 'industry'
+  cover?: string
   contact: {
     name: string
     unit: string
@@ -70,6 +72,7 @@ export const initialDemandPosts: DemandPost[] = [
     bookmarks: 84,
     comments: 31,
     template: 'blue',
+    cover: 'images/demand-market/medical-imaging.jpg',
     contact: { name: '北京大学医学部', unit: '北京大学医学部', email: 'medical-corpus@pku.edu.cn' },
   },
   {
@@ -88,6 +91,7 @@ export const initialDemandPosts: DemandPost[] = [
     comments: 26,
     template: 'violet',
     image: 'finance',
+    cover: 'images/demand-market/finance-events.jpg',
     contact: { name: '复旦大学金融文本团队', unit: '复旦大学', email: 'finance-corpus@fudan.edu.cn' },
   },
   {
@@ -105,6 +109,7 @@ export const initialDemandPosts: DemandPost[] = [
     bookmarks: 42,
     comments: 18,
     template: 'mint',
+    cover: 'images/demand-market/dialect-speech.jpg',
     contact: { name: '南京大学语言语音团队', unit: '南京大学', email: 'dialect@nju.edu.cn' },
   },
   {
@@ -123,6 +128,7 @@ export const initialDemandPosts: DemandPost[] = [
     comments: 21,
     template: 'blue',
     image: 'industry',
+    cover: 'images/demand-market/industrial-fault.jpg',
     contact: { name: '上海交通大学工业智能团队', unit: '上海交通大学', email: 'industry-ai@sjtu.edu.cn' },
   },
   {
@@ -140,6 +146,7 @@ export const initialDemandPosts: DemandPost[] = [
     bookmarks: 35,
     comments: 16,
     template: 'mint',
+    cover: 'images/demand-market/rare-plants.jpg',
     contact: { name: '中国科学院生态团队', unit: '中国科学院', email: 'plant-corpus@cas.cn' },
   },
 ]
@@ -160,22 +167,30 @@ function matchesDemand(demand: DemandPost, keyword: string) {
 }
 
 export function DemandPoster({ demand, compact = false }: { demand: DemandPost; compact?: boolean }) {
+  const coverSrc = demand.cover ? `${import.meta.env.BASE_URL}${demand.cover}` : ''
+
   return (
-    <div className={`demand-poster demand-poster-${demand.template}${demand.image ? ` demand-poster-image demand-poster-image-${demand.image}` : ''}${compact ? ' is-compact' : ''}`}>
+    <div className={`demand-poster demand-poster-${demand.template}${demand.image ? ` demand-poster-image demand-poster-image-${demand.image}` : ''}${demand.cover ? ' has-cover' : ''}${compact ? ' is-compact' : ''}`}>
       <span className="poster-status">{demand.status}</span>
-      <span className="poster-orbit orbit-a" />
-      <span className="poster-orbit orbit-b" />
-      <span className="poster-dot dot-a" />
-      <span className="poster-dot dot-b" />
-      <strong>{demand.title}</strong>
-      <p>{demand.field}</p>
-      <div>
-        <span>{demand.tags[0] ?? '文字需求'}</span>
-        <i aria-hidden="true" />
-        <i aria-hidden="true" />
-        <i aria-hidden="true" />
-        <i aria-hidden="true" />
-      </div>
+      {demand.cover ? (
+        <img className="demand-poster-cover" src={coverSrc} alt="" />
+      ) : (
+        <>
+          <span className="poster-orbit orbit-a" />
+          <span className="poster-orbit orbit-b" />
+          <span className="poster-dot dot-a" />
+          <span className="poster-dot dot-b" />
+          <strong>{demand.title}</strong>
+          <p>{demand.field}</p>
+          <div>
+            <span>{demand.tags[0] ?? '文字需求'}</span>
+            <i aria-hidden="true" />
+            <i aria-hidden="true" />
+            <i aria-hidden="true" />
+            <i aria-hidden="true" />
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -233,37 +248,32 @@ export default function DemandSquare() {
   return (
     <div className="demand-square-page">
       <section className="demand-square-hero">
+        <img
+          className="demand-square-hero-bg"
+          src={`${import.meta.env.BASE_URL}images/demand-market/hero-bg.png`}
+          alt=""
+        />
         <div className="demand-square-hero-copy">
           <span>语料需求 · 共建协作</span>
-          <h1>让每一个语料需求 <b>被看见、被响应</b></h1>
+          <h1>让每一个语料需求 <b>被看见&nbsp; 被响应</b></h1>
           <p>发布语料建设需求，寻找同行伙伴，让数据资源与真实科研问题高效连接。</p>
-        </div>
-      </section>
-
-      <section className={`demand-board-section${isSearchPage ? ' is-search-results' : ''}`}>
-        <div className="demand-board-toolbar">
           <form className="demand-search" role="search" onSubmit={submitSearch}>
             <div className="demand-search-field">
               <Search size={18} />
               <input
                 aria-label="搜索需求"
                 onChange={(event) => setSearchInput(event.target.value)}
-                placeholder="多模态医疗语料"
+                placeholder="搜索需求 / 用户"
                 value={searchInput}
               />
               {searchInput && <button type="button" aria-label="清空搜索" onClick={() => { setSearchInput(''); setKeyword(''); setSearchTab('需求'); setIsSearchPage(false) }}><X size={17} /></button>}
             </div>
-            <button type="submit"><Search size={16} />搜索</button>
+            <button type="submit">搜索</button>
           </form>
-          <div className="demand-status-tabs">
-            {demandTabs.map((tab) => (
-              <button className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setActiveTab(tab)} type="button">
-                {tab}
-              </button>
-            ))}
-          </div>
         </div>
+      </section>
 
+      <section className={`demand-board-section${isSearchPage ? ' is-search-results' : ''}`}>
         {isSearchPage && keyword && (
           <div className="demand-search-tabs" aria-label="搜索结果类型">
             {(['需求', '用户'] as SearchTab[]).map((tab) => (
@@ -282,12 +292,20 @@ export default function DemandSquare() {
                 <p>{isSearchPage ? `与“${keyword}”相关的共建线索` : '按互动热度展示社区最受关注的需求'}</p>
               </div>
               <div>
-                <span>共 {visiblePosts.length} 条</span>
                 <button className="demand-primary-action" type="button" onClick={() => navigate('/demands/new')}>
                   + 发布需求
                 </button>
               </div>
             </header>
+            <div className="demand-board-toolbar">
+              <div className="demand-status-tabs">
+                {demandTabs.map((tab) => (
+                  <button className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setActiveTab(tab)} type="button">
+                    {tab === '综合排序' ? '全部' : tab}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="demand-card-grid">
             {visiblePosts.map((post) => (
               <article className="demand-post-card" key={post.id}>
