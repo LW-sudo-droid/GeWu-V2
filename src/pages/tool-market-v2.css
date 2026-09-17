@@ -457,31 +457,12 @@
   transform: translateY(0);
 }
 
-.tool-card-hover-title {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.tool-card-hover-title strong {
-  color: #1e293b;
-  font-size: 15px;
-  font-weight: 800;
-  line-height: 1.5;
-}
-
-.tool-card-hover-title span {
-  flex: 0 0 auto;
-  height: 22px;
-  padding: 0 9px;
-  border-radius: 6px;
-  font-size: 11px;
+.tool-card-hover-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 13px;
   font-weight: 700;
-  line-height: 22px;
 }
 
 .tool-card-hover-detail p {

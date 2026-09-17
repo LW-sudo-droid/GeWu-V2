@@ -254,10 +254,7 @@ export default function ToolMarket() {
                     </div>
 
                     <div className="tool-card-hover-detail" role="tooltip">
-                      <div className="tool-card-hover-title">
-                        <strong>{highlightKeyword(tool.name, keyword)}</strong>
-                        <span style={{ background: style.tagBg, color: style.tagText }}>{tool.subject}</span>
-                      </div>
+                      <strong className="tool-card-hover-label">处理场景</strong>
                       <p>{highlightKeyword(tool.description, keyword)}</p>
                     </div>
                   </article>
