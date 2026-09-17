@@ -333,6 +333,42 @@
   margin: 0 0 18px;
 }
 
+.demand-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 34px;
+}
+
+.demand-pagination button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  color: #596579;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid #d7deeb;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+}
+
+.demand-pagination button:hover:not(:disabled),
+.demand-pagination button.is-active {
+  color: #fff;
+  background: #252b34;
+  border-color: #252b34;
+}
+
+.demand-pagination button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 @media (max-width: 960px) {
   .demand-square-page .demand-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

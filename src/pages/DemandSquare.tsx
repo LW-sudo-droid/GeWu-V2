@@ -149,6 +149,186 @@ export const initialDemandPosts: DemandPost[] = [
     cover: 'images/demand-market/rare-plants.jpg',
     contact: { name: '中国科学院生态团队', unit: '中国科学院', email: 'plant-corpus@cas.cn' },
   },
+  {
+    id: 'demand-medical-002',
+    title: '共建脑影像病灶分割与报告语料',
+    field: '格物 · 医学语料',
+    corpusName: '脑影像病灶分割与诊断报告配对语料',
+    author: '华',
+    organization: '华中科技大学同济医学院',
+    bio: '关注脑影像智能分析、病灶分割与临床多模态学习。',
+    status: '招募中',
+    tags: ['医学影像', '病灶分割', '临床报告'],
+    content: '征集经过脱敏的脑部影像、病灶区域标注和结构化诊断报告，建设面向病灶识别与报告生成的多模态语料。',
+    likes: 128,
+    bookmarks: 41,
+    comments: 22,
+    template: 'blue',
+    cover: 'images/demand-market/medical-imaging.jpg',
+    contact: { name: '华中科技大学医学影像团队', unit: '华中科技大学', email: 'brain-corpus@hust.edu.cn' },
+  },
+  {
+    id: 'demand-finance-002',
+    title: '招募伙伴标注债券违约事件链',
+    field: '格物 · 金融语料',
+    corpusName: '债券违约事件与风险传导语料',
+    author: '上',
+    organization: '上海财经大学',
+    bio: '研究金融风险、事件链抽取与财经大模型评测。',
+    status: '共建中',
+    tags: ['金融事件', '风险传播'],
+    content: '围绕债券发行、评级调整、违约处置和风险传导构建事件链标注语料，邀请金融与自然语言处理团队参与。',
+    likes: 119,
+    bookmarks: 38,
+    comments: 19,
+    template: 'violet',
+    cover: 'images/demand-market/finance-events.jpg',
+    contact: { name: '上海财经大学金融语料团队', unit: '上海财经大学', email: 'bond-corpus@sufe.edu.cn' },
+  },
+  {
+    id: 'demand-dialect-002',
+    title: '西南地区少数民族语言语音征集',
+    field: '格物 · 语言语料',
+    corpusName: '西南少数民族语言语音与转写语料',
+    author: '云',
+    organization: '云南大学',
+    bio: '关注民族语言保护、语音识别与跨语言建模。',
+    status: '招募中',
+    tags: ['民族语言', '语音转写'],
+    content: '征集多地区、多年龄说话人的自然语音，并开展音素、词句和语义层级转写，支持民族语言保护与模型训练。',
+    likes: 112,
+    bookmarks: 46,
+    comments: 25,
+    template: 'mint',
+    cover: 'images/demand-market/dialect-speech.jpg',
+    contact: { name: '云南大学民族语言团队', unit: '云南大学', email: 'language-corpus@ynu.edu.cn' },
+  },
+  {
+    id: 'demand-industry-002',
+    title: '高端装备预测性维护数据共建',
+    field: '格物 · 工业语料',
+    corpusName: '高端装备故障时序与维修记录语料',
+    author: '哈',
+    organization: '哈尔滨工业大学',
+    bio: '聚焦装备健康管理、故障预测与工业智能。',
+    status: '共建中',
+    tags: ['传感器时序', '预测维护'],
+    content: '汇聚振动、温度、电流等传感器时序及维修记录，建立可追溯的故障类型、部件和处置方案关联语料。',
+    likes: 105,
+    bookmarks: 33,
+    comments: 17,
+    template: 'blue',
+    cover: 'images/demand-market/industrial-fault.jpg',
+    contact: { name: '哈尔滨工业大学智能制造团队', unit: '哈尔滨工业大学', email: 'maintenance@hit.edu.cn' },
+  },
+  {
+    id: 'demand-plant-003',
+    title: '高山植物物候连续观测图像征集',
+    field: '格物 · 生态语料',
+    corpusName: '高山植物物候与环境观测语料',
+    author: '兰',
+    organization: '兰州大学',
+    bio: '关注高山生态、植物物候与气候变化响应。',
+    status: '招募中',
+    tags: ['植物物候', '生态图像'],
+    content: '征集高山植物萌芽、开花、结实和休眠过程的连续图像及气象信息，支撑物候识别和生态变化研究。',
+    likes: 101,
+    bookmarks: 37,
+    comments: 14,
+    template: 'mint',
+    cover: 'images/demand-market/rare-plants.jpg',
+    contact: { name: '兰州大学高山生态团队', unit: '兰州大学', email: 'alpine-plant@lzu.edu.cn' },
+  },
+  {
+    id: 'demand-medical-003',
+    title: '胸部影像随访变化描述语料合作',
+    field: '格物 · 医学语料',
+    corpusName: '胸部影像纵向随访与变化描述语料',
+    author: '浙',
+    organization: '浙江大学医学院',
+    bio: '研究医学影像随访、变化检测与临床报告生成。',
+    status: '已完成',
+    tags: ['医学影像', '随访报告'],
+    content: '建设同一患者多时间点影像与变化描述配对语料，形成面向纵向比较和辅助报告生成的高质量样本。',
+    likes: 96,
+    bookmarks: 31,
+    comments: 12,
+    template: 'violet',
+    cover: 'images/demand-market/medical-imaging.jpg',
+    contact: { name: '浙江大学医学影像团队', unit: '浙江大学', email: 'followup-imaging@zju.edu.cn' },
+  },
+  {
+    id: 'demand-finance-003',
+    title: '财经政策影响关系抽取语料共建',
+    field: '格物 · 金融语料',
+    corpusName: '财经政策—行业影响关系语料',
+    author: '央',
+    organization: '中央财经大学',
+    bio: '关注财经政策理解、行业影响分析与知识图谱。',
+    status: '招募中',
+    tags: ['政策文本', '关系抽取'],
+    content: '面向公开财经政策文本标注政策对象、作用机制、影响行业和时间范围，服务政策理解与行业研究。',
+    likes: 92,
+    bookmarks: 29,
+    comments: 13,
+    template: 'violet',
+    cover: 'images/demand-market/finance-events.jpg',
+    contact: { name: '中央财经大学政策语料团队', unit: '中央财经大学', email: 'policy-corpus@cufe.edu.cn' },
+  },
+  {
+    id: 'demand-dialect-003',
+    title: '城市多口音普通话对话语料招募',
+    field: '格物 · 语言语料',
+    corpusName: '城市多口音普通话自然对话语料',
+    author: '北',
+    organization: '北京语言大学',
+    bio: '研究口音适配、自然对话与语音识别。',
+    status: '共建中',
+    tags: ['口音语音', '自然对话'],
+    content: '采集不同地区说话人的自然任务对话，完成说话人、口音、情绪和语义意图标注，提升语音模型适配能力。',
+    likes: 88,
+    bookmarks: 34,
+    comments: 15,
+    template: 'mint',
+    cover: 'images/demand-market/dialect-speech.jpg',
+    contact: { name: '北京语言大学语音团队', unit: '北京语言大学', email: 'accent-speech@blcu.edu.cn' },
+  },
+  {
+    id: 'demand-industry-003',
+    title: '工业机器人异常动作视频语料征集',
+    field: '格物 · 工业语料',
+    corpusName: '工业机器人异常动作与故障视频语料',
+    author: '华',
+    organization: '华南理工大学',
+    bio: '关注工业视觉、机器人安全与异常检测。',
+    status: '招募中',
+    tags: ['工业视频', '异常检测'],
+    content: '征集机器人碰撞、偏移、夹持失败等异常动作视频及故障日志，构建工业现场视觉异常检测语料。',
+    likes: 84,
+    bookmarks: 28,
+    comments: 11,
+    template: 'blue',
+    cover: 'images/demand-market/industrial-fault.jpg',
+    contact: { name: '华南理工大学工业视觉团队', unit: '华南理工大学', email: 'robot-video@scut.edu.cn' },
+  },
+  {
+    id: 'demand-plant-004',
+    title: '城市树木病虫害图像与诊断语料',
+    field: '格物 · 生态语料',
+    corpusName: '城市树木病虫害图像诊断语料',
+    author: '林',
+    organization: '北京林业大学',
+    bio: '研究森林保护、植物病理与生态智能监测。',
+    status: '共建中',
+    tags: ['植物图像', '病虫害'],
+    content: '收集城市树木叶片、枝干和冠层病虫害图像，配套物种、病因、严重程度及治理建议标注。',
+    likes: 79,
+    bookmarks: 26,
+    comments: 10,
+    template: 'mint',
+    cover: 'images/demand-market/rare-plants.jpg',
+    contact: { name: '北京林业大学植物保护团队', unit: '北京林业大学', email: 'tree-health@bjfu.edu.cn' },
+  },
 ]
 
 const communityUsers: CommunityUser[] = [
@@ -158,6 +338,8 @@ const communityUsers: CommunityUser[] = [
 ]
 
 const demandTabs: DemandTab[] = ['综合排序', '招募中', '共建中', '已完成']
+const DEMAND_PAGE_COUNT = 5
+const DEMAND_PAGE_SIZE = 15
 
 function matchesDemand(demand: DemandPost, keyword: string) {
   const normalized = keyword.trim().toLocaleLowerCase('zh-CN')
@@ -203,6 +385,7 @@ export default function DemandSquare() {
   const [keyword, setKeyword] = useState('')
   const [isSearchPage, setIsSearchPage] = useState(false)
   const [searchTab, setSearchTab] = useState<SearchTab>('需求')
+  const [currentPage, setCurrentPage] = useState(1)
   const [selectedPost, setSelectedPost] = useState<DemandPost | null>(null)
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set())
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set(['user-chen']))
@@ -216,6 +399,16 @@ export default function DemandSquare() {
       : posts.filter((post) => post.status === activeTab)
     return filteredByStatus.filter((post) => matchesDemand(post, keyword))
   }, [activeTab, keyword, posts])
+
+  const pagePosts = useMemo(() => {
+    if (visiblePosts.length === 0) return []
+    if (isSearchPage) return visiblePosts.slice(0, DEMAND_PAGE_SIZE)
+    const offset = (currentPage - 1) * 3
+    return Array.from(
+      { length: DEMAND_PAGE_SIZE },
+      (_, index) => visiblePosts[(offset + index) % visiblePosts.length],
+    )
+  }, [currentPage, isSearchPage, visiblePosts])
 
   const matchedUsers = useMemo(() => {
     const normalized = keyword.trim().toLocaleLowerCase('zh-CN')
@@ -234,6 +427,14 @@ export default function DemandSquare() {
     setKeyword(searchInput.trim())
     setSearchTab('需求')
     setIsSearchPage(Boolean(searchInput.trim()))
+    setCurrentPage(1)
+  }
+
+  const changePage = (page: number) => {
+    setCurrentPage(Math.min(DEMAND_PAGE_COUNT, Math.max(1, page)))
+    window.requestAnimationFrame(() => {
+      document.querySelector('.demand-board-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
   }
 
   const toggleId = (setter: Dispatch<SetStateAction<Set<string>>>, id: string) => {
@@ -300,15 +501,15 @@ export default function DemandSquare() {
             <div className="demand-board-toolbar">
               <div className="demand-status-tabs">
                 {demandTabs.map((tab) => (
-                  <button className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => setActiveTab(tab)} type="button">
+                  <button className={activeTab === tab ? 'is-active' : ''} key={tab} onClick={() => { setActiveTab(tab); setCurrentPage(1) }} type="button">
                     {tab === '综合排序' ? '全部' : tab}
                   </button>
                 ))}
               </div>
             </div>
             <div className="demand-card-grid">
-            {visiblePosts.map((post) => (
-              <article className="demand-post-card" key={post.id}>
+            {pagePosts.map((post, index) => (
+              <article className="demand-post-card" key={`${post.id}-${currentPage}-${index}`}>
                 <button className="demand-card-main" type="button" onClick={() => navigate(`/demands/${post.id}`)} aria-label={`查看${post.title}详情`}>
                   <DemandPoster demand={post} />
                   <div className="demand-post-body">
@@ -327,6 +528,21 @@ export default function DemandSquare() {
               </article>
             ))}
             </div>
+            {!isSearchPage && (
+              <nav className="demand-pagination" aria-label="需求分页">
+                <button type="button" aria-label="上一页" disabled={currentPage === 1} onClick={() => changePage(currentPage - 1)}>
+                  <ChevronLeft size={16} />
+                </button>
+                {Array.from({ length: DEMAND_PAGE_COUNT }, (_, index) => index + 1).map((page) => (
+                  <button className={currentPage === page ? 'is-active' : ''} type="button" key={page} onClick={() => changePage(page)}>
+                    {page}
+                  </button>
+                ))}
+                <button type="button" aria-label="下一页" disabled={currentPage === DEMAND_PAGE_COUNT} onClick={() => changePage(currentPage + 1)}>
+                  <ChevronRight size={16} />
+                </button>
+              </nav>
+            )}
           </>
         ) : (
           <div className="demand-user-results">
