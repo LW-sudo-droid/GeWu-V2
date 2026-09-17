@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react'
-import { Search, X } from 'lucide-react'
+import {
+  Atom,
+  Dna,
+  FlaskConical,
+  Globe2,
+  LayoutGrid,
+  Search,
+  Sigma,
+  Telescope,
+  X,
+} from 'lucide-react'
 import toolMarketData from '../data/tool-market.json'
+import './tool-market-v2.css'
 
 type Subject = '数学' | '物理' | '化学' | '天文' | '地理' | '生物'
 
@@ -18,10 +29,22 @@ const subjects: Array<'全部工具' | Subject> = ['全部工具', '数学', '�
 const suggestedKeywords = ['实验', '训练', '抽取', '图像', '对齐', '标注']
 const PAGE_SIZE = 12
 
-function visiblePageNumbers(current: number, total: number) {
-  const start = Math.max(1, Math.min(current - 2, total - 4))
-  const end = Math.min(total, start + 4)
-  return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index)
+const subjectIcons: Record<Subject, typeof Sigma> = {
+  数学: Sigma,
+  物理: Atom,
+  化学: FlaskConical,
+  天文: Telescope,
+  地理: Globe2,
+  生物: Dna,
+}
+
+const subjectStyle: Record<Subject, { gradient: string; iconColor: string; tagBg: string; tagText: string }> = {
+  数学: { gradient: 'linear-gradient(145deg, #f3ecff 0%, #b9a4ff 100%)', iconColor: '#7654ff', tagBg: '#f1ebff', tagText: '#7757ff' },
+  物理: { gradient: 'linear-gradient(145deg, #e9fbff 0%, #a7d0ff 100%)', iconColor: '#087cf0', tagBg: '#ddf7ff', tagText: '#0788e8' },
+  化学: { gradient: 'linear-gradient(145deg, #e7faff 0%, #a4ceff 100%)', iconColor: '#087cf0', tagBg: '#dff7ff', tagText: '#0788e8' },
+  天文: { gradient: 'linear-gradient(145deg, #ecefff 0%, #99a7ff 100%)', iconColor: '#4058e8', tagBg: '#eceeff', tagText: '#5664f4' },
+  地理: { gradient: 'linear-gradient(145deg, #e5f9ff 0%, #a8cbff 100%)', iconColor: '#0878ea', tagBg: '#ddf7ff', tagText: '#0788e8' },
+  生物: { gradient: 'linear-gradient(145deg, #f1ebff 0%, #c3a8ff 100%)', iconColor: '#7351e8', tagBg: '#f0ebff', tagText: '#7757e9' },
 }
 
 function escapeRegExp(value: string) {
@@ -43,6 +66,15 @@ function highlightKeyword(text: string, keyword: string) {
       </mark>
     )
   })
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
 }
 
 export default function ToolMarket() {
@@ -70,7 +102,14 @@ export default function ToolMarket() {
   }, [keywordMatchedTools])
 
   const filteredTools = useMemo(() => {
-    return keywordMatchedTools.filter((tool) => subject === '全部工具' || tool.subject === subject)
+    let result = keywordMatchedTools
+    if (subject !== '全部工具') {
+      result = result.filter((tool) => tool.subject === subject)
+    } else {
+      // 全部工具时随机混排
+      result = shuffleArray(result)
+    }
+    return result
   }, [keywordMatchedTools, subject])
 
   const pageCount = Math.max(1, Math.ceil(filteredTools.length / PAGE_SIZE))
@@ -104,11 +143,22 @@ export default function ToolMarket() {
     document.querySelector('.tool-market-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  // 计算显示的页码范围（最多5个，不显示尾页）
+  const getVisiblePages = () => {
+    let start = Math.max(1, page - 2)
+    let end = Math.min(pageCount, start + 4)
+    if (end - start < 4) {
+      start = Math.max(1, end - 4)
+    }
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i)
+  }
+
   return (
     <div className="tool-market-page">
       <section className="tool-market-hero">
         <div className="tool-market-hero-inner">
-          <h1>工具链市场</h1>
+          <span className="tool-market-hero-kicker">六大学科语料加工工具汇聚平台</span>
+          <h1><span className="tool-market-title-accent">工具链</span>市场</h1>
           <p>汇聚六大学科语料加工工具，服务科学语料采集、解析、清洗、标注、对齐与质量评估</p>
 
           <form className="tool-market-search" onSubmit={submitSearch} role="search">
@@ -145,7 +195,10 @@ export default function ToolMarket() {
 
       <section className="tool-market-content">
         <aside className="tool-subject-sidebar" aria-label="按学科领域筛选">
-          <h2>按学科领域</h2>
+          <h2>
+            <LayoutGrid aria-hidden="true" />
+            按学科领域
+          </h2>
           <div className="tool-subject-list">
             {subjects.map((item) => (
               <button
@@ -163,35 +216,53 @@ export default function ToolMarket() {
 
         <div className="tool-results-panel">
           <header className="tool-results-header">
-            <div>
-              <h2>{subject}</h2>
-              <p>共收录 <strong>{filteredTools.length}</strong> 条工具链</p>
-            </div>
+            <h2>{subject === '全部工具' ? '全部工具' : subject}</h2>
+            <p>共收录 <strong>{filteredTools.length}</strong> 条工具链</p>
           </header>
 
           {pageTools.length > 0 ? (
             <div className="tool-card-grid">
-              {pageTools.map((tool) => (
-                <article
-                  className="tool-market-card"
-                  key={tool.id}
-                  tabIndex={0}
-                >
-                  <div className="tool-card-heading">
-                    <span className="tool-subject-tag">{tool.subject}</span>
-                    <h3>{highlightKeyword(tool.name, keyword)}</h3>
-                  </div>
-                  <div className="tool-card-description">
-                    <strong>处理场景</strong>
-                    <p>{highlightKeyword(tool.description, keyword)}</p>
-                  </div>
+              {pageTools.map((tool) => {
+                const style = subjectStyle[tool.subject]
+                const SubjectIcon = subjectIcons[tool.subject]
+                return (
+                  <article
+                    className="tool-market-card"
+                    key={tool.id}
+                    tabIndex={0}
+                  >
+                    <div className="tool-card-heading">
+                      <span
+                        className="tool-card-icon"
+                        style={{ background: style.gradient, color: style.iconColor }}
+                      >
+                        <SubjectIcon aria-hidden="true" strokeWidth={2.2} />
+                      </span>
+                      <div className="tool-card-meta">
+                        <h3>{highlightKeyword(tool.name, keyword)}</h3>
+                        <span
+                          className="tool-subject-tag"
+                          style={{ background: style.tagBg, color: style.tagText }}
+                        >
+                          {tool.subject}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="tool-card-description">
+                      <strong>处理场景</strong>
+                      <p>{highlightKeyword(tool.description, keyword)}</p>
+                    </div>
 
-                  <div className="tool-card-hover-detail" role="tooltip">
-                    <strong>{highlightKeyword(tool.name, keyword)}</strong>
-                    <p>{highlightKeyword(tool.description, keyword)}</p>
-                  </div>
-                </article>
-              ))}
+                    <div className="tool-card-hover-detail" role="tooltip">
+                      <div className="tool-card-hover-title">
+                        <strong>{highlightKeyword(tool.name, keyword)}</strong>
+                        <span style={{ background: style.tagBg, color: style.tagText }}>{tool.subject}</span>
+                      </div>
+                      <p>{highlightKeyword(tool.description, keyword)}</p>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           ) : (
             <div className="tool-market-empty">
@@ -205,7 +276,7 @@ export default function ToolMarket() {
           {filteredTools.length > PAGE_SIZE && (
             <nav className="tool-market-pagination" aria-label="工具链分页">
               <button disabled={page === 1} onClick={() => goToPage(page - 1)} type="button">上一页</button>
-              {visiblePageNumbers(page, pageCount).map((pageNumber) => (
+              {getVisiblePages().map((pageNumber) => (
                 <button
                   aria-current={page === pageNumber ? 'page' : undefined}
                   className={page === pageNumber ? 'is-active' : ''}
