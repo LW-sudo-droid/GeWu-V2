@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Search, X, LayoutGrid } from 'lucide-react'
+import {
+  Atom,
+  Dna,
+  FlaskConical,
+  Globe2,
+  LayoutGrid,
+  Search,
+  Sigma,
+  Telescope,
+  X,
+} from 'lucide-react'
 import toolMarketData from '../data/tool-market.json'
 import './tool-market-v2.css'
 
@@ -19,23 +29,22 @@ const subjects: Array<'全部工具' | Subject> = ['全部工具', '数学', '�
 const suggestedKeywords = ['实验', '训练', '抽取', '图像', '对齐', '标注']
 const PAGE_SIZE = 12
 
-// 方案C-几何现代 图标
-const subjectIconPaths: Record<Subject, string> = {
-  数学: 'M18 4H6l6 8-6 8h12',
-  物理: 'M12 12a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM20.2 20.2c2.04-2.03.02-7.36-4.5-11.9-4.54-4.52-9.87-6.54-11.9-4.5-2.04 2.03-.02 7.36 4.5 11.9 4.54 4.52 9.87 6.54 11.9 4.5zM15.7 15.7c4.52-4.54 6.54-9.87 4.5-11.9-2.03-2.04-7.36-.02-11.9 4.5-4.52 4.54-6.54 9.87-4.5 11.9 2.03 2.04 7.36.02 11.9-4.5z',
-  化学: 'M6 18h12M10 3h4M10 3v6l-4 9h12l-4-9V3',
-  天文: 'M12 3a6 6 0 0 0-6 6c0 1.5.5 3 1.5 4l-4 7h17l-4-7c1-1 1.5-2.5 1.5-4a6 6 0 0 0-6-6zM12 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
-  地理: 'M12 12a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10zM2 12h20',
-  生物: 'M6 3v6c0 1.5 1 3 2 4l4 3-4 3c-1 1-2 2.5-2 4v2h12v-2c0-1.5-1-3-2-4l-4-3 4-3c1-1 2-2.5 2-4V3M8 7h8M8 17h8',
+const subjectIcons: Record<Subject, typeof Sigma> = {
+  数学: Sigma,
+  物理: Atom,
+  化学: FlaskConical,
+  天文: Telescope,
+  地理: Globe2,
+  生物: Dna,
 }
 
-const subjectStyle: Record<Subject, { gradient: string; tagBg: string; tagText: string }> = {
-  数学: { gradient: 'linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%)', tagBg: '#f3e8ff', tagText: '#9333ea' },
-  物理: { gradient: 'linear-gradient(135deg, #c7d2fe 0%, #818cf8 100%)', tagBg: '#e0e7ff', tagText: '#4f46e5' },
-  化学: { gradient: 'linear-gradient(135deg, #a5f3fc 0%, #22d3ee 100%)', tagBg: '#cffafe', tagText: '#0891b2' },
-  天文: { gradient: 'linear-gradient(135deg, #ddd6fe 0%, #a78bfa 100%)', tagBg: '#ede9fe', tagText: '#7c3aed' },
-  地理: { gradient: 'linear-gradient(135deg, #bbf7d0 0%, #4ade80 100%)', tagBg: '#dcfce7', tagText: '#16a34a' },
-  生物: { gradient: 'linear-gradient(135deg, #f5d0fe 0%, #e879f9 100%)', tagBg: '#fae8ff', tagText: '#c026d3' },
+const subjectStyle: Record<Subject, { gradient: string; iconColor: string; tagBg: string; tagText: string }> = {
+  数学: { gradient: 'linear-gradient(145deg, #f3ecff 0%, #b9a4ff 100%)', iconColor: '#7654ff', tagBg: '#f1ebff', tagText: '#7757ff' },
+  物理: { gradient: 'linear-gradient(145deg, #e9fbff 0%, #a7d0ff 100%)', iconColor: '#087cf0', tagBg: '#ddf7ff', tagText: '#0788e8' },
+  化学: { gradient: 'linear-gradient(145deg, #e7faff 0%, #a4ceff 100%)', iconColor: '#087cf0', tagBg: '#dff7ff', tagText: '#0788e8' },
+  天文: { gradient: 'linear-gradient(145deg, #ecefff 0%, #99a7ff 100%)', iconColor: '#4058e8', tagBg: '#eceeff', tagText: '#5664f4' },
+  地理: { gradient: 'linear-gradient(145deg, #e5f9ff 0%, #a8cbff 100%)', iconColor: '#0878ea', tagBg: '#ddf7ff', tagText: '#0788e8' },
+  生物: { gradient: 'linear-gradient(145deg, #f1ebff 0%, #c3a8ff 100%)', iconColor: '#7351e8', tagBg: '#f0ebff', tagText: '#7757e9' },
 }
 
 function escapeRegExp(value: string) {
@@ -207,16 +216,15 @@ export default function ToolMarket() {
 
         <div className="tool-results-panel">
           <header className="tool-results-header">
-            <div>
-              <h2>{subject === '全部工具' ? '全部工具' : subject}</h2>
-              <p>共收录 <strong>{filteredTools.length}</strong> 条工具链</p>
-            </div>
+            <h2>{subject === '全部工具' ? '全部工具' : subject}</h2>
+            <p>共收录 <strong>{filteredTools.length}</strong> 条工具链</p>
           </header>
 
           {pageTools.length > 0 ? (
             <div className="tool-card-grid">
               {pageTools.map((tool) => {
                 const style = subjectStyle[tool.subject]
+                const SubjectIcon = subjectIcons[tool.subject]
                 return (
                   <article
                     className="tool-market-card"
@@ -224,10 +232,11 @@ export default function ToolMarket() {
                     tabIndex={0}
                   >
                     <div className="tool-card-heading">
-                      <span className="tool-card-icon" style={{ background: style.gradient }}>
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d={subjectIconPaths[tool.subject]} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
+                      <span
+                        className="tool-card-icon"
+                        style={{ background: style.gradient, color: style.iconColor }}
+                      >
+                        <SubjectIcon aria-hidden="true" strokeWidth={2.2} />
                       </span>
                       <div className="tool-card-meta">
                         <h3>{highlightKeyword(tool.name, keyword)}</h3>
