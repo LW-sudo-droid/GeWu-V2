@@ -13,8 +13,8 @@
   overflow: hidden;
   color: var(--tm-ink);
   background:
-    radial-gradient(circle at 72% 42%, rgba(210, 218, 255, 0.42) 0%, transparent 32%),
-    linear-gradient(180deg, #f1f5ff 0%, #f1f5ff 24%, #f7faff 100%);
+    radial-gradient(circle at 72% 34%, rgba(210, 218, 255, 0.42) 0%, transparent 34%),
+    linear-gradient(180deg, #f1f5ff 0%, #f1f5ff 38%, #f7faff 100%);
 }
 
 /* Hero */
@@ -45,11 +45,11 @@
   bottom: -1px;
   left: 0;
   display: block;
-  height: 12px;
+  height: 120px;
   pointer-events: none;
   border: 0;
   border-radius: 0;
-  background: #f1f5ff;
+  background: linear-gradient(180deg, rgba(241, 245, 255, 0), #f1f5ff 82%);
   box-shadow: none;
   transform: none;
 }
@@ -207,7 +207,7 @@
   align-items: start;
   gap: 28px;
   width: min(1260px, calc(100% - 48px));
-  margin: -40px auto 0;
+  margin: -54px auto 0;
   padding: 0 0 96px;
   scroll-margin-top: 88px;
 }
