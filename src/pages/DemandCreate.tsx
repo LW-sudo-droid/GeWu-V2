@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Check, ClipboardList, FileText, Image as ImageIcon, Trash2, X } from 'lucide-react'
-import { DemandPoster } from './DemandSquare'
+import { AlertCircle, ChevronLeft, ClipboardList, FileText, Image as ImageIcon, Trash2, Upload, X } from 'lucide-react'
+import DemandDraftThumbnail from '../components/DemandDraftThumbnail'
 import { loadDrafts, removeDraft, type DemandDraft } from '../data/demand-drafts'
 
 export default function DemandCreate() {
@@ -29,19 +29,24 @@ export default function DemandCreate() {
   return (
     <div className="demand-create-page">
       <section className="demand-create-hero">
-        <h1>生成需求图片</h1>
-        <p>选择适合的图片制作方式，完成需求发布前的视觉内容</p>
+        <div className="demand-create-hero-copy">
+          <button className="demand-create-back" type="button" aria-label="返回需求广场首页" onClick={() => navigate('/demands')}>
+            <ChevronLeft size={24} />
+          </button>
+          <div>
+            <h1>生成需求图片</h1>
+            <p>选择适合的图片制作方式，完成需求发布前的视觉内容</p>
+          </div>
+        </div>
+        <button className="demand-create-drafts-btn" type="button" onClick={() => setShowDrafts(true)}>
+          <ClipboardList size={18} />
+          草稿箱 {drafts.length}
+        </button>
       </section>
 
       <section className="demand-create-stage">
-        <header className="demand-create-stage-head">
-          <button className="demand-create-drafts-btn" type="button" onClick={() => setShowDrafts(true)}>
-            <ClipboardList size={16} />
-            草稿箱({drafts.length})
-          </button>
-        </header>
         <div className="demand-create-upload-zone">
-          <span className="demand-create-image-slot"><ImageIcon size={42} /></span>
+          <span className="demand-create-image-slot"><ImageIcon size={54} /><Upload className="demand-create-upload-icon" size={25} /></span>
           <p>上传图片，或生成文字图片</p>
           <div className="demand-create-actions">
             <button className="demand-create-upload" type="button" onClick={() => fileRef.current?.click()}>上传图片</button>
@@ -54,12 +59,12 @@ export default function DemandCreate() {
         </div>
         <footer className="demand-create-tips">
           <article>
-            <h3>推荐比例</h3>
-            <p>纵版 4:5，更适合需求广场展示</p>
+            <h3>图片比例</h3>
+            <p>推荐 4:3 比例，优选 1200×900px；分辨率720px以上，更适配需求广场展示</p>
           </article>
           <article>
-            <h3>图片尺寸</h3>
-            <p>建议不低于 1080 × 1350 px</p>
+            <h3>图片格式</h3>
+            <p>支持上传的图片格式：png、jpg、jpeg、webp；不支持 gif 格式</p>
           </article>
           <article>
             <h3>内容规范</h3>
@@ -75,7 +80,7 @@ export default function DemandCreate() {
             <h2 id="demand-create-drafts-title">草稿箱</h2>
             {drafts.length ? drafts.map((draft) => (
               <article key={draft.id}>
-                <DemandPoster demand={draft} compact />
+                <DemandDraftThumbnail />
                 <div className="demand-create-draft-copy">
                   <h3>{draft.corpusName}</h3>
                   <p>保存于 {draft.savedAt}</p>
@@ -85,7 +90,7 @@ export default function DemandCreate() {
                   <button type="button" onClick={() => setDeleteTarget(draft)}><Trash2 size={15} />删除</button>
                 </div>
               </article>
-            )) : <p className="demand-create-draft-empty">暂无草稿</p>}
+            )) : <div className="demand-create-draft-empty" aria-label="暂无草稿" />}
           </section>
         </div>
       )}
@@ -93,10 +98,12 @@ export default function DemandCreate() {
       {deleteTarget && (
         <div className="demand-modal-backdrop" role="presentation" onMouseDown={() => setDeleteTarget(null)}>
           <section className="demand-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="demand-confirm-title" onMouseDown={(event) => event.stopPropagation()}>
-            <span className="demand-confirm-mark"><Check size={30} /></span>
-            <h2 id="demand-confirm-title">确定要删除草稿吗？</h2>
-            <p>删除后，草稿内容将不会保存。</p>
-            <button className="demand-confirm-primary" type="button" onClick={confirmDelete}>确认删除</button>
+            <span className="demand-confirm-mark"><AlertCircle size={14} /></span>
+            <h2 id="demand-confirm-title">草稿删除后不可找回</h2>
+            <div className="demand-confirm-actions">
+              <button className="demand-confirm-cancel" type="button" onClick={() => setDeleteTarget(null)}>取消</button>
+              <button className="demand-confirm-primary" type="button" onClick={confirmDelete}>删除</button>
+            </div>
           </section>
         </div>
       )}

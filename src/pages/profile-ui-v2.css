@@ -709,6 +709,19 @@
   font-size: 10px;
 }
 
+.profile-page .profile-corpus-grid .card-org-mark:has(img) {
+  overflow: hidden;
+  border-color: #e3e8ef;
+}
+
+.profile-page .profile-corpus-grid .card-org-mark img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  padding: 2px;
+}
+
 .profile-page .profile-corpus-grid .card-organization-name {
   margin-right: auto;
   overflow: hidden;

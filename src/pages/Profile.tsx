@@ -108,6 +108,12 @@ const communityUsers: CommunityUser[] = [
 ]
 
 const demandInstitutionLogos: Record<string, string> = {
+  '北京大学': 'images/partners/pku.svg',
+  '清华大学': 'images/partners/tsinghua.webp',
+  '武汉大学': 'images/partners/wuhan.webp',
+  '厦门大学': 'images/partners/xiamen.jpg',
+  '北京科学智能研究院': 'images/partners/aisi.ico',
+  '深势科技': 'images/partners/dptech.jpg',
   '北京大学医学部': 'images/partners/pku.svg',
   '复旦大学': 'images/partners/fudan.png',
   '南京大学': 'images/partners/nanjing.webp',
@@ -214,6 +220,40 @@ const commentPrivacyOptions: CommentPrivacy[] = ['全部公开', '仅公开我�
 const followPrivacyOptions: FollowPrivacy[] = ['全部公开', '仅公开关注列表', '仅公开粉丝列表', '全部私密']
 
 const demandPageSize = 4
+
+function shuffleRecords<T>(items: T[], groupBy?: (item: T) => string) {
+  const randomize = (values: T[]) => {
+    const shuffled = [...values]
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Math.floor(Math.random() * (index + 1))
+      ;[shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]]
+    }
+    return shuffled
+  }
+  if (!groupBy) return randomize(items)
+
+  const groups = new Map<string, T[]>()
+  items.forEach((item) => {
+    const key = groupBy(item)
+    groups.set(key, [...(groups.get(key) ?? []), item])
+  })
+  groups.forEach((values, key) => groups.set(key, randomize(values)))
+
+  const result: T[] = []
+  let previousGroup = ''
+  while (groups.size > 0) {
+    const available = [...groups.keys()].filter((key) => key !== previousGroup)
+    const candidates = available.length > 0 ? available : [...groups.keys()]
+    const key = candidates[Math.floor(Math.random() * candidates.length)]
+    const values = groups.get(key) ?? []
+    const next = values.shift()
+    if (next !== undefined) result.push(next)
+    if (values.length === 0) groups.delete(key)
+    else groups.set(key, values)
+    previousGroup = key
+  }
+  return result
+}
 
 function Pager({ total, pageSize, current, onChange, span = 5 }: { total: number; pageSize: number; current: number; onChange: (page: number) => void; span?: number }) {
   const pageCount = Math.max(1, Math.ceil(total / pageSize))
@@ -327,6 +367,13 @@ export default function Profile() {
   const [auditSortField, setAuditSortField] = useState<'submittedAt' | 'auditAt'>('submittedAt')
   const [auditSortDir, setAuditSortDir] = useState<'desc' | 'asc'>('desc')
   const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  const expandedSubmitRecords = useMemo(() => Array.from({ length: 5 }, (_, batchIndex) =>
+      submitRecordsState.map((record) => ({ ...record, mockKey: `${batchIndex}-${record.id}` }))
+    ).flat(), [submitRecordsState])
+  const simulatedSubmitRecords = useMemo(() => {
+    return shuffleRecords(expandedSubmitRecords, (record) => record.status)
+  }, [expandedSubmitRecords])
 
   useEffect(() => {
     if (activeTab === 'audit') setAuditItems(loadAuditItems())
@@ -661,7 +708,11 @@ export default function Profile() {
                     <div className="catalog-card-metadata"><span><Building2 size={14} />{item.organization} - {item.authors}</span></div>
                     <p>{item.summary}</p>
                     <footer>
-                      <span className="card-org-mark" aria-hidden="true">{item.organization.slice(0, 1)}</span>
+                      <span className="card-org-mark" aria-hidden="true">
+                        {demandInstitutionLogos[item.organization]
+                          ? <img src={`${import.meta.env.BASE_URL}${demandInstitutionLogos[item.organization]}`} alt="" />
+                          : item.organization.slice(0, 1)}
+                      </span>
                       <strong className="card-organization-name">{item.organization} - {item.authors}</strong>
                       <span><Download size={14} />{item.usage.toLocaleString()}</span>
                       <span><Eye size={14} />{item.views.toLocaleString()}</span>
@@ -754,9 +805,7 @@ export default function Profile() {
           {activeTab === 'submit' && (() => {
             // Five compact demo pages: reuse the current records while keeping
             // every page independently clickable and all row actions functional.
-            const simulatedRecords: SubmitRecord[] = Array.from({ length: 5 }, (_, batchIndex) =>
-              submitRecordsState.map((record) => ({ ...record, mockKey: `${batchIndex}-${record.id}` }))
-            ).flat()
+            const simulatedRecords = submitStatus === '全部' ? simulatedSubmitRecords : expandedSubmitRecords
             const filtered = simulatedRecords
               .filter((record) =>
                 (submitStatus === '全部' || record.status === submitStatus) &&
@@ -764,7 +813,7 @@ export default function Profile() {
                 (!submitKeyword.trim() || record.corpusName.includes(submitKeyword.trim()))
               )
               .slice()
-              .sort((a, b) => submitSortDir === 'desc' ? b.submittedAt.localeCompare(a.submittedAt) : a.submittedAt.localeCompare(b.submittedAt))
+              .sort((a, b) => submitStatus === '全部' ? 0 : submitSortDir === 'desc' ? b.submittedAt.localeCompare(a.submittedAt) : a.submittedAt.localeCompare(b.submittedAt))
             const pageCount = Math.max(1, Math.ceil(filtered.length / submitPerPage))
             const safePage = Math.min(submitPage, pageCount)
             const visibleRecords = filtered.slice((safePage - 1) * submitPerPage, safePage * submitPerPage)

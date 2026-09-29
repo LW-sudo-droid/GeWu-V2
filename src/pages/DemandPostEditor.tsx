@@ -1,12 +1,12 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Check, CheckCircle2, Plus, Trash2, X } from 'lucide-react'
+import { AlertCircle, Check, ChevronLeft, ChevronRight, ClipboardList, Minus, Plus, RotateCw, Trash2, X } from 'lucide-react'
 import type { DemandPost } from './DemandSquare'
 import { loadDrafts, nowStamp, saveDrafts } from '../data/demand-drafts'
 import { addPublishedPost } from '../data/demand-posts'
 
 type CropRect = { x: number; y: number; w: number; h: number }
-type Ratio = '1:1' | '4:5'
+type Ratio = '1:1' | '4:3'
 
 type EditorImage = {
   id: string
@@ -18,18 +18,26 @@ type EditorImage = {
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-const ratioHeight = (w: number, ratio: Ratio) => (ratio === '1:1' ? w : w * 1.25)
+const ratioHeight = (w: number, ratio: Ratio) => (ratio === '1:1' ? w : w * 0.75)
 
-const textImageTheme = 'linear-gradient(135deg, #4faff2 0%, #1e63f2 52%, #0b3cc9 100%)'
+const techAsset = (name: string) => `${import.meta.env.BASE_URL}images/demand-market/poster-tech/${name}`
+
+const demoImages: EditorImage[] = [
+  { id: 'img-text-1', kind: 'text', src: techAsset('tech-stack.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-2', kind: 'text', src: techAsset('tech-panel.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-3', kind: 'text', src: techAsset('tech-cube.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-4', kind: 'text', src: techAsset('tech-wave.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-5', kind: 'text', src: techAsset('tech-dna.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-6', kind: 'text', src: techAsset('tech-molecule.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+]
 
 export default function DemandPostEditor() {
   const navigate = useNavigate()
   const addImageRef = useRef<HTMLInputElement>(null)
   const cropStageRef = useRef<HTMLDivElement>(null)
 
-  const [images, setImages] = useState<EditorImage[]>([
-    { id: 'img-text-1', kind: 'text', title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:5' },
-  ])
+  const [images, setImages] = useState<EditorImage[]>(demoImages)
+  const [imageStart, setImageStart] = useState(0)
   const [field, setField] = useState('')
   const [corpusName, setCorpusName] = useState('')
   const [tags, setTags] = useState<string[]>(['医学影像', '多模态', '语料共建', '招募中'])
@@ -41,12 +49,16 @@ export default function DemandPostEditor() {
   const [toast, setToast] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [crop, setCrop] = useState<CropRect>({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 })
-  const [ratio, setRatio] = useState<Ratio>('4:5')
+  const [ratio, setRatio] = useState<Ratio>('4:3')
+  const [zoom, setZoom] = useState(1)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [postedId, setPostedId] = useState('')
   const [showSuccess, setShowSuccess] = useState(false)
 
   const editingImage = images.find((item) => item.id === editingId) ?? null
+  const visibleImages = images.length <= 6
+    ? images
+    : Array.from({ length: 6 }, (_, index) => images[(imageStart + index) % images.length])
 
   const flashToast = (message: string) => {
     setToast(message)
@@ -54,19 +66,38 @@ export default function DemandPostEditor() {
   }
 
   const removeImage = (id: string) => {
-    setImages((current) => current.filter((item) => item.id !== id))
+    setImages((current) => {
+      if (current.length <= 1) {
+        flashToast('至少保留一张图片')
+        return current
+      }
+      return current.filter((item) => item.id !== id)
+    })
+    setImageStart((current) => Math.max(0, current - 1))
   }
 
   const addUploadedFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    setImages((current) => [...current, {
+    const uploadedImage: EditorImage = {
       id: `img-upload-${Date.now()}`,
       kind: 'upload',
       src: URL.createObjectURL(file),
       crop: { x: 0.1, y: 0.1, w: 0.8, h: 0.8 },
-      ratio: '4:5',
-    }])
+      ratio: '4:3',
+    }
+    setImages((current) => [...current, uploadedImage])
+    setEditingId(uploadedImage.id)
+    setRatio(uploadedImage.ratio)
+    setCrop(uploadedImage.crop)
+    setZoom(1)
+    setImageStart((current) => Math.max(0, Math.min(current, images.length)))
+    event.target.value = ''
+  }
+
+  const moveImage = (direction: -1 | 1) => {
+    if (images.length < 2) return
+    setImageStart((current) => (current + direction + images.length) % images.length)
   }
 
   const pushTag = () => {
@@ -80,6 +111,7 @@ export default function DemandPostEditor() {
     setEditingId(image.id)
     setRatio(image.ratio)
     setCrop(image.crop)
+    setZoom(1)
   }
 
   const applyCrop = () => {
@@ -138,8 +170,17 @@ export default function DemandPostEditor() {
   }
 
   const makePost = (): DemandPost | null => {
-    if (!field.trim() || !corpusName.trim()) {
-      flashToast('请填写应用领域与语料名称')
+    const requiredFields: Array<[string, string]> = [
+      [field, '应用领域'],
+      [corpusName, '语料名称'],
+      [content, '帖子内容'],
+      [name, '姓名'],
+      [email, '邮箱'],
+      [unit, '所在单位'],
+    ]
+    const missing = requiredFields.find(([value]) => !value.trim())
+    if (missing) {
+      flashToast(`请输入${missing[1]}`)
       return null
     }
     return {
@@ -179,21 +220,35 @@ export default function DemandPostEditor() {
   return (
     <div className="demand-create-page demand-editor-page">
       <section className="demand-create-hero">
-        <h1>编辑发布内容</h1>
-        <p>发布前统一检查图片、标题与正文</p>
+        <div className="demand-create-hero-copy">
+          <button className="demand-create-back" type="button" aria-label="返回生成海报" onClick={() => navigate('/demands/new/poster')}>
+            <ChevronLeft size={25} />
+          </button>
+          <div>
+            <h1>编辑发布内容</h1>
+            <p>发布前统一检查图片、标题与正文</p>
+          </div>
+        </div>
+        <button className="demand-create-drafts-btn" type="button" onClick={() => navigate('/demands/new')}>
+          <ClipboardList size={20} />
+          草稿箱&nbsp;{loadDrafts().length}
+        </button>
       </section>
 
       <section className="demand-create-stage editor-stage">
-        <h2 className="editor-section-title">图片内容</h2>
+        <h2 className="editor-section-title"><i />基本信息</h2>
         <div className="editor-image-row">
-          {images.map((image) => (
-            <button className="editor-image-card" type="button" key={image.id} onClick={() => openCrop(image)}>
+          {images.length > 1 && <button className="editor-image-switch is-left" type="button" aria-label="上一张图片" onClick={() => moveImage(-1)}><ChevronLeft size={20} /></button>}
+          {visibleImages.map((image) => (
+            <div className="editor-image-card" role="button" tabIndex={0} key={image.id} onClick={() => openCrop(image)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') openCrop(image) }}>
               <button className="editor-image-delete" type="button" aria-label="删除图片" onClick={(event) => { event.stopPropagation(); removeImage(image.id) }}>
                 <Trash2 size={13} />
               </button>
-              <span className="editor-image-type">{image.kind === 'text' ? '文字图片' : '上传图片'}</span>
               {image.kind === 'text' ? (
-                <div className="editor-text-thumb" style={{ background: textImageTheme }}>{image.title}</div>
+                <div className="editor-text-thumb" style={{ backgroundImage: `url(${image.src ?? techAsset('tech-stack.png')})` }}>
+                  <strong>医学语料库</strong>
+                  <span>寻找方言伙伴共建语音与转写语料</span>
+                </div>
               ) : (
                 <div className="editor-img-thumb">
                   <img
@@ -208,8 +263,9 @@ export default function DemandPostEditor() {
                   />
                 </div>
               )}
-            </button>
+            </div>
           ))}
+          {images.length > 1 && <button className="editor-image-switch is-right" type="button" aria-label="下一张图片" onClick={() => moveImage(1)}><ChevronRight size={20} /></button>}
           <button className="editor-image-add" type="button" onClick={() => addImageRef.current?.click()}>
             <Plus size={22} />
             <span>添加图片</span>
@@ -217,67 +273,56 @@ export default function DemandPostEditor() {
           <input ref={addImageRef} type="file" accept="image/*" hidden onChange={addUploadedFile} />
         </div>
 
-        <div className="editor-field-grid">
+        <div className="editor-field-grid editor-basic-fields">
           <label className="editor-field">
-            <span>应用领域</span>
+            <span>应用领域 <em>*</em></span>
             <input value={field} onChange={(event) => setField(event.target.value)} placeholder="请输入应用领域" />
           </label>
           <label className="editor-field">
-            <span>语料名称</span>
+            <span>语料名称 <em>*</em></span>
             <input value={corpusName} onChange={(event) => setCorpusName(event.target.value)} placeholder="请输入语料名称" />
           </label>
-        </div>
-
-        <div className="editor-field">
-          <span>标签</span>
-          <div className="editor-tags-box">
-            <input
-              value={tagInput}
-              onChange={(event) => setTagInput(event.target.value)}
-              onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); pushTag() } }}
-              placeholder="输入标签，按回车添加"
-            />
-            {tags.length > 0 && (
-              <div className="editor-tag-chips">
-                {tags.map((tag) => (
-                  <span key={tag}>
-                    {tag}
-                    <button type="button" aria-label={`删除标签 ${tag}`} onClick={() => setTags((current) => current.filter((item) => item !== tag))}><X size={11} /></button>
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="editor-field">
+            <span>标签 <em>*</em></span>
+            <div className="editor-tags-box">
+              <input
+                value={tagInput}
+                onChange={(event) => setTagInput(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); pushTag() } }}
+                placeholder="请输入标签，按回车添加"
+              />
+              {tags.length > 0 && <div className="editor-tag-chips">{tags.map((tag) => <span key={tag}>{tag}<button type="button" aria-label={`删除标签 ${tag}`} onClick={() => setTags((current) => current.filter((item) => item !== tag))}><X size={11} /></button></span>)}</div>}
+            </div>
           </div>
-        </div>
-
-        <div className="editor-field">
-          <span>帖子内容</span>
-          <div className="editor-content-box">
-            <textarea value={content} maxLength={1000} onChange={(event) => setContent(event.target.value)} placeholder="描述语料范围、样例数据、服务场景或协作方式" />
-            <small>{content.length} / 1000</small>
+          <div className="editor-field">
+            <span>帖子内容 <em>*</em></span>
+            <div className="editor-content-box">
+              <textarea value={content} maxLength={1000} onChange={(event) => setContent(event.target.value)} placeholder="请输入帖子内容" />
+              <small>{content.length} / 1000</small>
+            </div>
           </div>
         </div>
 
         <h2 className="editor-section-title editor-section-contact">联系信息</h2>
         <div className="editor-field-grid">
           <label className="editor-field">
-            <span>姓名</span>
+            <span>姓名 <em>*</em></span>
             <input value={name} onChange={(event) => setName(event.target.value)} placeholder="请输入姓名" />
           </label>
           <label className="editor-field">
-            <span>邮箱</span>
+            <span>邮箱 <em>*</em></span>
             <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="请输入邮箱" />
           </label>
         </div>
         <label className="editor-field">
-          <span>所在单位</span>
+          <span>所在单位 <em>*</em></span>
           <input value={unit} onChange={(event) => setUnit(event.target.value)} placeholder="请输入所在单位" />
         </label>
 
         <footer className="editor-bar">
-          <button className="editor-bar-plain" type="button" onClick={() => setShowCancelConfirm(true)}>取消</button>
-          <button className="editor-bar-plain" type="button" onClick={saveDraft}>保存草稿</button>
           <button className="editor-bar-primary" type="button" onClick={publish}>发布</button>
+          <button className="editor-bar-plain" type="button" onClick={saveDraft}>保存草稿</button>
+          <button className="editor-bar-plain" type="button" onClick={() => setShowCancelConfirm(true)}>取消</button>
         </footer>
       </section>
 
@@ -288,9 +333,12 @@ export default function DemandPostEditor() {
             <h2 id="demand-crop-title">裁剪图片</h2>
             <div className="crop-stage" ref={cropStageRef}>
               {editingImage.kind === 'text' ? (
-                <div className="crop-preview-text" style={{ background: textImageTheme }}>{editingImage.title}</div>
+                <div className="crop-preview-text" style={{ backgroundImage: `url(${editingImage.src ?? techAsset('tech-stack.png')})`, transform: `scale(${zoom})` }}>
+                  <strong>医学语料库</strong>
+                  <span>寻找方言伙伴共建语音与转写语料</span>
+                </div>
               ) : (
-                <img src={editingImage.src} alt="" />
+                <img src={editingImage.src} alt="" style={{ transform: `scale(${zoom})` }} />
               )}
               <div
                 className="crop-box"
@@ -308,10 +356,16 @@ export default function DemandPostEditor() {
                 <span className="crop-handle is-se" onPointerDown={(event) => { event.stopPropagation(); startCropDrag('resize')(event) }} />
               </div>
             </div>
+            <div className="crop-zoom-tools">
+              <button type="button" aria-label="缩小" onClick={() => setZoom((value) => clamp(value - 0.1, 1, 2))}><Minus size={18} /></button>
+              <input aria-label="缩放比例" type="range" min="1" max="2" step="0.05" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} />
+              <button type="button" aria-label="放大" onClick={() => setZoom((value) => clamp(value + 0.1, 1, 2))}><Plus size={18} /></button>
+              <button type="button" aria-label="旋转图片" onClick={() => flashToast('图片已旋转')}><RotateCw size={17} /></button>
+            </div>
             <footer className="crop-footer">
               <div className="crop-ratios">
                 <button className={ratio === '1:1' ? 'is-active' : ''} type="button" onClick={() => applyRatio('1:1')}>1 : 1</button>
-                <button className={ratio === '4:5' ? 'is-active' : ''} type="button" onClick={() => applyRatio('4:5')}>4 : 5</button>
+                <button className={ratio === '4:3' ? 'is-active' : ''} type="button" onClick={() => applyRatio('4:3')}>4 : 3</button>
               </div>
               <div className="crop-actions">
                 <button className="crop-cancel" type="button" onClick={() => setEditingId(null)}>取消</button>
@@ -325,11 +379,14 @@ export default function DemandPostEditor() {
       {showCancelConfirm && (
         <div className="demand-modal-backdrop" role="presentation" onMouseDown={() => setShowCancelConfirm(false)}>
           <section className="demand-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="demand-cancel-title" onMouseDown={(event) => event.stopPropagation()}>
-            <span className="demand-confirm-mark"><CheckCircle2 size={30} /></span>
+            <button className="demand-modal-close" type="button" aria-label="关闭确认弹窗" onClick={() => setShowCancelConfirm(false)}><X /></button>
+            <span className="demand-confirm-mark"><AlertCircle size={30} /></span>
             <h2 id="demand-cancel-title">确定要取消发布吗？</h2>
             <p>取消后，当前填写的内容将不会保存。<br />你可以选择继续编辑，或确认离开此页面。</p>
-            <button className="demand-confirm-primary" type="button" onClick={() => navigate('/demands/new')}>确认取消</button>
-            <button className="demand-confirm-link" type="button" onClick={() => setShowCancelConfirm(false)}>继续编辑</button>
+            <div className="editor-confirm-actions">
+              <button className="editor-confirm-cancel" type="button" onClick={() => navigate('/demands/new')}>确认取消</button>
+              <button className="editor-confirm-primary" type="button" onClick={() => setShowCancelConfirm(false)}>继续编辑</button>
+            </div>
           </section>
         </div>
       )}
@@ -337,6 +394,7 @@ export default function DemandPostEditor() {
       {showSuccess && (
         <div className="demand-modal-backdrop" role="presentation" onMouseDown={() => setShowSuccess(false)}>
           <section className="demand-success-modal" role="dialog" aria-modal="true" aria-labelledby="demand-success-title" onMouseDown={(event) => event.stopPropagation()}>
+            <button className="demand-modal-close" type="button" aria-label="关闭发布成功弹窗" onClick={() => setShowSuccess(false)}><X /></button>
             <span className="demand-success-mark" aria-hidden="true"><Check size={30} /></span>
             <h2 id="demand-success-title">发布成功</h2>
             <p>你的语料建设需求已发布到需求广场</p>
