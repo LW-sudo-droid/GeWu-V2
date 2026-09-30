@@ -69,6 +69,11 @@ function placeholderForField(field: SearchField) {
 }
 
 const searchableSubjects = ['数学', '物理', '化学', '天文', '地理', '生物']
+const subjectChildrenByParent: Record<string, string[]> = {
+  化学: ['碳材料', 'f族元素', '生物医药', '能源材料', '催化', '教育教学'],
+  地理: ['地球世界模型', '地表环境与城市', '教育教学'],
+  生物: ['生命', '医学'],
+}
 const searchableInstitutions = [
   '天文学院-科维理天文与天体物理研究所', '北京未来基因诊断高精尖创新中心', '健康医疗大数据国家研究院',
   '遥感与地理信息系统研究所', '化学与分子工程学院', '环境科学与工程学院', '地球与空间科学学院',
@@ -176,8 +181,8 @@ const emptyFacetFilters: CorpusFilterState = {
   subjects: [], subSubjects: [], corpusTypes: [], institutions: [], corpusSizes: [], storageSizes: [], openness: [],
 }
 
-const corpusSizeBuckets = ['1千以下', '1千-1万', '1万-10万', '10万-100万', '100万以上']
-const storageBuckets = ['<500GB', '500GB-1TB', '1-2TB', '>2TB']
+const corpusSizeBuckets = ['1千以下', '1千-1万', '1万-10万', '10万-100万', '100万及以上']
+const storageBuckets = ['500GB以下', '500GB-1TB', '1-2TB', '2TB及以上']
 
 export function recordCoverImage(id: string) {
   const [subject, num] = id.split('-')
@@ -494,6 +499,12 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
   const filteredRecords = useMemo(() => {
     const matched = corpusRecords.filter((item, index) => {
       if (facetFilters.subjects.length && !facetFilters.subjects.includes(item.subject)) return false
+      if (facetFilters.subSubjects.length) {
+        const selectedParents = new Set(Object.entries(subjectChildrenByParent)
+          .filter(([, children]) => children.some((child) => facetFilters.subSubjects.includes(child)))
+          .map(([parent]) => parent))
+        if (selectedParents.size && !selectedParents.has(item.subject)) return false
+      }
       if (facetFilters.institutions.length && !facetFilters.institutions.some((value) => `${item.organization} ${item.authors}`.includes(value))) return false
       if (facetFilters.corpusSizes.length && !facetFilters.corpusSizes.includes(corpusSizeBuckets[index % corpusSizeBuckets.length])) return false
       if (facetFilters.storageSizes.length && !facetFilters.storageSizes.includes(storageBuckets[index % storageBuckets.length])) return false
@@ -573,8 +584,10 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
 
   const resetAllResultFilters = () => {
     setAppliedSearch(emptyAppliedSearch())
+    setResultSearchKeyword('')
     setPublisherFilter('')
     setSubjectFilter('')
+    setResultStatusTab('all')
     setCurrentPage(1)
     setFacetFilters(emptyFacetFilters)
     setFilterResetVersion((value) => value + 1)
@@ -608,7 +621,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     <main className="search-page">
       <header className={`search-page-heading${isResultsPage ? ' is-results' : ''}`}>
         {isResultsPage && <Link className="back-to-search" to="/search"><ChevronLeft size={15} />返回语料检索</Link>}
-        <h1>{isResultsPage ? '检索结果' : '语料检索'}</h1>
+        <h1><span>语料</span><span className="search-title-gradient">检索</span></h1>
       </header>
 
       {!isResultsPage && <>

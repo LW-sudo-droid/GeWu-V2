@@ -40,10 +40,10 @@ const corpusTypeOptions: Option[] = [
 ]
 const corpusSizeOptions: Option[] = [
   { label: '1千以下', count: 82 }, { label: '1千-1万', count: 146 }, { label: '1万-10万', count: 238 },
-  { label: '10万-100万', count: 251 }, { label: '100万以上', count: 183 },
+  { label: '10万-100万', count: 251 }, { label: '100万及以上', count: 183 },
 ]
 const storageOptions: Option[] = [
-  { label: '<500GB', count: 342 }, { label: '500GB-1TB', count: 247 }, { label: '1-2TB', count: 184 }, { label: '>2TB', count: 127 },
+  { label: '500GB以下', count: 342 }, { label: '500GB-1TB', count: 247 }, { label: '1-2TB', count: 184 }, { label: '2TB及以上', count: 127 },
 ]
 const opennessOptions: Option[] = [
   { label: '公开', count: 843 }, { label: '不公开', count: 57 },
@@ -88,13 +88,21 @@ const institutionGroups: InstitutionGroup[] = [
       { label: '北京大学', count: 426, children: pkuDepartments },
       { label: '清华大学', count: 68 }, { label: '复旦大学', count: 54 }, { label: '上海交通大学', count: 51 },
       { label: '南京大学', count: 49 }, { label: '武汉大学', count: 47 }, { label: '厦门大学', count: 39 },
+      { label: '中国科学技术大学', count: 36 }, { label: '国防科技大学', count: 28 },
       { label: '其他', count: 8, custom: true },
+    ],
+  },
+  {
+    label: '企业', count: 14, children: [
+      { label: '深势科技', count: 9 },
+      { label: '其他', count: 5, custom: true },
     ],
   },
   {
     label: '新型研发机构', count: 21, children: [
       { label: '北京石墨烯研究院', count: 12 },
       { label: '昌平实验室', count: 9 },
+      { label: '其他', count: 0, custom: true },
     ],
   },
   { label: '个人', count: 37, children: [] },
@@ -203,7 +211,7 @@ export default function CorpusFilterSidebar({
   const [institutionExpanded, setInstitutionExpanded] = useState(true)
   const [openInstitutionGroups, setOpenInstitutionGroups] = useState<string[]>(() => {
     const group = initialInstitutionGroup(initialPublisher)
-    return group ? [group] : ['高校']
+    return group ? [group] : []
   })
   const [institutionVisible, setInstitutionVisible] = useState<Record<string, number>>({ 高校: 5 })
   const [openInstitutionNodes, setOpenInstitutionNodes] = useState<string[]>(() => {
@@ -320,7 +328,7 @@ export default function CorpusFilterSidebar({
     setSubjectExpanded(true)
     setInstitutionQuery('')
     setInstitutionExpanded(true)
-    setOpenInstitutionGroups(['高校'])
+    setOpenInstitutionGroups([])
     setInstitutionVisible({ 高校: 5 })
     setOpenInstitutionNodes([])
     setInstitutionNodeVisible({ '高校/北京大学': 5 })
