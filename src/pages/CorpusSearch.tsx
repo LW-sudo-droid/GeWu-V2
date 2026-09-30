@@ -670,8 +670,11 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                   </select>
                   <input value={condition.value} onChange={(event) => updateCondition(condition.id, 'value', event.target.value)} placeholder={`请输入${fieldOptions.find((option) => option.value === condition.field)?.label ?? '检索内容'}`} />
                   <div className="condition-actions">
-                    <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件" title="添加条件"><Plus size={17} /></button>
-                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件" title={conditions.length <= 2 ? '至少保留2项条件' : '删除条件'}><Minus size={17} /></button>
+                    {index === 0 ? (
+                      <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件" title="添加条件"><Plus size={17} /></button>
+                    ) : (
+                      <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件" title={conditions.length <= 2 ? '至少保留2项条件' : '删除条件'}><Minus size={17} /></button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -679,7 +682,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
 
             <div className="advanced-footer-row">
               <fieldset className="date-range-fieldset">
-                <legend><CalendarDays size={16} />发布时间范围</legend>
+                <legend><CalendarDays size={16} />发布时间</legend>
                 <label><span>起始日期</span><input type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <i>至</i>
                 <label><span>结束日期</span><input type="date" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} /></label>
@@ -851,15 +854,18 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                   </select>
                   <input value={condition.value} onChange={(event) => updateCondition(condition.id, 'value', event.target.value)} placeholder="请输入检索内容" />
                   <div className="condition-actions">
-                    <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件"><Plus size={17} /></button>
-                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件"><Minus size={17} /></button>
+                    {index === 0 ? (
+                      <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件"><Plus size={17} /></button>
+                    ) : (
+                      <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件"><Minus size={17} /></button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
             <div className="advanced-footer-row result-modal-footer">
               <fieldset className="date-range-fieldset">
-                <legend><CalendarDays size={16} />发布时间范围</legend>
+                <legend><CalendarDays size={16} />发布时间</legend>
                 <label><span>起始日期</span><input type="date" value={startDate} max={endDate || undefined} onChange={(event) => setStartDate(event.target.value)} /></label>
                 <i>至</i>
                 <label><span>结束日期</span><input type="date" value={endDate} min={startDate || undefined} onChange={(event) => setEndDate(event.target.value)} /></label>

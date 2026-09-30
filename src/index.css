@@ -6912,7 +6912,7 @@ body *::after {
   z-index: 0;
   height: 420px;
   opacity: 1;
-  background-image: url('/images/demand-market/hero-bg.png');
+  background-image: url('/images/search-hero-reference.png');
   background-position: center top;
   background-size: cover;
   background-repeat: no-repeat;
@@ -22314,4 +22314,220 @@ body {
   padding: 0 14px;
   border-radius: 999px;
   font-size: 10px;
+}
+
+/* Search-page polish pass from the latest reference screenshots. */
+.search-page:not(:has(.back-to-search)) {
+  background:
+    linear-gradient(180deg, rgba(246, 251, 255, 0) 0 430px, rgba(255, 255, 255, .72) 650px, #fff 900px),
+    url('/images/search-hero-reference.png') center top / 100% 760px no-repeat,
+    #fff;
+}
+
+.search-page:not(:has(.back-to-search))::before {
+  display: none;
+}
+
+.search-page:not(:has(.back-to-search)) .search-page-heading h1 {
+  background: linear-gradient(90deg, #20243a 0%, #3b7cff 47%, #18c5ed 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-results-section {
+  max-width: 1010px;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-results-heading {
+  align-items: end;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-sort-control select {
+  width: 168px;
+  min-width: 168px;
+  padding-right: 10px;
+  font-size: 10px;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-card-grid {
+  grid-template-columns: repeat(3, 320px);
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-corpus-card {
+  width: 320px;
+  height: 226px;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-corpus-card h3 {
+  height: 35px;
+  overflow: hidden;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-corpus-card > p {
+  height: 27px;
+  overflow: hidden;
+}
+
+.search-page:not(:has(.back-to-search)) .catalog-corpus-card footer {
+  margin-top: auto;
+}
+
+.search-page:not(:has(.back-to-search)) .card-status-overlay.is-private {
+  top: 10px;
+  right: 10px;
+  min-height: 21px;
+  padding: 0 9px;
+  color: #667085;
+  background: rgba(235, 238, 243, .86);
+  border: 1px solid rgba(205, 211, 221, .8);
+  border-radius: 999px;
+  box-shadow: none;
+  backdrop-filter: blur(5px);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+/* Wide dialog proportions from the advanced-search reference. */
+.search-page .result-advanced-dialog {
+  width: min(1180px, calc(100vw - 48px));
+  max-height: min(820px, calc(100vh - 40px));
+  padding: 34px 40px 30px;
+  border-radius: 26px;
+}
+
+.search-page .result-advanced-dialog .result-advanced-heading {
+  margin: -34px -40px 34px;
+  padding: 30px 40px 25px;
+}
+
+.search-page .result-advanced-dialog .result-advanced-heading h2 {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.search-page .result-advanced-dialog > .advanced-condition-heading {
+  margin-bottom: 24px;
+}
+
+.search-page .result-advanced-dialog > .advanced-condition-heading strong {
+  font-size: 25px;
+}
+
+.search-page .result-advanced-dialog > .advanced-condition-heading span {
+  font-size: 22px;
+}
+
+.search-page .result-advanced-dialog .result-modal-condition-list {
+  gap: 20px;
+  max-height: 460px;
+  overflow-x: hidden;
+}
+
+.search-page .result-advanced-dialog .result-modal-condition-list .advanced-condition-row {
+  grid-template-columns: 160px 235px minmax(0, 1fr) 44px;
+  gap: 24px;
+}
+
+.search-page .result-advanced-dialog .result-modal-condition-list select,
+.search-page .result-advanced-dialog .result-modal-condition-list input {
+  height: 64px;
+  padding: 0 22px;
+  border-color: #c9d0db;
+  border-radius: 14px;
+  font-size: 22px;
+}
+
+.search-page .result-advanced-dialog .result-modal-condition-list .condition-actions button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+}
+
+.search-page .result-advanced-dialog .result-modal-condition-list .condition-actions button svg {
+  width: 29px;
+  height: 29px;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer {
+  margin-top: 38px;
+  gap: 26px;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .date-range-fieldset {
+  padding: 0;
+  border: 0;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .date-range-fieldset legend {
+  margin-bottom: 15px;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .date-range-fieldset label span {
+  display: none;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .date-range-fieldset input {
+  height: 62px;
+  padding: 0 20px;
+  border: 1px solid #c9d0db;
+  border-radius: 14px;
+  font-size: 20px;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .advanced-search-actions {
+  gap: 18px;
+}
+
+.search-page .result-advanced-dialog .result-modal-footer .advanced-search-actions button {
+  min-height: 50px;
+  min-width: 112px;
+  padding: 0 23px;
+  font-size: 20px;
+}
+
+@media (max-width: 760px) {
+  .search-page:not(:has(.back-to-search)) .catalog-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 320px));
+    justify-content: center;
+  }
+
+  .search-page:not(:has(.back-to-search)) .catalog-corpus-card {
+    width: min(320px, 100%);
+  }
+
+  .search-page .result-advanced-dialog {
+    width: min(680px, calc(100vw - 26px));
+    padding: 22px 18px 20px;
+  }
+
+  .search-page .result-advanced-dialog .result-advanced-heading {
+    margin: -22px -18px 22px;
+    padding: 20px 18px 17px;
+  }
+
+  .search-page .result-advanced-dialog > .advanced-condition-heading strong {
+    font-size: 18px;
+  }
+
+  .search-page .result-advanced-dialog > .advanced-condition-heading span {
+    font-size: 14px;
+  }
+
+  .search-page .result-advanced-dialog .result-modal-condition-list .advanced-condition-row {
+    grid-template-columns: 72px 110px minmax(0, 1fr) 28px;
+    gap: 8px;
+  }
+
+  .search-page .result-advanced-dialog .result-modal-condition-list select,
+  .search-page .result-advanced-dialog .result-modal-condition-list input {
+    height: 42px;
+    padding: 0 9px;
+    font-size: 13px;
+  }
 }
