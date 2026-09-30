@@ -2,6 +2,7 @@ import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } fro
 import {
   Building2,
   CalendarDays,
+  CircleAlert,
   ChevronLeft,
   ChevronRight,
   Download,
@@ -184,6 +185,27 @@ export function recordCoverImage(id: string) {
   return `${import.meta.env.BASE_URL}images/home/subject-${subject}-${index}.jpg`
 }
 
+const institutionLogoMap: Record<string, string> = {
+  '北京大学': 'partners/pku.svg',
+  '清华大学': 'partners/tsinghua.webp',
+  '复旦大学': 'partners/fudan.png',
+  '上海交通大学': 'partners/sjtu.jpg',
+  '南京大学': 'partners/nanjing.webp',
+  '武汉大学': 'partners/wuhan.webp',
+  '厦门大学': 'partners/xiamen.jpg',
+  '北京科学智能研究院': 'partners/aisi.ico',
+  '深势科技': 'partners/dptech.jpg',
+}
+
+export function institutionLogo(organization: string) {
+  const asset = institutionLogoMap[organization]
+  return asset ? `${import.meta.env.BASE_URL}images/${asset}` : ''
+}
+
+function institutionInitial(organization: string) {
+  return organization.slice(0, 1) || '机'
+}
+
 export function recordDisplayMeta(item: CorpusRecord) {
   const index = Math.max(0, corpusRecords.findIndex((record) => record.id === item.id))
   return {
@@ -298,6 +320,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
   const [resultSearchKeyword, setResultSearchKeyword] = useState(searchParams.get('q') ?? '')
   const [searchHistory, setSearchHistory] = useState<string[]>(loadSearchHistory)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyConfirmOpen, setHistoryConfirmOpen] = useState(false)
   const [advancedModalOpen, setAdvancedModalOpen] = useState(false)
   const [filterResetVersion, setFilterResetVersion] = useState(0)
 
@@ -460,6 +483,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setSearchHistory([])
     window.localStorage.removeItem('gw-corpus-search-history')
     setHistoryOpen(false)
+    setHistoryConfirmOpen(false)
   }
 
   const applySimpleHistoryKeyword = (keyword: string) => {
@@ -616,9 +640,10 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                 placeholder={placeholderForField(simpleField)}
               />
               {historyOpen && searchHistory.length > 0 && (
-                <SearchHistoryPanel history={searchHistory} onPick={applySimpleHistoryKeyword} onDelete={deleteHistoryItem} onClear={clearSearchHistory} />
+                <SearchHistoryPanel history={searchHistory} onPick={applySimpleHistoryKeyword} onDelete={deleteHistoryItem} onClear={() => setHistoryConfirmOpen(true)} />
               )}
             </label>
+            <button className="home-advanced-trigger" type="button" onClick={openAdvancedSearch}>高级搜索 <SlidersHorizontal size={14} /></button>
             <button className="primary-search-button" type="submit"><Search size={18} />检索</button>
           </form>
         ) : (
@@ -646,7 +671,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                   <input value={condition.value} onChange={(event) => updateCondition(condition.id, 'value', event.target.value)} placeholder={`请输入${fieldOptions.find((option) => option.value === condition.field)?.label ?? '检索内容'}`} />
                   <div className="condition-actions">
                     <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件" title="添加条件"><Plus size={17} /></button>
-                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={index < 2} aria-label="删除检索条件" title={index < 2 ? '前两项条件不可删除' : '删除条件'}><Minus size={17} /></button>
+                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件" title={conditions.length <= 2 ? '至少保留2项条件' : '删除条件'}><Minus size={17} /></button>
                   </div>
                 </div>
               ))}
@@ -714,7 +739,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                 placeholder={placeholderForField(resultSearchField)}
               />
               {historyOpen && searchHistory.length > 0 && (
-                <SearchHistoryPanel history={searchHistory} onPick={applyResultSimpleSearch} onDelete={deleteHistoryItem} onClear={clearSearchHistory} />
+                  <SearchHistoryPanel history={searchHistory} onPick={applyResultSimpleSearch} onDelete={deleteHistoryItem} onClear={() => setHistoryConfirmOpen(true)} />
               )}
             </div>
             <button type="submit" className="result-search-submit">检索</button>
@@ -768,7 +793,11 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                   </div>
                 )}
                 <footer>
-                  <span className="card-org-mark" aria-hidden="true">北</span>
+                  {institutionLogo(item.organization) ? (
+                    <img className="card-org-logo" src={institutionLogo(item.organization)} alt="" aria-hidden="true" />
+                  ) : (
+                    <span className="card-org-mark" aria-hidden="true">{institutionInitial(item.organization)}</span>
+                  )}
                   <strong className="card-organization-name">{item.organization} - {item.authors}</strong>
                   <span><Download size={14} />{item.usage.toLocaleString()}</span>
                   <span><Eye size={14} />{item.views.toLocaleString()}</span>
@@ -799,7 +828,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
         </div>
       </section>
 
-      {isResultsPage && advancedModalOpen && (
+      {advancedModalOpen && (
         <div className="result-advanced-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAdvancedModalOpen(false) }}>
           <section className="result-advanced-dialog" role="dialog" aria-modal="true" aria-labelledby="result-advanced-title">
             <div className="result-advanced-heading">
@@ -817,13 +846,13 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                   <select value={condition.logic} onChange={(event) => updateCondition(condition.id, 'logic', event.target.value as LogicOperator)} aria-label={`第${index + 1}项逻辑关系`}>
                     <option value="and">AND</option><option value="or">OR</option><option value="not">NOT</option>
                   </select>
-                  <select value={condition.field === 'keyword' ? 'title' : condition.field} onChange={(event) => updateCondition(condition.id, 'field', event.target.value as SearchField)} aria-label={`第${index + 1}项检索字段`}>
-                    {fieldOptions.filter((option) => option.value !== 'keyword').map((option) => <option value={option.value} key={option.value}>{option.value === 'title' ? '标题' : option.label}</option>)}
+                  <select value={condition.field} onChange={(event) => updateCondition(condition.id, 'field', event.target.value as SearchField)} aria-label={`第${index + 1}项检索字段`}>
+                    {fieldOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
                   </select>
                   <input value={condition.value} onChange={(event) => updateCondition(condition.id, 'value', event.target.value)} placeholder="请输入检索内容" />
                   <div className="condition-actions">
                     <button type="button" onClick={addCondition} disabled={conditions.length >= 10} aria-label="添加检索条件"><Plus size={17} /></button>
-                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={index < 2} aria-label="删除检索条件"><Minus size={17} /></button>
+                    <button type="button" onClick={() => removeCondition(condition.id)} disabled={conditions.length <= 2} aria-label="删除检索条件"><Minus size={17} /></button>
                   </div>
                 </div>
               ))}
@@ -837,8 +866,23 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
               </fieldset>
               <div className="advanced-search-actions">
                 <button type="button" className="reset-search-button" onClick={resetResultAdvancedSearch}><RotateCcw size={17} />重置条件</button>
-                <button type="button" className="primary-search-button" onClick={applyResultAdvancedSearch}><Search size={17} />检索</button>
+                <button type="button" className="primary-search-button" onClick={() => { if (isResultsPage) applyResultAdvancedSearch(); else handleAdvancedSearch() }}><Search size={17} />检索</button>
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {historyConfirmOpen && (
+        <div className="search-history-confirm-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setHistoryConfirmOpen(false) }}>
+          <section className="search-history-confirm" role="dialog" aria-modal="true" aria-labelledby="search-history-confirm-title">
+            <button type="button" className="search-history-confirm-close" aria-label="关闭确认弹窗" onClick={() => setHistoryConfirmOpen(false)}><X size={18} /></button>
+            <CircleAlert size={30} aria-hidden="true" />
+            <h2 id="search-history-confirm-title">确认删除搜索记录吗？</h2>
+            <p>删除后将无法恢复。</p>
+            <div>
+              <button type="button" className="history-confirm-cancel" onClick={() => setHistoryConfirmOpen(false)}>取消</button>
+              <button type="button" className="history-confirm-primary" onClick={clearSearchHistory}>确认</button>
             </div>
           </section>
         </div>
