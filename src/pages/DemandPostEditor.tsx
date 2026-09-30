@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { AlertCircle, Check, ChevronLeft, ChevronRight, ClipboardList, Minus, Plus, RotateCw, Trash2, X } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, ClipboardList, Minus, Plus, RotateCw, Trash2, X } from 'lucide-react'
 import type { DemandPosterImage, DemandPost } from './DemandSquare'
 import { loadDrafts, nowStamp, saveDrafts } from '../data/demand-drafts'
 import { addPublishedPost } from '../data/demand-posts'
@@ -408,11 +408,29 @@ export default function DemandPostEditor() {
         <div className="demand-modal-backdrop" role="presentation" onMouseDown={() => setShowSuccess(false)}>
           <section className="demand-success-modal" role="dialog" aria-modal="true" aria-labelledby="demand-success-title" onMouseDown={(event) => event.stopPropagation()}>
             <button className="demand-modal-close" type="button" aria-label="关闭发布成功弹窗" onClick={() => setShowSuccess(false)}><X /></button>
-            <span className="demand-success-mark" aria-hidden="true"><Check size={30} /></span>
+            <span className="demand-success-illustration" aria-hidden="true">
+              <svg viewBox="0 0 126 126" role="presentation">
+                <defs>
+                  <linearGradient id="demand-success-check" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#8a52ff" />
+                    <stop offset="1" stopColor="#20c8ee" />
+                  </linearGradient>
+                </defs>
+                <rect x="28" y="10" width="63" height="79" rx="11" fill="#f8fbff" stroke="#cfe6ff" strokeWidth="2" />
+                <path d="M43 37h34M43 51h34M43 65h22" fill="none" stroke="#aab6c7" strokeLinecap="round" strokeWidth="4" />
+                <path d="m25 24 16 39-9 7-16-39z" fill="#5d52f4" />
+                <path d="m16 31 16 39-5 4-16-39z" fill="#36bff4" opacity=".9" />
+                <path d="m28 70 10-7-2 13z" fill="#26364d" />
+                <circle cx="87" cy="87" r="25" fill="url(#demand-success-check)" />
+                <path d="m74 87 9 9 18-21" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="6" />
+              </svg>
+            </span>
             <h2 id="demand-success-title">发布成功</h2>
             <p>你的语料建设需求已发布到需求广场</p>
-            <button className="demand-success-primary" type="button" onClick={() => navigate(`/demands/${postedId}`)}>查看需求</button>
-            <button className="demand-success-link" type="button" onClick={() => navigate('/demands/new')}>继续发布</button>
+            <div className="demand-success-actions">
+              <button className="demand-success-secondary" type="button" onClick={() => navigate('/demands/new')}>继续发布</button>
+              <button className="demand-success-primary" type="button" onClick={() => navigate(`/demands/${postedId}`)}>查看需求</button>
+            </div>
           </section>
         </div>
       )}
