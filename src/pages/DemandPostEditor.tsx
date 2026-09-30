@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { AlertCircle, Check, ChevronLeft, ChevronRight, ClipboardList, Minus, Plus, RotateCw, Trash2, X } from 'lucide-react'
-import type { DemandPost } from './DemandSquare'
+import type { DemandPosterImage, DemandPost } from './DemandSquare'
 import { loadDrafts, nowStamp, saveDrafts } from '../data/demand-drafts'
 import { addPublishedPost } from '../data/demand-posts'
+import { takeDemandEditorImages, type DemandEditorTransferImage } from '../data/demand-editor-transfer'
 
 type CropRect = { x: number; y: number; w: number; h: number }
 type Ratio = '1:1' | '4:3'
@@ -12,7 +13,9 @@ type EditorImage = {
   id: string
   kind: 'text' | 'upload'
   src?: string
+  background?: string
   title?: string
+  subtitle?: string
   crop: CropRect
   ratio: Ratio
 }
@@ -23,20 +26,29 @@ const ratioHeight = (w: number, ratio: Ratio) => (ratio === '1:1' ? w : w * 0.75
 const techAsset = (name: string) => `${import.meta.env.BASE_URL}images/demand-market/poster-tech/${name}`
 
 const demoImages: EditorImage[] = [
-  { id: 'img-text-1', kind: 'text', src: techAsset('tech-stack.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
-  { id: 'img-text-2', kind: 'text', src: techAsset('tech-panel.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
-  { id: 'img-text-3', kind: 'text', src: techAsset('tech-cube.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
-  { id: 'img-text-4', kind: 'text', src: techAsset('tech-wave.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
-  { id: 'img-text-5', kind: 'text', src: techAsset('tech-dna.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
-  { id: 'img-text-6', kind: 'text', src: techAsset('tech-molecule.png'), title: '医学影像——文本多模态语料征集', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-1', kind: 'text', src: techAsset('tech-stack.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-2', kind: 'text', src: techAsset('tech-panel.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-3', kind: 'text', src: techAsset('tech-cube.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-4', kind: 'text', src: techAsset('tech-wave.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-5', kind: 'text', src: techAsset('tech-dna.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
+  { id: 'img-text-6', kind: 'text', src: techAsset('tech-molecule.png'), title: '医学影像——文本多模态语料征集', subtitle: '寻找方言伙伴共建语音与转写语料', crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' },
 ]
+
+function transferToEditorImage(image: DemandEditorTransferImage): EditorImage {
+  return { ...image, crop: { x: 0, y: 0, w: 1, h: 1 }, ratio: '4:3' }
+}
+
+function initialEditorImages() {
+  const transferred = takeDemandEditorImages()
+  return transferred?.map(transferToEditorImage) ?? demoImages
+}
 
 export default function DemandPostEditor() {
   const navigate = useNavigate()
   const addImageRef = useRef<HTMLInputElement>(null)
   const cropStageRef = useRef<HTMLDivElement>(null)
 
-  const [images, setImages] = useState<EditorImage[]>(demoImages)
+  const [images, setImages] = useState<EditorImage[]>(initialEditorImages)
   const [imageStart, setImageStart] = useState(0)
   const [field, setField] = useState('')
   const [corpusName, setCorpusName] = useState('')
@@ -198,6 +210,7 @@ export default function DemandPostEditor() {
       bookmarks: 0,
       comments: 0,
       template: 'blue',
+      posterImages: images.map(({ kind, src, background, title, subtitle }): DemandPosterImage => ({ kind, src, background, title, subtitle })),
       contact: { name: name.trim(), unit: unit.trim(), email: email.trim() },
     }
   }
@@ -245,9 +258,9 @@ export default function DemandPostEditor() {
                 <Trash2 size={13} />
               </button>
               {image.kind === 'text' ? (
-                <div className="editor-text-thumb" style={{ backgroundImage: `url(${image.src ?? techAsset('tech-stack.png')})` }}>
-                  <strong>医学语料库</strong>
-                  <span>寻找方言伙伴共建语音与转写语料</span>
+                <div className="editor-text-thumb" style={image.background ? { background: image.background } : { backgroundImage: `url(${image.src ?? techAsset('tech-stack.png')})` }}>
+                  <strong>{image.title || '医学语料库'}</strong>
+                  <span>{image.subtitle || '寻找方言伙伴共建语音与转写语料'}</span>
                 </div>
               ) : (
                 <div className="editor-img-thumb">
@@ -333,9 +346,9 @@ export default function DemandPostEditor() {
             <h2 id="demand-crop-title">裁剪图片</h2>
             <div className="crop-stage" ref={cropStageRef}>
               {editingImage.kind === 'text' ? (
-                <div className="crop-preview-text" style={{ backgroundImage: `url(${editingImage.src ?? techAsset('tech-stack.png')})`, transform: `scale(${zoom})` }}>
-                  <strong>医学语料库</strong>
-                  <span>寻找方言伙伴共建语音与转写语料</span>
+                <div className="crop-preview-text" style={{ ...(editingImage.background ? { background: editingImage.background } : { backgroundImage: `url(${editingImage.src ?? techAsset('tech-stack.png')})` }), transform: `scale(${zoom})` }}>
+                  <strong>{editingImage.title || '医学语料库'}</strong>
+                  <span>{editingImage.subtitle || '寻找方言伙伴共建语音与转写语料'}</span>
                 </div>
               ) : (
                 <img src={editingImage.src} alt="" style={{ transform: `scale(${zoom})` }} />

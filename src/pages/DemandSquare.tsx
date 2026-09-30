@@ -18,6 +18,14 @@ export type DemandStatus = '招募中' | '共建中' | '已完成'
 type DemandTab = '综合排序' | '招募中' | '共建中' | '已完成'
 type SearchTab = '需求' | '用户'
 
+export type DemandPosterImage = {
+  kind: 'text' | 'upload'
+  src?: string
+  background?: string
+  title?: string
+  subtitle?: string
+}
+
 export type DemandPost = {
   id: string
   title: string
@@ -35,6 +43,7 @@ export type DemandPost = {
   template: 'blue' | 'mint' | 'violet'
   image?: 'finance' | 'industry'
   cover?: string
+  posterImages?: DemandPosterImage[]
   contact: {
     name: string
     unit: string
@@ -452,13 +461,24 @@ function matchesDemand(demand: DemandPost, keyword: string) {
     .some((value) => value.toLocaleLowerCase('zh-CN').includes(normalized))
 }
 
-export function DemandPoster({ demand, compact = false }: { demand: DemandPost; compact?: boolean }) {
+export function DemandPoster({ demand, compact = false, posterImage }: { demand: DemandPost; compact?: boolean; posterImage?: DemandPosterImage }) {
   const coverSrc = demand.cover ? `${import.meta.env.BASE_URL}${demand.cover}` : ''
+  const customImage = posterImage ?? demand.posterImages?.[0]
+  const customBackground = customImage?.background
+    ? { background: customImage.background }
+    : { backgroundImage: `url(${customImage?.src ?? ''})` }
 
   return (
-    <div className={`demand-poster demand-poster-${demand.template}${demand.image ? ` demand-poster-image demand-poster-image-${demand.image}` : ''}${demand.cover ? ' has-cover' : ''}${compact ? ' is-compact' : ''}`}>
+    <div className={`demand-poster demand-poster-${demand.template}${demand.image ? ` demand-poster-image demand-poster-image-${demand.image}` : ''}${demand.cover && !customImage ? ' has-cover' : ''}${customImage ? ' demand-poster-custom' : ''}${compact ? ' is-compact' : ''}`}>
       <span className="poster-status">{demand.status}</span>
-      {demand.cover ? (
+      {customImage ? (
+        customImage.kind === 'upload' ? <img className="demand-poster-custom-cover" src={customImage.src} alt="" /> : (
+          <div className="demand-poster-custom-text" style={customBackground}>
+            <strong>{customImage.title || demand.title}</strong>
+            <p>{customImage.subtitle || demand.field}</p>
+          </div>
+        )
+      ) : demand.cover ? (
         <img className="demand-poster-cover" src={coverSrc} alt="" />
       ) : (
         <>
@@ -492,12 +512,15 @@ export default function DemandSquare() {
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedPost, setSelectedPost] = useState<DemandPost | null>(null)
   const [likedCommentIds, setLikedCommentIds] = useState<Set<string>>(new Set())
+  const [likedPostIds, setLikedPostIds] = useState<Set<string>>(() => new Set(['demand-chem-001', 'demand-math-001']))
+  const [bookmarkedPostIds, setBookmarkedPostIds] = useState<Set<string>>(() => new Set(['demand-chem-001']))
   const [followedUsers, setFollowedUsers] = useState<Set<string>>(new Set(['user-medical-lab', 'user-zhao-hui']))
   const [showContact, setShowContact] = useState(false)
   const [commentText, setCommentText] = useState('')
   const [toast, setToast] = useState('')
   const [tagsExpanded, setTagsExpanded] = useState(false)
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
+  const [detailImageIndex, setDetailImageIndex] = useState(0)
   const [isComposing, setIsComposing] = useState(false)
   const [replyTo, setReplyTo] = useState<string | null>(null)
 
@@ -506,6 +529,7 @@ export default function DemandSquare() {
     setShowContact(false)
     setTagsExpanded(false)
     setDescriptionExpanded(false)
+    setDetailImageIndex(0)
     setIsComposing(false)
     setReplyTo(null)
     setCommentText('')
@@ -557,6 +581,8 @@ export default function DemandSquare() {
 
   const detailTags = useMemo(() => selectedPost ? getDemandDetailTags(selectedPost) : [], [selectedPost])
   const detailDescription = useMemo(() => selectedPost ? getDemandDetailDescription(selectedPost) : '', [selectedPost])
+  const detailImages = selectedPost?.posterImages?.length ? selectedPost.posterImages : [undefined]
+  const hasDetailCarousel = detailImages.length > 1
 
   const flashToast = (message: string) => {
     setToast(message)
@@ -665,9 +691,9 @@ export default function DemandSquare() {
                     </footer>
                   </div>
                 </button>
-                <div className="demand-post-actions" aria-hidden="true">
-                  <span><Heart size={17} />{post.likes}</span>
-                  <span><Star size={17} />{post.bookmarks}</span>
+                <div className="demand-post-actions">
+                  <button className={likedPostIds.has(post.id) ? 'is-active' : ''} type="button" aria-label="点赞" onClick={(event) => { event.stopPropagation(); toggleId(setLikedPostIds, post.id) }}><Heart size={17} />{post.likes + (likedPostIds.has(post.id) ? 1 : 0)}</button>
+                  <button className={bookmarkedPostIds.has(post.id) ? 'is-active' : ''} type="button" aria-label="收藏" onClick={(event) => { event.stopPropagation(); toggleId(setBookmarkedPostIds, post.id) }}><Star size={17} />{post.bookmarks + (bookmarkedPostIds.has(post.id) ? 1 : 0)}</button>
                   <span><MessageCircle size={17} />{post.comments}</span>
                 </div>
               </article>
@@ -723,13 +749,13 @@ export default function DemandSquare() {
             <div className="demand-detail-layout">
               <div className="demand-detail-left">
                 <div className="demand-detail-poster-wrap">
-                  <span className="demand-detail-page-count">1/6</span>
-                  <button className="demand-detail-slide-control is-left" type="button" aria-label="上一张"><ChevronLeft size={22} /></button>
-                  <DemandPoster demand={{ ...selectedPost, image: undefined }} />
-                  <button className="demand-detail-slide-control is-right" type="button" aria-label="下一张"><ChevronRight size={22} /></button>
-                  <div className="demand-detail-poster-foot">
-                    <i className="is-active" /><i /><i /><i /><i /><i />
-                  </div>
+                  {hasDetailCarousel && <span className="demand-detail-page-count">{detailImageIndex + 1}/{detailImages.length}</span>}
+                  {hasDetailCarousel && <button className="demand-detail-slide-control is-left" type="button" aria-label="上一张" onClick={() => setDetailImageIndex((index) => (index - 1 + detailImages.length) % detailImages.length)}><ChevronLeft size={22} /></button>}
+                  <DemandPoster demand={{ ...selectedPost, image: undefined }} posterImage={detailImages[detailImageIndex]} />
+                  {hasDetailCarousel && <button className="demand-detail-slide-control is-right" type="button" aria-label="下一张" onClick={() => setDetailImageIndex((index) => (index + 1) % detailImages.length)}><ChevronRight size={22} /></button>}
+                  {hasDetailCarousel && <div className="demand-detail-poster-foot">
+                    {detailImages.map((_, index) => <i className={index === detailImageIndex ? 'is-active' : ''} key={index} />)}
+                  </div>}
                 </div>
               </div>
               <div className="demand-detail-right">

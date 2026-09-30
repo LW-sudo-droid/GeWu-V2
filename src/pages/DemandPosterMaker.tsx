@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { AlertCircle, ChevronLeft, ChevronRight, ClipboardList, Plus, RefreshCw, Trash2, X } from 'lucide-react'
 import DemandDraftThumbnail from '../components/DemandDraftThumbnail'
 import { loadDrafts, removeDraft, type DemandDraft } from '../data/demand-drafts'
+import { saveDemandEditorImages } from '../data/demand-editor-transfer'
 
 type TextPoster = {
   id: string
@@ -111,6 +112,17 @@ export default function DemandPosterMaker() {
   }
 
   const generate = () => {
+    saveDemandEditorImages(posters.map((poster) => {
+      const theme = posterThemes[poster.template]
+      return {
+        id: poster.id,
+        kind: 'text' as const,
+        src: theme.kind === 'image' ? `${import.meta.env.BASE_URL}${theme.value}` : undefined,
+        background: theme.kind === 'color' ? theme.value : undefined,
+        title: poster.title.trim() || '邀请感兴趣的朋友一起共建语料库',
+        subtitle: poster.subtitle.trim() || '点击输入简单介绍你的设想',
+      }
+    }))
     flashToast('文字海报已生成')
     window.setTimeout(() => navigate('/demands/new/edit'), 600)
   }
@@ -179,14 +191,9 @@ export default function DemandPosterMaker() {
                         value={item.subtitle}
                         onChange={(event) => updatePoster(index, { subtitle: event.target.value })}
                       />
-                      <div className="poster-preview-dots" aria-hidden="true">
-                        <i className="is-active" />
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                      </div>
+                      {posters.length > 1 && <div className="poster-preview-dots" aria-hidden="true">
+                        {posters.map((poster, dotIndex) => <i className={dotIndex === activeIndex ? 'is-active' : ''} key={poster.id} />)}
+                      </div>}
                     </div>
                   </div>
                 ))}

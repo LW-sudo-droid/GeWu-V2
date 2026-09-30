@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import { AlertCircle, ChevronLeft, ClipboardList, FileText, Image as ImageIcon, Trash2, Upload, X } from 'lucide-react'
 import DemandDraftThumbnail from '../components/DemandDraftThumbnail'
 import { loadDrafts, removeDraft, type DemandDraft } from '../data/demand-drafts'
+import { saveDemandEditorImages } from '../data/demand-editor-transfer'
 
 export default function DemandCreate() {
   const navigate = useNavigate()
@@ -21,9 +22,19 @@ export default function DemandCreate() {
   const refreshDrafts = () => setDrafts(loadDrafts())
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files?.[0]) return
-    // 图片已选定，确认后进入帖子整体修改页（占位路由）
-    navigate('/demands/new/edit')
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      saveDemandEditorImages([{
+        id: `img-upload-${Date.now()}`,
+        kind: 'upload',
+        src: String(reader.result),
+      }])
+      navigate('/demands/new/edit')
+    }
+    reader.readAsDataURL(file)
+    event.target.value = ''
   }
 
   return (

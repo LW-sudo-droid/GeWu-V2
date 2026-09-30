@@ -21282,6 +21282,100 @@ body {
   border: 0;
 }
 
+/* Demand cards — active reactions use the highlighted icon treatment from the design. */
+.demand-square-page .demand-post-actions button {
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #8995a5;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: color .18s ease, transform .18s ease;
+}
+
+.demand-square-page .demand-post-actions button:hover {
+  color: #5e58ef;
+  transform: translateY(-1px);
+}
+
+.demand-square-page .demand-post-actions button.is-active {
+  color: #5d58ef;
+}
+
+.demand-square-page .demand-post-actions button.is-active svg {
+  fill: currentColor;
+  stroke-width: 2.1;
+}
+
+.demand-square-page .demand-post-actions button svg,
+.demand-square-page .demand-post-actions span svg {
+  flex: 0 0 auto;
+}
+
+/* A poster generated or uploaded from the editor keeps its actual image in the demand detail. */
+.demand-square-page .demand-poster-custom {
+  padding: 0;
+  justify-content: initial;
+}
+
+.demand-square-page .demand-poster-custom::before,
+.demand-square-page .demand-poster-custom::after,
+.demand-square-page .demand-poster-custom .poster-orbit,
+.demand-square-page .demand-poster-custom .poster-dot {
+  display: none;
+}
+
+.demand-square-page .demand-poster-custom-cover,
+.demand-square-page .demand-poster-custom-text {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.demand-square-page .demand-poster-custom-cover {
+  object-fit: cover;
+}
+
+.demand-square-page .demand-poster-custom-text {
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  background-position: center;
+  background-size: cover;
+  color: #17263a;
+}
+
+.demand-square-page .demand-poster-custom-text strong {
+  width: 78%;
+  margin: 0;
+  color: #17263a;
+  font-size: clamp(18px, 3.5cqw, 30px);
+  line-height: 1.25;
+}
+
+.demand-square-page .demand-poster-custom-text p {
+  position: static;
+  width: 72%;
+  margin: 0;
+  color: #3768ff;
+  font-size: clamp(11px, 1.8cqw, 15px);
+  line-height: 1.45;
+}
+
+.demand-square-page .demand-detail-v2 .demand-poster-custom-text strong {
+  font-size: clamp(22px, 3vw, 40px);
+}
+
+.demand-square-page .demand-detail-v2 .demand-poster-custom-text p {
+  font-size: 17px;
+}
+
 .demand-editor-page .demand-success-primary,
 .demand-editor-page .demand-success-link {
   min-height: 40px;
