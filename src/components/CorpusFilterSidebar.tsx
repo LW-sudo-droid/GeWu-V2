@@ -196,6 +196,7 @@ export default function CorpusFilterSidebar({
   onChange,
   onResetExternal,
   onInitialFilterCleared,
+  showAppliedPanel = true,
 }: {
   initialSubject?: string
   initialPublisher?: string
@@ -203,6 +204,7 @@ export default function CorpusFilterSidebar({
   onChange: (filters: CorpusFilterState) => void
   onResetExternal: () => void
   onInitialFilterCleared?: (type: 'subject' | 'publisher') => void
+  showAppliedPanel?: boolean
 }) {
   const [filters, setFilters] = useState(() => emptyFilters(initialSubject, initialPublisher))
   const [subjectVisible, setSubjectVisible] = useState(6)
@@ -381,7 +383,7 @@ export default function CorpusFilterSidebar({
 
   return (
     <aside className="corpus-filter-sidebar" aria-label="语料筛选条件">
-      <section className="applied-filter-panel">
+      {showAppliedPanel && <section className="applied-filter-panel">
         <div className="facet-panel-heading"><h2>已应用筛选区</h2><button type="button" onClick={resetAll}><RotateCcw size={13} />重置</button></div>
         <div className="applied-filter-tags">
           {totalApplied === 0 && <p>暂未应用筛选条件</p>}
@@ -392,10 +394,10 @@ export default function CorpusFilterSidebar({
             </button>
           ))}
         </div>
-      </section>
+      </section>}
 
       <section className="facet-section">
-        <FacetTitle title="学科领域" expanded={subjectExpanded} onToggle={() => setSubjectExpanded((value) => !value)} />
+        <FacetTitle title="按学科领域" expanded={subjectExpanded} onToggle={() => setSubjectExpanded((value) => !value)} />
         {subjectExpanded && <>
           {subjectOptions.slice(0, subjectVisible).map((option) => (
             <div key={option.label}>

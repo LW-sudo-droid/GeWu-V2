@@ -617,6 +617,23 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setCurrentPage(1)
   }
 
+  const resultFilterTags = useMemo(() => [
+    ...externalFilterTags,
+    ...facetFilters.subjects.map((value) => ({ id: `subject-${value}`, label: `学科：${value}`, group: 'subjects' as const, value })),
+    ...facetFilters.subSubjects.map((value) => ({ id: `sub-subject-${value}`, label: `细分：${value}`, group: 'subSubjects' as const, value })),
+    ...facetFilters.corpusTypes.map((value) => ({ id: `type-${value}`, label: `类型：${value}`, group: 'corpusTypes' as const, value })),
+    ...facetFilters.openness.map((value) => ({ id: `open-${value}`, label: `开放：${value}`, group: 'openness' as const, value })),
+    ...facetFilters.institutions.map((value) => ({ id: `institution-${value}`, label: `机构：${value}`, group: 'institutions' as const, value })),
+    ...facetFilters.corpusSizes.map((value) => ({ id: `corpus-size-${value}`, label: `规模：${value}`, group: 'corpusSizes' as const, value })),
+    ...facetFilters.storageSizes.map((value) => ({ id: `storage-${value}`, label: `容量：${value}`, group: 'storageSizes' as const, value })),
+  ], [externalFilterTags, facetFilters])
+
+  const removeResultFacetTag = (group: keyof CorpusFilterState, value: string) => {
+    setFacetFilters((current) => ({ ...current, [group]: current[group].filter((item) => item !== value) }))
+    setFilterResetVersion((current) => current + 1)
+    setCurrentPage(1)
+  }
+
   return (
     <main className="search-page">
       <header className={`search-page-heading${isResultsPage ? ' is-results' : ''}`}>
@@ -727,21 +744,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
         </div>
         )}
 
-        <div className={`catalog-results-layout${isResultsPage ? '' : ' is-standalone'}`}>
-          {isResultsPage && (
-          <CorpusFilterSidebar
-            key={`${filterResetVersion}-${subjectFilter}-${publisherFilter}`}
-            initialSubject={subjectFilter}
-            initialPublisher={publisherFilter}
-            externalTags={externalFilterTags}
-            onChange={handleFacetChange}
-            onResetExternal={resetAllResultFilters}
-            onInitialFilterCleared={clearMappedSearchFilter}
-          />
-          )}
-          <div className="catalog-results-main">
-
-        {isResultsPage && <>
+        {isResultsPage && (
           <form className="result-global-search" onSubmit={handleResultSearch}>
             <select value={resultSearchField} onChange={(event) => setResultSearchField(event.target.value as SearchField)} aria-label="检索字段">
               {fieldOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
@@ -755,13 +758,30 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                 placeholder={placeholderForField(resultSearchField)}
               />
               {historyOpen && searchHistory.length > 0 && (
-                  <SearchHistoryPanel history={searchHistory} onPick={applyResultSimpleSearch} onDelete={deleteHistoryItem} onClear={() => setHistoryConfirmOpen(true)} />
+                <SearchHistoryPanel history={searchHistory} onPick={applyResultSimpleSearch} onDelete={deleteHistoryItem} onClear={() => setHistoryConfirmOpen(true)} />
               )}
             </div>
             <button type="submit" className="result-search-submit">检索</button>
             <button type="button" className="result-advanced-trigger" onClick={openAdvancedSearch}><SlidersHorizontal size={16} />高级检索</button>
           </form>
+        )}
 
+        <div className={`catalog-results-layout${isResultsPage ? '' : ' is-standalone'}`}>
+          {isResultsPage && (
+          <CorpusFilterSidebar
+            key={`${filterResetVersion}-${subjectFilter}-${publisherFilter}`}
+            initialSubject={subjectFilter}
+            initialPublisher={publisherFilter}
+            externalTags={externalFilterTags}
+            onChange={handleFacetChange}
+            onResetExternal={resetAllResultFilters}
+            onInitialFilterCleared={clearMappedSearchFilter}
+            showAppliedPanel={false}
+          />
+          )}
+          <div className="catalog-results-main">
+
+        {isResultsPage && <>
           <div className="result-list-toolbar">
             <div className="result-count-and-tabs">
               <strong><b>{statusFilteredRecords.length}</b> 个结果</strong>
@@ -778,6 +798,15 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
               </select>
             </label>
           </div>
+
+          <div className="result-filter-tags" aria-label="当前筛选条件">
+            {resultFilterTags.map((tag) => (
+              <button type="button" key={tag.id} onClick={() => 'group' in tag ? removeResultFacetTag(tag.group, tag.value) : tag.onRemove()}>
+                {tag.label}<X size={11} />
+              </button>
+            ))}
+            {resultFilterTags.length === 0 && <span>未设置筛选条件</span>}
+          </div>
         </>}
 
         {visibleRecords.length > 0 ? (
@@ -789,7 +818,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
               <Link className="catalog-corpus-card" to={cardTarget} target="_blank" rel="noreferrer" key={item.id}>
                 <div className="quality-card-visual catalog-card-visual catalog-card-cover" aria-hidden="true">
                   <img src={recordCoverImage(item.id)} alt="" loading="lazy" />
-                  <span className={`card-status-overlay ${item.openness === '不公开' ? 'is-private' : 'is-partial'}`}>{item.openness === '不公开' ? '不公开' : '公开'}</span>
+                  <span className={`card-status-overlay ${item.openness === '不公开' ? 'is-private' : 'is-open'}`}>{item.openness === '不公开' ? '不公开' : '公开'}</span>
                 </div>
                 <div className="catalog-card-meta-row">
                   <div className="catalog-card-tags">
