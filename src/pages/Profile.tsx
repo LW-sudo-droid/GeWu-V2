@@ -20,6 +20,8 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useApp } from '../context/app-context'
+import { notifyCommunityChanged, useCommunity } from '../context/use-community'
+import { avatarUrl, communityUsers } from '../data/community-users'
 import { corpusRecords, type CorpusRecord } from './CorpusSearch'
 import { DemandPoster, initialDemandPosts, type DemandPost } from './DemandSquare'
 import { auditWorkStatusOptions, loadAuditItems, removeAuditItemByCorpus, type AuditWorkItem, type AuditWorkStatus } from '../data/audit-work'
@@ -45,17 +47,6 @@ type UserProfile = {
   avatar: string
 }
 
-type CommunityUser = {
-  id: string
-  name: string
-  role: string
-  avatar: string
-  followingCount: number
-  fans: number
-  collections: number
-  mutual?: boolean
-  following: boolean
-}
 type Notice = {
   id: number
   role: 'admin' | 'uploader' | 'member' | 'creator' | 'platform'
@@ -98,14 +89,6 @@ const joinedIds = ['geo-04', 'bio-02', 'astro-02', 'math-03', 'physics-02', 'che
 const favoriteDefaultIds = ['chem-01', 'physics-02', 'geo-01', 'bio-02', 'math-02', 'astro-01', 'geo-04', 'physics-03']
 const commentedCorpusIds = ['math-01', 'physics-01', 'geo-01', 'chem-02', 'astro-02', 'bio-02', 'math-03']
 
-const communityUsers: CommunityUser[] = [
-  { id: 'user-lab', name: '医学语料联合实验室', role: '生物医学语料团队', avatar: 'images/demand-users/lab-director.jpg', followingCount: 9335, fans: 1141, collections: 1284, mutual: true, following: true },
-  { id: 'user-zheng', name: '郑以轩', role: '语言资源研究者', avatar: 'images/demand-users/language-researcher.jpg', followingCount: 93, fans: 84, collections: 77, following: true },
-  { id: 'user-zhao', name: '赵俊英', role: '人工智能研究者', avatar: 'images/demand-users/computer-researcher.jpg', followingCount: 70, fans: 57, collections: 30, following: true },
-  { id: 'user-hui', name: '赵慧', role: '语料社区共建者', avatar: 'images/demand-users/community-cat.jpg', followingCount: 21, fans: 20, collections: 1, following: true },
-  { id: 'user-lin', name: '林知远', role: '材料语料发起人', avatar: 'images/demand-users/computer-researcher.jpg', followingCount: 126, fans: 209, collections: 86, following: false },
-  { id: 'user-wang', name: '王溪蕾', role: '医学影像研究者', avatar: 'images/demand-users/lab-director.jpg', followingCount: 48, fans: 102, collections: 39, following: false },
-]
 
 const demandInstitutionLogos: Record<string, string> = {
   '北京大学': 'images/partners/pku.svg',
@@ -155,12 +138,12 @@ function visitorFallback(id: string): VisitorProfile {
   const base = communityUsers.find((item) => item.id === id)
   return {
     name: base?.name ?? '语料用户',
-    organization: base?.role.split(' · ')[1] ?? '暂未填写机构',
+    organization: base?.organization ?? '暂未填写机构',
     contact: '',
     bio: base?.role.split(' · ')[0] ?? '',
-    following: 12,
-    fans: 64,
-    collections: 156,
+    following: base?.followingCount ?? 12,
+    fans: base?.fans ?? 64,
+    collections: base?.collections ?? 156,
     corpora: ['math-01', 'physics-01', 'chem-01', 'geo-04', 'bio-02', 'astro-02'],
     demandOffset: 1,
   }
@@ -306,11 +289,13 @@ function noticeView(notice: Notice) {
 
 export default function Profile() {
   const { user, openAuth, favorites } = useApp()
+  const { people, isFollowing, followLabel, followerCount, toggleFollow } = useCommunity()
   const navigate = useNavigate()
   const { profileId } = useParams()
   const isVisitor = Boolean(profileId)
   const visitor = isVisitor ? (visitorProfiles[profileId as string] ?? visitorFallback(profileId as string)) : null
-  const [visitorFollowed, setVisitorFollowed] = useState(() => Boolean(visitor?.mutual))
+  const visitorUser = people.find((person) => person.id === profileId)
+  const visitorFollowed = profileId ? isFollowing(profileId) : false
   const [searchParams, setSearchParams] = useSearchParams()
   const updateParams = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(searchParams)
@@ -341,7 +326,6 @@ export default function Profile() {
   const cropStageRef = useRef<HTMLDivElement>(null)
   const [corpusPage, setCorpusPage] = useState(1)
   const [demandPage, setDemandPage] = useState(1)
-  const [userFollowed, setUserFollowed] = useState<Record<string, boolean>>(() => Object.fromEntries(communityUsers.map((u) => [u.id, u.following])))
   const [privacyFavorite, setPrivacyFavorite] = useState<FavoritePrivacy>('全部公开')
   const [privacyCommented, setPrivacyCommented] = useState<CommentPrivacy>('全部公开')
   const [privacyFollow, setPrivacyFollow] = useState<FollowPrivacy>('全部公开')
@@ -412,11 +396,14 @@ export default function Profile() {
   const visibleDemands = demandTab === 'published' || demandTab === 'favorited' || demandTab === 'commented'
     ? demandMap[demandTab].slice((demandPage - 1) * demandPageSize, demandPage * demandPageSize)
     : []
-  const filteredUsers = socialTab === '关注' ? communityUsers.filter((item) => userFollowed[item.id]) : communityUsers
+  const followingUsers = people.filter((person) => isFollowing(person.id))
+    .sort((left, right) => Number(left.following) - Number(right.following))
+  const filteredUsers = socialTab === '关注' ? followingUsers : people.filter((person) => person.followsYou)
   const visibleUsers = filteredUsers.slice((demandPage - 1) * demandPageSize, demandPage * demandPageSize)
   const persistProfile = (nextProfile: UserProfile) => {
     if (!user) return
     window.localStorage.setItem(`gw-profile-${user.account}`, JSON.stringify(nextProfile))
+    notifyCommunityChanged()
     setProfile(nextProfile)
     setDraft(nextProfile)
   }
@@ -587,15 +574,15 @@ export default function Profile() {
         <aside className={`profile-side${isVisitor ? ' is-visitor' : ''}`}>
           <section className="profile-user-card-top">
             {isVisitor ? (
-              <span className="profile-avatar-button is-static"><span>{(visitor?.name ?? '语').slice(0, 1)}</span></span>
+              <span className="profile-avatar-button is-static">{visitorUser?.avatar ? <img src={avatarUrl(visitorUser.avatar)} alt={`${visitorUser.name}的头像`} /> : <span>{(visitor?.name ?? '语').slice(0, 1)}</span>}</span>
             ) : (
               <button className="profile-avatar-button" type="button" onClick={() => openModal('avatar')} aria-label="编辑头像">
-                {profile.avatar ? <img src={profile.avatar} alt="" /> : <span>{profile.username.slice(0, 1)}</span>}
+                {profile.avatar ? <img src={avatarUrl(profile.avatar)} alt={`${profile.username}的头像`} /> : <span>{profile.username.slice(0, 1)}</span>}
                 <i><Camera size={13} /></i>
               </button>
             )}
-            <h1 title={(isVisitor ? visitor?.name : profile.username) || '未设置用户名'}>{(isVisitor ? visitor?.name : profile.username) || '未设置用户名'}</h1>
-            <p className="profile-institution-line"><Building2 size={14} />{(isVisitor ? visitor?.organization : profile.institution) || '暂无填写机构'}{!isVisitor && profile.position && <><i />{profile.position}</>}</p>
+            <h1 title={(isVisitor ? visitorUser?.name ?? visitor?.name : profile.username) || '未设置用户名'}>{(isVisitor ? visitorUser?.name ?? visitor?.name : profile.username) || '未设置用户名'}</h1>
+            <p className="profile-institution-line"><Building2 size={14} />{(isVisitor ? visitorUser?.organization ?? visitor?.organization : profile.institution) || '暂无填写机构'}{!isVisitor && profile.position && <><i />{profile.position}</>}</p>
             {!isVisitor && profile.researchField && <div className="profile-field-tags">{profile.researchField.split(/[·、,]/).filter(Boolean).map((field) => <span key={field}>{field.trim()}</span>)}</div>}
             {(isVisitor ? visitor?.contact : profile.contact) && (
               <button className="profile-contact-copy" type="button" onClick={() => void copyProfileText((isVisitor ? visitor?.contact : profile.contact) || '', '已复制联系方式')}>
@@ -603,9 +590,9 @@ export default function Profile() {
               </button>
             )}
             <div className="profile-stats">
-              <span><b>{isVisitor ? visitor?.following : '9,038'}</b>关注</span>
-              <span><b>{isVisitor ? visitor?.fans : '2,464'}</b>粉丝</span>
-              <span><b>{isVisitor ? (visitor?.collections ?? 0).toLocaleString() : '1.2w'}</b>被收藏</span>
+              <span><b>{isVisitor ? visitorUser?.followingCount ?? visitor?.following : followingUsers.length}</b>关注</span>
+              <span><b>{isVisitor ? visitorUser ? followerCount(visitorUser) : visitor?.fans : people.filter((person) => person.followsYou).length}</b>粉丝</span>
+              <span><b>{isVisitor ? (visitorUser?.collections ?? visitor?.collections ?? 0).toLocaleString() : '1.2w'}</b>被收藏</span>
             </div>
             {(isVisitor ? visitor?.bio : profile.bio) && <p className={`profile-bio${bioExpanded ? ' is-expanded' : ''}`}>{isVisitor ? visitor?.bio : profile.bio}</p>}
             {!isVisitor && profile.bio && <button className="profile-bio-toggle" type="button" onClick={() => setBioExpanded((value) => !value)}>{bioExpanded ? '收起' : '查看更多'}</button>}
@@ -614,9 +601,11 @@ export default function Profile() {
                 className={`profile-follow-btn${visitorFollowed ? ' is-followed is-hoverable' : ''}`}
                 type="button"
                 data-tooltip={visitorFollowed ? '取消关注' : undefined}
-                onClick={() => setVisitorFollowed((value) => !value)}
+                title={visitorFollowed ? '取消关注' : undefined}
+                aria-pressed={visitorFollowed}
+                onClick={() => { if (!user) { openAuth(`/profile/${profileId}`); return }; if (profileId) toggleFollow(profileId) }}
               >
-                {visitorFollowed ? (visitor?.mutual ? '互相关注' : '已关注') : '关注'}
+                {visitorUser ? followLabel(visitorUser) : '关注'}
               </button>
             ) : (
               <div className="profile-summary-actions">
@@ -776,21 +765,21 @@ export default function Profile() {
                 ))}
               </div>
               <div className="profile-user-grid">
+                {visibleUsers.length === 0 && <p className="profile-empty-state">{socialTab === '关注' ? '暂无关注用户' : '暂无粉丝'}</p>}
                 {visibleUsers.map((item) => {
-                  const followKey = socialTab === '粉丝' ? `fan-${item.id}` : item.id
-                  const followed = Boolean(userFollowed[followKey])
-                  const label = socialTab === '粉丝'
-                    ? (followed ? '已关注' : '关注')
-                    : (followed ? (item.mutual ? '互相关注' : '已关注') : '关注')
+                  const followed = isFollowing(item.id)
+                  const label = followLabel(item)
                   return (
                     <article className="profile-user-card" key={item.id}>
-                      <img className="profile-user-avatar" src={`${import.meta.env.BASE_URL}${item.avatar}`} alt="" />
-                      <div><strong>{item.name}</strong><small><b>{item.followingCount.toLocaleString()}</b> 关注　<b>{item.fans.toLocaleString()}</b> 粉丝　<b>{item.collections.toLocaleString()}</b> 被收藏</small></div>
+                      <Link to={`/profile/${item.id}`}><img className="profile-user-avatar" src={avatarUrl(item.avatar)} alt={`${item.name}的头像`} /></Link>
+                      <div><Link to={`/profile/${item.id}`}><strong>{item.name}</strong></Link><small><b>{item.followingCount.toLocaleString()}</b> 关注　<b>{followerCount(item).toLocaleString()}</b> 粉丝　<b>{item.collections.toLocaleString()}</b> 被收藏</small></div>
                       <button
                         type="button"
                         className={followed ? 'is-followed is-hoverable' : ''}
                         data-tooltip={label !== '关注' ? '取消关注' : undefined}
-                        onClick={() => setUserFollowed((current) => ({ ...current, [followKey]: !current[followKey] }))}
+                        title={followed ? '取消关注' : undefined}
+                        aria-pressed={followed}
+                        onClick={() => toggleFollow(item.id)}
                       >
                         {label === '关注' ? '+ 关注' : label}
                       </button>

@@ -1,31 +1,23 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowLeft,
-  ArrowUpFromLine,
   Building2,
-  CalendarDays,
   Check,
-  CheckCircle2,
   ChevronDown,
-  ChevronRight,
   Copy,
   Download,
   Eye,
-  FileArchive,
   FileJson,
   FileText,
   Folder,
-  FolderUp,
-  Github,
   Info,
-  Link2,
   MessageCircle,
   Maximize2,
   Minimize2,
   PanelLeftClose,
   PanelLeftOpen,
   Pencil,
-  Search,
+  Plus,
   Share2,
   ShieldCheck,
   Star,
@@ -34,18 +26,27 @@ import {
   Upload,
   UserPlus,
   Users,
-  X,
+  UserRound,
 } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useApp } from '../context/app-context'
-import { corpusRecords, recordDisplayMeta } from './CorpusSearch'
+import { readUserIdentity, useCommunity, useCurrentIdentity } from '../context/use-community'
+import { avatarUrl, corpusAdministrator } from '../data/community-users'
+import { readCorpusEdits } from '../data/corpus-edits'
+import MemberManagementDialog from '../components/MemberManagementDialog'
+import CorpusUploadDialog, { type CorpusUploadSubmission } from '../components/CorpusUploadDialog'
+import CorpusJoinDialog from '../components/CorpusJoinDialog'
+import { defaultCorpusMembers, readCorpusMembers, saveCorpusMembers, type CorpusMember, type MemberPermission } from '../data/corpus-members'
+import { corpusAuditEvent, recordCorpusOperation, submitCorpusRequest } from '../data/corpus-audit'
+import { corpusRecords, institutionLogo, recordCoverImage, recordDisplayMeta } from './CorpusSearch'
+import './dataset-detail.css'
 
 type DetailTab = 'intro' | 'download' | 'comments'
-type UploadMode = 'local' | 'link' | 'cli'
-type MemberPermission = '可管理' | '可上传'
 type CommentSort = 'time' | 'likes'
 type DetailRole = 'admin' | 'uploader' | 'guest'
-type CommentReply = { id: number; user: string; date: string; text: string; replyingTo?: string }
+type CommentIdentity = { user: string; authorAccount?: string; avatar?: string }
+type CommentReply = CommentIdentity & { id: number; date: string; text: string; replyingTo?: string; likes?: number; likedBy?: string[] }
+type CorpusComment = CommentIdentity & { id: number; date: string; likes: number; liked: boolean; likedBy?: string[]; text: string }
 
 const previewTree = [
   { name: 'metadata.json', file: 'metadata.json', path: '元数据 / metadata.json' },
@@ -205,7 +206,7 @@ function buildZip(files: Array<{ name: string; content: string }>): Blob {
   return new Blob([concatBytes([...locals, ...centrals, eocd]).buffer as ArrayBuffer], { type: 'application/zip' })
 }
 
-const commentsSeed = [
+const commentsSeed: CorpusComment[] = [
   { id: 4, user: '王磊', date: '2026-08-20', likes: 9, liked: false, text: '这套语料在长上下文推理任务上表现稳定，但跨学科场景下的泛化效果还比较有限。我们在小范围评测后发现，部分指令的格式约定不够统一，建议在下一版本中补充字段口径说明与质量校验标注；同时希望能进一步细化推理链的难度分级，并在许可范围允许的前提下，开放更多难度分层的样例样本，方便不同水平的模型评测团队按需取用、评估不同量级的推理能力。整体而言质量值得肯定，字段覆盖与 README 说明基本一致，对于领域内多步推理与知识检索结合的评测场景具有较高的参考价值，后续会持续关注更新进度并反馈使用问题。' },
   { id: 1, user: '林知远', date: '2026-08-18', likes: 24, liked: false, text: '样例数据结构很清楚，适合快速接入模型评测流程，希望后续补充更多字段说明。' },
   { id: 2, user: '医学语料联合实验室', date: '2026-08-12', likes: 18, liked: false, text: '对科研问答和推理链训练很有帮助，下载目录划分也比较明确。' },
@@ -224,29 +225,6 @@ const repliesSeed: Record<number, CommentReply[]> = {
     { id: 301, user: '王磊', date: '2026-08-03', text: '版本差异说明已经进入维护计划。' },
   ],
 }
-
-const uploadLicenseOptions = [
-  'CC0（完全开放无版权限制）',
-  'CC BY 4.0 保留作者署名',
-  'CC BY-SA 4.0 保留作者署名并要求使用者以相同许可协议分发其衍生作品',
-  'CC BY-NC 4.0 保留作者署名并禁止该数据用于任何商业目的',
-  'CC BY-NC-SA 4.0 保留作者署名，禁止该数据用于任何商业目的，并要求使用者以相同许可协议分发其衍生作品',
-  'CC BY-ND 4.0 保留作者署名并禁止使用者对数据进行修改、转换或创作',
-  'CC BY-NC-ND 4.0 保留作者署名，禁止该数据用于任何商业目的，并禁止使用者对数据进行修改、转换或创作',
-]
-
-const maxUploadBytes = 2 * 1024 * 1024 * 1024
-
-const memberSearchPool = [
-  { account: 'research_li', name: '李思远' },
-  { account: 'research_chen', name: '陈明' },
-  { account: 'corpus_editor02', name: '建设编辑' },
-  { account: 'lab_zhang', name: '张伟' },
-  { account: 'lab_wang', name: '王磊' },
-  { account: 'math_lin', name: '林知远' },
-  { account: 'medical_lab', name: '医学语料联合实验室' },
-]
-const maxUploadSizeLabel = '2GB'
 
 function detailOpennessLabel(openness: string) {
   if (openness === '开放共享') return '公开'
@@ -274,9 +252,26 @@ function CommentBody({ text, expanded, onToggle }: { text: string; expanded: boo
     const wrap = wrapRef.current
     if (!wrap) return
     const updateClip = () => {
-      const charsPerLine = Math.max(18, Math.floor(wrap.clientWidth / 15.2))
-      const limit = charsPerLine * 3 - 14
-      setClipAt(text.length > limit && limit > 20 ? limit : null)
+      const paragraph = wrap.querySelector('p')
+      if (!paragraph || !wrap.clientWidth) return
+      const probe = paragraph.cloneNode(false) as HTMLParagraphElement
+      Object.assign(probe.style, { position: 'absolute', visibility: 'hidden', width: `${wrap.clientWidth}px`, height: 'auto', maxHeight: 'none', display: 'block', overflow: 'visible', WebkitLineClamp: 'unset' })
+      wrap.appendChild(probe)
+      const lineHeight = parseFloat(getComputedStyle(probe).lineHeight) || 24
+      probe.textContent = text
+      let limit: number | null = null
+      if (probe.getBoundingClientRect().height > lineHeight * 3 + 1) {
+        let low = 0; let high = text.length
+        while (low < high) {
+          const mid = Math.ceil((low + high) / 2)
+          probe.textContent = `${text.slice(0, mid)}…展开全部`
+          if (probe.getBoundingClientRect().height <= lineHeight * 3 + 1) low = mid
+          else high = mid - 1
+        }
+        limit = low
+      }
+      probe.remove()
+      setClipAt(limit)
     }
     updateClip()
     const observer = new ResizeObserver(updateClip)
@@ -290,7 +285,7 @@ function CommentBody({ text, expanded, onToggle }: { text: string; expanded: boo
       <p className={`comment-text${expanded ? ' is-expanded' : ''}`}>
         {collapsed ? `${text.slice(0, clipAt).trimEnd()}....` : text}
         {collapsed && (
-          <button className="comment-more-inline" type="button" onClick={(event) => { event.stopPropagation(); onToggle() }}>展开更多</button>
+          <button className="comment-more-inline" type="button" onClick={(event) => { event.stopPropagation(); onToggle() }}>展开全部</button>
         )}
       </p>
       {clipAt !== null && expanded && (
@@ -308,85 +303,132 @@ function detailCorpusTypeLabel(corpusType: string) {
   return '预训练'
 }
 
-function formatFileSize(size: number) {
-  if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`
-  if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`
-  return `${size} B`
+export default function DatasetDetail() {
+  const { id } = useParams()
+  return <DatasetDetailContent key={id} />
 }
 
-export default function DatasetDetail() {
+function DatasetDetailContent() {
   const { id = '' } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, openAuth, favorites, toggleFavorite } = useApp()
-  const item = corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
-  const displayMeta = recordDisplayMeta(item)
+  const currentIdentity = useCurrentIdentity()
+  const { isFollowing, followLabel, followerCount, toggleFollow } = useCommunity()
+  const baseItem = corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
+  const [savedEdit] = useState(() => readCorpusEdits(baseItem.id))
+  const item = savedEdit ? { ...baseItem, title: savedEdit.corpusName, summary: savedEdit.introduction, keywords: savedEdit.keywords, subject: savedEdit.subjectPaths[0]?.split('/')[0] ?? baseItem.subject, corpusType: savedEdit.corpusType, openness: savedEdit.openness, organization: savedEdit.organization === '其他' ? savedEdit.customOrganization : savedEdit.organization, authors: (savedEdit.department === '其他' ? savedEdit.customDepartment : savedEdit.department) || savedEdit.authors[0]?.organization || baseItem.authors } : baseItem
+  const displayMeta = { ...recordDisplayMeta(baseItem), ...(savedEdit ? { corpusSize: savedEdit.corpusSize, storageSize: savedEdit.storageSize } : {}) }
+  const administrator = corpusAdministrator(item.id)
+  const [members, setMembers] = useState<CorpusMember[]>(() => readCorpusMembers(item.id, defaultCorpusMembers(administrator)))
+  const authorFollowed = isFollowing(administrator.id)
   // 前三个语料库依次演示：管理员 / 可上传成员 / 非语料库成员
   const firstThreeRoles: DetailRole[] = ['admin', 'uploader', 'guest']
   const roleIndex = corpusRecords.findIndex((record) => record.id === item.id)
-  const detailRole: DetailRole = roleIndex >= 0 && roleIndex < firstThreeRoles.length ? firstThreeRoles[roleIndex] : 'guest'
+  const currentMembership = user ? members.find((member) => member.account === user.account) : undefined
+  const detailRole: DetailRole = currentMembership ? currentMembership.permission === '可管理' ? 'admin' : 'uploader' : roleIndex >= 0 && roleIndex < firstThreeRoles.length ? firstThreeRoles[roleIndex] : 'guest'
   const openness = detailOpennessLabel(item.openness)
   const favorite = favorites.some((record) => record.id === item.id)
 
-  const [activeTab, setActiveTab] = useState<DetailTab>('intro')
+  const [activeTab, setActiveTab] = useState<DetailTab>(() => searchParams.get('tab') === 'comments' ? 'comments' : 'intro')
+  const [downloadMethod, setDownloadMethod] = useState<'cli' | 'sdk'>('sdk')
+  const [metadataMenuOpen, setMetadataMenuOpen] = useState(false)
+  const metadataMenuRef = useRef<HTMLDivElement>(null)
   const [selectedFile, setSelectedFile] = useState('metadata.json')
   const [previewSidebarCollapsed, setPreviewSidebarCollapsed] = useState(false)
   const [fullscreenBrowser, setFullscreenBrowser] = useState<'intro' | 'download' | null>(null)
   const [memberOpen, setMemberOpen] = useState(false)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [joinRequestOpen, setJoinRequestOpen] = useState(false)
-  const [joinSubmitted, setJoinSubmitted] = useState(false)
-  const [uploadMode, setUploadMode] = useState<UploadMode>('local')
-  const [linkKind, setLinkKind] = useState<'url' | 'github'>('url')
-  const [authorFollowed, setAuthorFollowed] = useState(false)
-  const [uploadLicense, setUploadLicense] = useState('')
-  const [uploadRemark, setUploadRemark] = useState('')
-  const [uploadFiles, setUploadFiles] = useState<Array<{ id: string; name: string; size: number }>>([])
-  const [uploadSizeError, setUploadSizeError] = useState('')
-  const [externalSource, setExternalSource] = useState('')
-  const [memberQuery, setMemberQuery] = useState('')
-  const [memberSelected, setMemberSelected] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [memberPermission, setMemberPermission] = useState<MemberPermission>('可上传')
-  const [metadataFormat, setMetadataFormat] = useState<'JSON' | 'CSV'>('JSON')
   const [commentSort, setCommentSort] = useState<CommentSort>('time')
   const [commentDraft, setCommentDraft] = useState('')
-  const [commentComposerOpen, setCommentComposerOpen] = useState(false)
   const [activeReplyCommentId, setActiveReplyCommentId] = useState<number | null>(null)
   const [replyTargetUser, setReplyTargetUser] = useState('')
   const [replyTargetText, setReplyTargetText] = useState('')
   const [replyDraft, setReplyDraft] = useState('')
-  const [commentReplies, setCommentReplies] = useState(repliesSeed)
-  const [joinPermission, setJoinPermission] = useState<MemberPermission>('可上传')
-  const [joinRemark, setJoinRemark] = useState('')
+  const [storedDiscussion] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(`gw-corpus-comments-${baseItem.id}`) ?? 'null')
+      return stored && Array.isArray(stored.comments) && stored.replies && typeof stored.replies === 'object' ? stored as { comments: CorpusComment[]; replies: Record<number, CommentReply[]> } : null
+    } catch { return null }
+  })
+  const [commentReplies, setCommentReplies] = useState(storedDiscussion?.replies ?? repliesSeed)
+  const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set())
   const [toast, setToast] = useState('')
-  const [members, setMembers] = useState<Array<{ account: string; name: string; permission: MemberPermission }>>([
-    { account: 'corpus_admin', name: '语料管理员', permission: '可管理' },
-    { account: 'corpus_editor01', name: '建设编辑', permission: '可上传' },
-    { account: 'research_user02', name: '科研使用者', permission: '可上传' },
-  ])
-  const [comments, setComments] = useState(commentsSeed)
+  const [comments, setComments] = useState(storedDiscussion?.comments ?? commentsSeed)
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set())
   const toastTimer = useRef<number | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const folderInputRef = useRef<HTMLInputElement>(null)
+  const commentInputRef = useRef<HTMLTextAreaElement>(null)
+  const replyInputRef = useRef<HTMLTextAreaElement>(null)
 
-  const updatedAt = useMemo(() => {
+  useEffect(() => {
+    const refreshMembers = () => setMembers(readCorpusMembers(item.id, defaultCorpusMembers(administrator)))
+    window.addEventListener(corpusAuditEvent, refreshMembers)
+    window.addEventListener('storage', refreshMembers)
+    return () => { window.removeEventListener(corpusAuditEvent, refreshMembers); window.removeEventListener('storage', refreshMembers) }
+  }, [item.id, administrator])
+
+  useEffect(() => {
+    try { localStorage.setItem(`gw-corpus-comments-${baseItem.id}`, JSON.stringify({ comments, replies: commentReplies })) } catch { /* Keep the discussion usable if browser storage is full. */ }
+  }, [baseItem.id, comments, commentReplies])
+
+  const resizeComposer = (input: HTMLTextAreaElement) => {
+    input.style.height = '98px'
+    input.style.height = `${Math.min(400, Math.max(98, input.scrollHeight))}px`
+    input.style.overflowY = input.scrollHeight > 400 ? 'auto' : 'hidden'
+  }
+
+  useEffect(() => {
+    if (activeReplyCommentId !== null) replyInputRef.current?.focus()
+  }, [activeReplyCommentId, replyTargetUser, replyTargetText])
+
+  const updatedAt = (() => {
+    if (savedEdit) return savedEdit.updatedAt.slice(0, 10)
     const date = new Date(item.publishedAt)
     date.setDate(date.getDate() + 16)
     return date.toISOString().slice(0, 10)
-  }, [item.publishedAt])
+  })()
 
-  const relatedRecords = useMemo(() => {
+  const relatedRecords = (() => {
     const sameSubject = corpusRecords.filter((record) => record.id !== item.id && record.subject === item.subject)
     const fallback = corpusRecords.filter((record) => record.id !== item.id && record.subject !== item.subject)
-    return [...sameSubject, ...fallback].slice(0, 5)
-  }, [item.id, item.subject])
+    return [...sameSubject, ...fallback].slice(0, 4)
+  })()
 
   const sortedComments = useMemo(() => {
     const copied = [...comments]
     if (commentSort === 'likes') return copied.sort((a, b) => b.likes - a.likes)
-    return copied.sort((a, b) => b.date.localeCompare(a.date))
+    return copied.sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id)
   }, [commentSort, comments])
+
+  useEffect(() => {
+    if (!metadataMenuOpen) return
+    const dismiss = (event: MouseEvent) => {
+      if (!metadataMenuRef.current?.contains(event.target as Node)) setMetadataMenuOpen(false)
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMetadataMenuOpen(false)
+    }
+    document.addEventListener('mousedown', dismiss)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', dismiss)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [metadataMenuOpen])
+
+  useEffect(() => {
+    if (!fullscreenBrowser) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullscreenBrowser(null)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [fullscreenBrowser])
+
+  useEffect(() => () => {
+    if (toastTimer.current) window.clearTimeout(toastTimer.current)
+  }, [])
 
   const notify = (message: string) => {
     setToast(message)
@@ -480,7 +522,8 @@ export default function DatasetDetail() {
     notify('已开始下载语料压缩包')
   }
 
-  const exportMetadata = () => {
+  const exportMetadata = (metadataFormat: 'JSON' | 'CSV') => {
+    setMetadataMenuOpen(false)
     const metadata = {
       语料集名称: item.title,
       URL: window.location.href,
@@ -511,82 +554,42 @@ export default function DatasetDetail() {
     notify('元数据已导出')
   }
 
-  const addMember = () => {
-    const value = memberQuery.trim()
-    if (!value) return
-    const matched = memberSearchPool.find((option) => option.account === value || option.name === value)
-    const name = matched?.name ?? (value.includes('@') ? value.split('@')[0] : value)
-    setMembers((current) => [...current.filter((member) => member.account !== value), { account: value, name, permission: memberPermission }])
-    setMemberQuery('')
-    setMemberSelected(false)
-    notify('成员已添加')
+  const confirmMembers = (nextMembers: CorpusMember[]) => {
+    try {
+      saveCorpusMembers(item.id, nextMembers)
+      const added = nextMembers.filter((member) => !members.some((previous) => previous.account === member.account)).length
+      const removed = members.filter((member) => !nextMembers.some((next) => next.account === member.account)).length
+      const changed = nextMembers.filter((member) => members.some((previous) => previous.account === member.account && previous.permission !== member.permission)).length
+      const content = [added && `新增 ${added} 名成员`, removed && `移除 ${removed} 名成员`, changed && `调整 ${changed} 名成员权限`].filter(Boolean).join('；')
+      if (content) recordCorpusOperation(item.id, currentIdentity.username, '成员管理', content)
+      setMembers(nextMembers)
+      setMemberOpen(false)
+      notify('成员设置已保存')
+    } catch {
+      notify('保存失败，请检查浏览器存储空间后重试')
+    }
   }
 
-  const searchResults = useMemo(() => {
-    const normalized = memberQuery.trim()
-    if (!normalized) return []
-    return memberSearchPool.filter((option) => (option.account + option.name).includes(normalized)).slice(0, 6)
-  }, [memberQuery])
-
-  const removeMember = (account: string) => {
-    if (!window.confirm('确认移除该成员吗？')) return
-    setMembers((current) => current.filter((member) => member.account !== account))
-    notify('成员已移除')
-  }
-
-  const handleUploadFiles = (files: FileList | null) => {
-    if (!files?.length) return
-    const timestamp = Date.now()
-    const nextFiles = Array.from(files).map((file, index) => ({
-      id: `${timestamp}-${index}-${file.name}-${file.size}`,
-      name: file.webkitRelativePath || file.name,
-      size: file.size,
-    }))
-    const currentSize = uploadFiles.reduce((sum, file) => sum + file.size, 0)
-    const nextSize = nextFiles.reduce((sum, file) => sum + file.size, 0)
-    if (currentSize + nextSize > maxUploadBytes) {
-      setUploadSizeError(`单次上传数据大小不超过 ${maxUploadSizeLabel}，请压缩或分批上传`)
-      return
-    }
-    setUploadSizeError('')
-    setUploadFiles((current) => [...current, ...nextFiles])
-  }
-
-  const submitUpload = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!uploadLicense) {
-      notify('请选择许可协议')
-      return
-    }
-    const hasData = uploadMode === 'local' ? uploadFiles.length > 0 : uploadMode === 'link' ? Boolean(externalSource.trim()) : true
-    if (!hasData) {
-      notify('请选择要上传的数据')
-      return
-    }
-    if (!uploadRemark.trim()) {
-      notify('请填写备注')
-      return
-    }
-    setUploadOpen(false)
-    setUploadLicense('')
-    setUploadFiles([])
-    setUploadSizeError('')
-    setExternalSource('')
-    setLinkKind('url')
-    setUploadRemark('')
-    notify('语料已提交，等待管理员审核')
+  const submitUpload = (values: CorpusUploadSubmission) => {
+    if (!user) { openAuth(`/search/datasets/${item.id}`); return false }
+    try {
+      submitCorpusRequest(item.id, { type: '数据上传', content: values.content, applicant: currentIdentity.username, applicantAccount: user.account, remark: values.remark, reason: values.remark, source: values.source, license: values.license, files: values.files })
+    } catch { notify('提交失败，请稍后重试'); return false }
+    return true
   }
 
   const submitComment = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const value = commentDraft.trim()
     if (!value) {
-      notify('请填写评论')
+      notify('请输入内容后提交评论')
       return
     }
-    setComments((current) => [{ id: Date.now(), user: user?.account ?? '科学语料用户', date: new Date().toISOString().slice(0, 10), likes: 0, liked: false, text: value }, ...current])
+    if (!user) { openAuth(`/search/datasets/${item.id}?tab=comments`); return }
+    const identity = readUserIdentity(user)
+    setComments((current) => [{ id: current.reduce((next, entry) => Math.max(next, entry.id + 1), Date.now()), user: identity.username, authorAccount: user.account, avatar: identity.avatar, date: new Date().toISOString(), likes: 0, liked: false, text: value }, ...current])
     setCommentDraft('')
-    setCommentComposerOpen(false)
+    if (commentInputRef.current) commentInputRef.current.style.height = '98px'
     notify('评论已发布')
   }
 
@@ -600,32 +603,39 @@ export default function DatasetDetail() {
   }
 
   const openReplyPanel = (commentId: number, targetUser: string, targetText: string) => {
+    if (!user) { openAuth(`/search/datasets/${item.id}?tab=comments`); return }
+    setReplyDraft('')
     setActiveReplyCommentId(commentId)
     setReplyTargetUser(targetUser)
     setReplyTargetText(targetText)
   }
 
   const submitReply = (commentId: number) => {
+    if (!user) { openAuth(`/search/datasets/${item.id}?tab=comments`); return }
     const value = replyDraft.trim()
-    if (!value) return
+    if (!value) { notify('请输入内容后提交评论'); return }
+    const identity = readUserIdentity(user)
     setCommentReplies((current) => ({
       ...current,
       [commentId]: [
         ...(current[commentId] ?? []),
-        { id: Date.now(), user: user?.account ?? '科学语料用户', date: new Date().toISOString().slice(0, 10), text: value, replyingTo: replyTargetUser },
+        { id: (current[commentId] ?? []).reduce((next, entry) => Math.max(next, entry.id + 1), Date.now()), user: identity.username, authorAccount: user.account, avatar: identity.avatar, date: new Date().toISOString(), text: value, replyingTo: replyTargetUser, likes: 0, likedBy: [] },
       ],
     }))
     setReplyDraft('')
     setReplyTargetUser('')
     setReplyTargetText('')
+    setActiveReplyCommentId(null)
+    setExpandedReplies((current) => new Set(current).add(commentId))
     notify('回复已发布')
   }
 
-  const submitJoinRequest = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setJoinSubmitted(true)
-    setJoinRemark('')
-    setJoinPermission('可上传')
+  const submitJoinRequest = (permission: MemberPermission, remark: string) => {
+    if (!user) { openAuth(`/search/datasets/${item.id}`); return false }
+    try {
+      submitCorpusRequest(item.id, { type: '加入申请', content: permission === '可管理' ? '管理权限' : '上传权限', applicant: currentIdentity.username, applicantAccount: user.account, permission, person: { account: user.account, name: currentIdentity.username, organization: '', avatar: currentIdentity.avatar }, reason: remark, remark })
+    } catch { notify('提交失败，请稍后重试'); return false }
+    return true
   }
 
   const goEditUpload = () => {
@@ -641,195 +651,139 @@ export default function DatasetDetail() {
   }
 
   return (
-    <main className="dataset-detail-page dataset-detail-v2">
-      <button className="dataset-back-button" type="button" onClick={goBack}><ArrowLeft size={17} />返回</button>
+    <div className="dataset-detail-page dataset-detail-v2 dataset-detail-design">
+      <header className="detail-page-toolbar">
+        <button className="detail-return" type="button" onClick={goBack}>
+          <span className="detail-return-icon"><ArrowLeft size={18} /></span>
+          <span><strong>返回</strong><small>{item.title}</small></span>
+        </button>
+        <div className="detail-management-actions">
+          {detailRole === 'admin' && <>
+            <button type="button" onClick={goEditUpload}><Pencil size={15} />编辑</button>
+            <button type="button" onClick={() => ensureVerified(() => setMemberOpen(true))}><Users size={15} />管理成员</button>
+            <button type="button" onClick={() => ensureVerified(() => navigate(`/search/datasets/${item.id}/audit`))}><FileText size={15} />审批</button>
+          </>}
+          {detailRole === 'uploader' && <button type="button" onClick={() => ensureVerified(() => setUploadOpen(true))}><Upload size={15} />上传</button>}
+          {detailRole === 'guest' && <button type="button" onClick={() => ensureVerified(() => setJoinRequestOpen(true))}><UserPlus size={15} />申请加入语料库</button>}
+          <div className="detail-metadata-menu" ref={metadataMenuRef}>
+            <button className="is-primary" type="button" aria-haspopup="menu" aria-expanded={metadataMenuOpen} onClick={() => setMetadataMenuOpen((open) => !open)}>导出元数据<ChevronDown size={15} /></button>
+            {metadataMenuOpen && <div className="detail-export-options" role="menu" aria-label="元数据导出格式">
+              <button type="button" role="menuitem" onClick={() => exportMetadata('JSON')}><FileJson size={15} />导出 JSON</button>
+              <button type="button" role="menuitem" onClick={() => exportMetadata('CSV')}><FileText size={15} />导出 CSV</button>
+            </div>}
+          </div>
+        </div>
+      </header>
 
-      <div className="dataset-detail-layout dataset-detail-layout-v2">
-        <section className="dataset-summary-card dataset-hero-card">
-          <div className="dataset-summary-head">
-            <div>
+      <section className="detail-overview" aria-label="语料基本信息">
+          <img className="detail-cover" src={recordCoverImage(item.id)} alt={`${item.subject}语料封面`} />
+          <div className="detail-overview-copy">
+            <div className="detail-title-row">
               <h1>{item.title}</h1>
-              <div className="dataset-badges">
-                <span className="is-subject">{item.subject}</span>
-                <span>{detailCorpusTypeLabel(item.corpusType)}</span>
-                <span className="is-open">{openness}</span>
-                <span className={`dataset-status ${displayMeta.status === '已上线' ? 'is-uploaded' : 'is-pending'}`}>{displayMeta.status}</span>
-              </div>
-              <div className="dataset-author-line">
-                作者：张伟；李娜；王磊
+              <div className="detail-overview-actions">
+                <button type="button" aria-pressed={favorite} className={favorite ? 'is-active' : ''} onClick={() => { toggleFavorite({ id: item.id, title: item.title }); notify(favorite ? '已取消收藏' : '已收藏，可在个人主页查看') }}><Star size={15} />{favorite ? '已收藏' : '收藏'}</button>
+                <button type="button" onClick={copyShareLink}><Share2 size={15} />分享</button>
               </div>
             </div>
-            <div className="dataset-admin-actions">
-              {detailRole === 'admin' && (
-                <>
-                  <button type="button" onClick={goEditUpload}><Pencil size={15} />编辑</button>
-                  <button type="button" onClick={() => ensureVerified(() => setMemberOpen(true))}><Users size={15} />管理成员</button>
-                  <button type="button" onClick={() => ensureVerified(() => navigate(`/search/datasets/${item.id}/audit`))}><ShieldCheck size={15} />审批</button>
-                </>
-              )}
-              {detailRole === 'uploader' && (
-                <button type="button" onClick={() => ensureVerified(() => setUploadOpen(true))}><Upload size={15} />上传</button>
-              )}
-              {detailRole === 'guest' && (
-                <button type="button" onClick={() => ensureVerified(() => setJoinRequestOpen(true))}><UserPlus size={15} />申请加入语料库</button>
-              )}
+            <div className="detail-badges">
+              <span>{item.subject}</span><span className="is-type">{detailCorpusTypeLabel(item.corpusType)}</span>
+              <span className={openness === '不公开' ? 'is-private' : ''}>{openness}</span>
+              <span className="is-status">{displayMeta.status}</span>
+            </div>
+            <div className="detail-attribution">
+              <span><UserRound size={13} /><em>作者：</em>{savedEdit ? savedEdit.authors.map((author) => author.name).join('；') : '张伟；李娜；王磊'}</span>
+              <span><Building2 size={13} /><em>发布机构：</em>{item.organization} - {item.authors}</span>
+            </div>
+            <div className="detail-facts-row">
+              <dl className="detail-facts">
+                <div><dt>发布时间：</dt><dd>{item.publishedAt}</dd></div>
+                <div><dt>更新时间：</dt><dd>{updatedAt}</dd></div>
+                <div><dt>语料规模：</dt><dd>{displayMeta.corpusSize}</dd></div>
+                <div><dt>存储容量：</dt><dd>{displayMeta.storageSize}</dd></div>
+              </dl>
+              <div className="detail-stats" aria-label="语料使用统计">
+                <span title="下载量"><Download size={14} />{item.usage.toLocaleString()}</span>
+                <span title="浏览量"><Eye size={14} />{item.views.toLocaleString()}</span>
+                <span title="收藏量"><Star size={14} />{(item.favorites + (favorite ? 1 : 0)).toLocaleString()}</span>
+              </div>
             </div>
           </div>
+      </section>
 
-          <dl className="dataset-hero-meta-list">
-            <div><dt>发布机构</dt><dd><Building2 size={16} />{item.organization} - {item.authors}</dd></div>
-            <div><dt>发布时间</dt><dd><CalendarDays size={16} />{item.publishedAt}</dd></div>
-            <div><dt>更新时间</dt><dd>{updatedAt}</dd></div>
-            <div><dt>语料规模</dt><dd>{displayMeta.corpusSize}</dd></div>
-            <div><dt>存储容量</dt><dd>{displayMeta.storageSize}</dd></div>
-          </dl>
-
-          <article className="dataset-description-block dataset-description-actions-only">
-            <div className="dataset-social-actions dataset-social-actions-v2">
-              <span data-tooltip="浏览量"><Eye size={18} /><b>{item.views.toLocaleString()}</b></span>
-              <span data-tooltip="下载量"><Download size={18} /><b>{item.usage.toLocaleString()}</b></span>
-              <button type="button" data-tooltip={favorite ? '取消收藏' : '收藏'} className={favorite ? 'is-active' : ''} onClick={() => { toggleFavorite({ id: item.id, title: item.title }); notify(favorite ? '已取消收藏' : '已收藏，可在个人主页查看') }}><Star size={18} /><b>{(item.favorites + (favorite ? 1 : 0)).toLocaleString()}</b></button>
-              <button type="button" data-tooltip="转发" onClick={copyShareLink}><Share2 size={18} /></button>
-            </div>
-          </article>
-        </section>
-
-        <aside className="dataset-side-column dataset-side-column-v2">
-          <section className="dataset-side-card">
-            <div className="side-card-title"><Info size={18} /><h2>其他信息</h2></div>
-            <dl>
-              <div><dt>语种类别</dt><dd>{languageForSubject(item.subject)}</dd></div>
-              <div><dt>语料格式</dt><dd>{formatForSubject(item.subject)}</dd></div>
-              <div><dt>时间跨度</dt><dd>{item.subject === '数学' ? '2000年-至今' : '2020年-至今'}</dd></div>
-            </dl>
-          </section>
-
-          <section className="dataset-side-card author-card">
-            <div className="author-card-main">
-              <div className="author-avatar">张</div>
-              <div className="author-card-copy">
-                <h2>张伟</h2>
-                <p>北京大学</p>
-              </div>
-              <button
-                className={authorFollowed ? 'is-followed' : ''}
-                data-tooltip={authorFollowed ? '取消关注' : undefined}
-                type="button"
-                onClick={() => {
-                  setAuthorFollowed((followed) => !followed)
-                  notify(authorFollowed ? '已取消关注' : '已关注作者')
-                }}
-              >
-                {authorFollowed ? '已关注' : '关注'}
-              </button>
-            </div>
-          </section>
-
-          <section className="dataset-side-card">
-            <div className="side-card-title"><ShieldCheck size={18} /><h2>权益信息</h2></div>
-            <dl>
-              <div><dt>权益主体</dt><dd>{item.organization}</dd></div>
-              <div><dt>许可协议</dt><dd>CC BY 4.0</dd></div>
-            </dl>
-          </section>
-
-          <section className="dataset-side-card metadata-export-card">
-            <div className="side-card-title"><FileJson size={18} /><h2>元数据下载</h2></div>
-            <div className="metadata-export-row">
-              <select value={metadataFormat} onChange={(event) => setMetadataFormat(event.target.value as 'JSON' | 'CSV')}>
-                <option>JSON</option>
-                <option>CSV</option>
-              </select>
-              <button type="button" onClick={exportMetadata}>导出</button>
-            </div>
-          </section>
-        </aside>
-      </div>
-
-      <section className="dataset-content-panel dataset-content-panel-v2">
-        <div className="dataset-content-tabs" role="tablist">
-          <button type="button" className={activeTab === 'intro' ? 'is-active' : ''} onClick={() => setActiveTab('intro')}><FileText size={17} />语料介绍</button>
-          <button type="button" className={activeTab === 'download' ? 'is-active' : ''} onClick={() => setActiveTab('download')}><Download size={17} />语料下载</button>
-          <button type="button" className={activeTab === 'comments' ? 'is-active' : ''} onClick={() => setActiveTab('comments')}><MessageCircle size={17} />评论（{comments.length}）</button>
+      <section className="detail-main-panel" aria-label="语料详情内容">
+        <div className="detail-tabs" role="tablist" aria-label="语料详情">
+          {([{ id: 'intro', label: '语料介绍' }, { id: 'download', label: '语料下载' }, { id: 'comments', label: `评论 ${comments.length}` }] as const).map((tab) => (
+            <button key={tab.id} id={`detail-tab-${tab.id}`} type="button" role="tab" aria-selected={activeTab === tab.id} aria-controls={`detail-panel-${tab.id}`} className={activeTab === tab.id ? 'is-active' : ''} onClick={() => setActiveTab(tab.id)} onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+              event.preventDefault()
+              const tabs: DetailTab[] = ['intro', 'download', 'comments']
+              const index = tabs.indexOf(tab.id)
+              const next = event.key === 'Home' ? tabs[0] : event.key === 'End' ? tabs[2] : tabs[(index + (event.key === 'ArrowRight' ? 1 : 2)) % 3]
+              setActiveTab(next)
+              document.getElementById(`detail-tab-${next}`)?.focus()
+            }} tabIndex={activeTab === tab.id ? 0 : -1}>{tab.label}</button>
+          ))}
         </div>
 
         {activeTab === 'intro' && (
-          <div className="dataset-tab-body">
-            <section className="dataset-intro-section">
+          <div className="detail-tab-content" id="detail-panel-intro" role="tabpanel" aria-labelledby="detail-tab-intro">
+            <section className="detail-abstract">
               <h2>摘要</h2>
               <p>{item.summary} 平台围绕数据来源、结构化处理、质量校验和版本管理沉淀元数据，支持科研、教学和模型训练场景复用。</p>
-              <div className="keyword-row">{item.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>
+              <div className="detail-keywords">{item.keywords.map((keyword) => <span key={keyword}>{keyword}</span>)}</div>
             </section>
-            <section className={`dataset-browser ${previewSidebarCollapsed ? 'is-sidebar-collapsed' : ''} ${fullscreenBrowser === 'intro' ? 'is-fullscreen' : ''}`}>
-              <aside>
-                <div className="dataset-browser-sidebar-head">
-                  <div>
-                    <strong>语料预览</strong>
-                    <small>Version X · {updatedAt} 更新</small>
-                  </div>
-                  <button type="button" aria-label="收起左栏目录" onClick={() => setPreviewSidebarCollapsed(true)}><PanelLeftClose size={17} /></button>
+            <section className={`detail-preview ${previewSidebarCollapsed ? 'is-sidebar-collapsed' : ''} ${fullscreenBrowser === 'intro' ? 'is-fullscreen' : ''}`} aria-label="语料预览">
+              <header className="detail-preview-heading">
+                <div><strong>语料预览</strong><small>Version X · {updatedAt} 更新</small></div>
+                <div className="detail-preview-actions">
+                  <button type="button" onClick={downloadAllSamples}><Download size={15} />下载全部数据</button>
+                  <button type="button" className="detail-icon-button" aria-label={fullscreenBrowser === 'intro' ? '退出全屏预览' : '全屏预览'} onClick={() => setFullscreenBrowser((current) => current === 'intro' ? null : 'intro')}>{fullscreenBrowser === 'intro' ? <Minimize2 size={16} /> : <Maximize2 size={16} />}</button>
                 </div>
-                <button className="download-version-button" type="button" onClick={downloadAllSamples}>
-                  <FileArchive size={16} />下载全部样例数据
-                </button>
-                <div className="dataset-version-tree dataset-latest-tree" aria-label="浏览最新样例数据">
+              </header>
+              <div className="detail-preview-body">
+                <nav className="detail-file-tree" aria-label="浏览最新样例数据">
                   {previewTree.map((node) => (
                     <button
-                      className={`dataset-file-node ${selectedFile === node.file ? 'is-active' : ''}`}
+                      className={selectedFile === node.file ? 'is-active' : ''}
                       key={node.file}
                       onClick={() => setSelectedFile(node.file)}
                       type="button"
+                      aria-pressed={selectedFile === node.file}
                     >
-                      <Folder size={15} />{node.path}
+                      <Folder size={16} /><span>{node.path}</span>
                     </button>
                   ))}
-                </div>
-              </aside>
-              <div className="preview-code-panel">
-                <div className="dataset-code-toolbar">
-                  <div className="dataset-code-title">
-                    {previewSidebarCollapsed && <button className="dataset-sidebar-restore" type="button" aria-label="展开左栏目录" onClick={() => setPreviewSidebarCollapsed(false)}><PanelLeftOpen size={17} /></button>}
-                    <span>{selectedFile}</span>
+                </nav>
+                <div className="detail-file-content">
+                  <div className="detail-file-toolbar">
+                    <button type="button" className="detail-icon-button" aria-label={previewSidebarCollapsed ? '展开文件目录' : '收起文件目录'} onClick={() => setPreviewSidebarCollapsed((collapsed) => !collapsed)}>{previewSidebarCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}</button>
+                    <strong>{previewTree.find((file) => file.file === selectedFile)?.name}</strong>
+                    <button type="button" className="detail-text-download" onClick={() => downloadSampleFile()}><Download size={13} />{selectedFile === 'metadata.json' ? '下载元数据' : '下载文件'}</button>
                   </div>
-                  <div className="dataset-code-actions">
-                    <button className="dataset-code-download" type="button" onClick={() => downloadSampleFile()}><Download size={19} />下载</button>
-                    <button
-                      type="button"
-                      aria-label={fullscreenBrowser === 'intro' ? '缩小预览' : '放大预览'}
-                      onClick={() => setFullscreenBrowser((current) => current === 'intro' ? null : 'intro')}
-                    >
-                      {fullscreenBrowser === 'intro' ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-                    </button>
-                    <button type="button" aria-label="切换下一个文件" onClick={() => {
-                      const index = previewTree.findIndex((file) => file.file === selectedFile)
-                      setSelectedFile(previewTree[(index + 1) % previewTree.length].file)
-                    }}><ChevronRight size={20} /></button>
-                  </div>
+                  <pre><code>{previewContent[selectedFile]}</code></pre>
                 </div>
-                <pre><code>{previewContent[selectedFile]}</code></pre>
               </div>
             </section>
           </div>
         )}
 
         {activeTab === 'download' && (
-          <div className="dataset-tab-body">
+          <div className="detail-tab-content" id="detail-panel-download" role="tabpanel" aria-labelledby="detail-tab-download">
             {openness === '不公开' ? (
               <div className="private-dataset-note">该语料库暂为非公开，如需要请联系作者</div>
             ) : (
-              <section className="usage-guide-layout download-via-layout">
-                <nav className="usage-guide-toc" aria-label="下载方式目录">
-                  <a href="#download-zip">压缩包下载</a>
-                  <a href="#download-cli">CLI 命令行下载</a>
-                  <a href="#download-sdk">SDK 下载</a>
-                </nav>
-                <div className="usage-guide-panel">
-                  <article className="usage-guide-section" id="download-zip">
+              <section className="detail-download-surface">
+                  <header className="detail-zip-heading">
                     <h2>压缩包下载</h2>
-                    <button className="dataset-zip-download" type="button" onClick={downloadZip}>
-                      <FileArchive size={20} />下载语料压缩包（{displayMeta.storageSize}）
+                    <button className="detail-text-download" type="button" onClick={downloadZip}>
+                      <Download size={14} />下载语料压缩包（{displayMeta.storageSize}）
                     </button>
-                  </article>
+                  </header>
+                  <nav className="detail-download-tabs" aria-label="下载方式">
+                    <button type="button" className={downloadMethod === 'cli' ? 'is-active' : ''} aria-pressed={downloadMethod === 'cli'} onClick={() => setDownloadMethod('cli')}>CLI 命令行</button>
+                    <button type="button" className={downloadMethod === 'sdk' ? 'is-active' : ''} aria-pressed={downloadMethod === 'sdk'} onClick={() => setDownloadMethod('sdk')}>SDK</button>
+                  </nav>
+                  {downloadMethod === 'cli' && (
                   <article className="usage-guide-section" id="download-cli">
                     <h2>CLI 命令行下载</h2>
                     <p>在命令行中通过 CLI 工具下载完整数据集或单个文件，先通过如下命令安装。</p>
@@ -855,12 +809,13 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
                       </div>
                       <pre><code>{`corpusware download --corpus ${item.id} --file README.md --output ./corpus`}</code></pre>
                     </div>
-                    <p>更多更丰富的命令行下载选项，可参见 具体文档。</p>
                   </article>
+                  )}
+                  {downloadMethod === 'sdk' && (
                   <article className="usage-guide-section" id="download-sdk">
                     <h2>SDK 下载</h2>
                     <p>在 Python 环境中安装官方 SDK，按照以下步骤完成登录、鉴权并加载语料件。</p>
-                    {usageGuide.map((section, index) => (
+                    {usageGuide.slice(0, 7).map((section, index) => (
                       <article className="usage-guide-step" id={`usage-guide-${index + 1}`} key={section.title}>
                         <h3>{section.title}</h3>
                         <p>{section.content}</p>
@@ -874,6 +829,12 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
                         )}
                       </article>
                     ))}
+                    <details className="detail-sdk-more">
+                    <summary>更多 SDK 用法与完整示例</summary>
+                    {usageGuide.slice(7).map((section) => <article className="usage-guide-step" key={section.title}>
+                      <h3>{section.title}</h3><p>{section.content}</p>
+                      {section.code && <div className="download-code-block"><div className="download-code-head"><button type="button" onClick={() => copyText(section.code as string, '命令已复制')}><Copy size={15} />复制</button></div><pre><code>{section.code}</code></pre></div>}
+                    </article>)}
                     <h3>完整的下载示例代码</h3>
                     <p>以下代码可直接复制使用，其中语料 ID 为当前语料库标识。</p>
                     <section className={`download-code-section ${fullscreenBrowser === 'download' ? 'is-fullscreen' : ''}`}>
@@ -896,40 +857,47 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
                         <pre><code>{buildDownloadExampleCode(item.id)}</code></pre>
                       </div>
                     </section>
+                    </details>
                   </article>
-                </div>
+                  )}
               </section>
             )}
           </div>
         )}
 
         {activeTab === 'comments' && (
-          <div className="dataset-tab-body comments-panel">
-            <div className="comments-toolbar">
-              <label><ChevronDown size={15} />排序
+          <div className="detail-tab-content" id="detail-panel-comments" role="tabpanel" aria-labelledby="detail-tab-comments">
+           <div className="detail-comments-surface">
+            <div className="detail-comments-heading">
+              <h2>评论 {comments.length}</h2>
+              <label><span className="sr-only">评论排序</span>
                 <select value={commentSort} onChange={(event) => setCommentSort(event.target.value as CommentSort)}>
-                  <option value="time">按时间</option>
-                  <option value="likes">按点赞量</option>
+                  <option value="time" label="按时间">按时间（由近到远）</option>
+                  <option value="likes" label="按点赞量">点赞量（由高到低）</option>
                 </select>
               </label>
-              <button type="button" onClick={() => setCommentComposerOpen((open) => !open)}><Pencil size={16} />写评论</button>
             </div>
-            {commentComposerOpen && (
-              <form className="comment-composer" onSubmit={submitComment}>
-                <textarea maxLength={1000} value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="请输入评论内容，最多1000字" />
+              <form className="detail-comment-composer" onSubmit={submitComment}>
+                {currentIdentity.avatar ? <img className="detail-comment-avatar" src={avatarUrl(currentIdentity.avatar)} alt={`${currentIdentity.username}的头像`} /> : <span className="detail-comment-avatar" aria-hidden="true">{currentIdentity.username.slice(0, 1)}</span>}
+                <textarea ref={commentInputRef} aria-label="评论内容" maxLength={1000} value={commentDraft} onChange={(event) => { setCommentDraft(event.target.value); resizeComposer(event.target) }} onFocus={(event) => resizeComposer(event.target)} onBlur={(event) => { event.target.style.height = '98px'; event.target.style.overflowY = 'auto' }} placeholder="请输入评论内容，最多1000字" />
                 <button type="submit">发布评论</button>
               </form>
-            )}
             <div className="comment-list">
-              {sortedComments.map((comment) => (
+              {sortedComments.map((comment) => {
+                const ownComment = Boolean(user && comment.authorAccount === user.account)
+                const commentLiked = Boolean(user && comment.likedBy?.includes(user.account))
+                const commentName = ownComment ? currentIdentity.username : comment.user
+                const commentAvatar = ownComment ? currentIdentity.avatar : comment.avatar ?? `images/demand-users/${comment.id % 3 === 0 ? 'community-cat' : comment.id % 2 === 0 ? 'computer-researcher' : 'lab-director'}.jpg`
+                const replies = commentReplies[comment.id] ?? []
+                const visibleReplies = replies.length > 2 && !expandedReplies.has(comment.id) ? [...replies].sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0) || b.date.localeCompare(a.date)).slice(0, 1) : replies
+                return (
                 <article
                   className={`comment-card ${activeReplyCommentId === comment.id ? 'is-open' : ''}`}
                   key={comment.id}
-                  onClick={() => openReplyPanel(comment.id, comment.user, comment.text)}
                 >
-                  <div className="comment-avatar">{comment.user.slice(0, 1)}</div>
+                  {commentAvatar ? <img className="detail-comment-avatar" src={avatarUrl(commentAvatar)} alt={`${commentName}的头像`} /> : <span className="detail-comment-avatar">{commentName.slice(0, 1)}</span>}
                   <div>
-                    <header><strong>{comment.user}</strong><span>{comment.date}</span></header>
+                    <header><strong>{commentName}</strong><span>{comment.date.replace('T', ' ').slice(0, 16)}</span></header>
                     <CommentBody
                       text={comment.text}
                       expanded={expandedComments.has(comment.id)}
@@ -937,12 +905,19 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
                     />
                     <div className="comment-card-actions">
                       <button
-                        className={comment.liked ? 'is-active' : ''}
-                        data-tooltip={comment.liked ? '取消点赞' : '点赞'}
+                        className={commentLiked ? 'is-active' : ''}
+                        data-tooltip={commentLiked ? '取消点赞' : '点赞'}
+                        aria-label={commentLiked ? `取消点赞 ${comment.likes}` : `点赞 ${comment.likes}`}
+                        aria-pressed={commentLiked}
                         type="button"
                         onClick={(event) => {
                           event.stopPropagation()
-                          setComments((current) => current.map((item) => item.id === comment.id ? { ...item, liked: !item.liked, likes: item.liked ? Math.max(0, item.likes - 1) : item.likes + 1 } : item))
+                          if (!user) { openAuth(`/search/datasets/${item.id}?tab=comments`); return }
+                          setComments((current) => current.map((entry) => {
+                            if (entry.id !== comment.id) return entry
+                            const alreadyLiked = entry.likedBy?.includes(user.account)
+                            return { ...entry, likes: Math.max(0, entry.likes + (alreadyLiked ? -1 : 1)), likedBy: alreadyLiked ? entry.likedBy?.filter((account) => account !== user.account) : [...(entry.likedBy ?? []), user.account] }
+                          }))
                         }}
                       >
                         <ThumbsUp size={15} />{comment.likes}
@@ -953,196 +928,113 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
                         aria-label={`查看并回复 ${commentReplies[comment.id]?.length ?? 0} 条回复`}
                         onClick={(event) => {
                           event.stopPropagation()
-                          openReplyPanel(comment.id, comment.user, comment.text)
+                          openReplyPanel(comment.id, commentName, comment.text)
                         }}
                       >
-                        <MessageCircle size={15} />{commentReplies[comment.id]?.length ?? 0}
+                        <MessageCircle size={15} />回复
                       </button>
                     </div>
+                    {replies.length > 0 && <div className="comment-reply-list">
+                      {visibleReplies.map((reply) => {
+                        const ownReply = Boolean(user && reply.authorAccount === user.account)
+                        const replyName = ownReply ? currentIdentity.username : reply.user
+                        const replyAvatar = ownReply ? currentIdentity.avatar : reply.avatar
+                        const liked = Boolean(user && reply.likedBy?.includes(user.account))
+                        return <article className="comment-reply-item" key={reply.id}>
+                          {replyAvatar ? <img className="detail-comment-avatar" src={avatarUrl(replyAvatar)} alt={replyName} /> : <span>{replyName.slice(0, 1)}</span>}
+                          <div>
+                            <strong>{replyName}</strong><small>{reply.date.replace('T', ' ').slice(0, 16)}</small>
+                            <p>{reply.replyingTo && <em>回复 {reply.replyingTo}：</em>}{reply.text}</p>
+                            <div className="comment-reply-actions">
+                              {ownReply ? <button type="button" aria-label="删除我的回复" onClick={() => {
+                                setCommentReplies((current) => ({ ...current, [comment.id]: current[comment.id].filter((entry) => entry.id !== reply.id || entry.authorAccount !== user?.account) }))
+                                notify('回复已删除')
+                              }}><Trash2 size={14} />删除</button> : <button type="button" aria-pressed={liked} onClick={() => {
+                                if (!user) { openAuth(`/search/datasets/${item.id}?tab=comments`); return }
+                                setCommentReplies((current) => ({ ...current, [comment.id]: current[comment.id].map((entry) => entry.id !== reply.id ? entry : { ...entry, likes: Math.max(0, (entry.likes ?? 0) + (liked ? -1 : 1)), likedBy: liked ? entry.likedBy?.filter((account) => account !== user.account) : [...(entry.likedBy ?? []), user.account] }) }))
+                              }}><ThumbsUp size={14} />{reply.likes ?? 0}</button>}
+                              <button type="button" onClick={() => openReplyPanel(comment.id, replyName, reply.text)}><MessageCircle size={14} />回复</button>
+                            </div>
+                          </div>
+                        </article>
+                      })}
+                      {replies.length > 2 && <button className="comment-more" type="button" onClick={() => setExpandedReplies((current) => { const next = new Set(current); if (next.has(comment.id)) next.delete(comment.id); else next.add(comment.id); return next })}>{expandedReplies.has(comment.id) ? '收起回复' : `展开 ${replies.length} 条回复`}</button>}
+                    </div>}
                     {activeReplyCommentId === comment.id && (
                       <div className="comment-reply-panel" onClick={(event) => event.stopPropagation()}>
-                        <div className="comment-reply-list">
-                          {(commentReplies[comment.id] ?? []).map((reply) => (
-                            <button
-                              className="comment-reply-item"
-                              key={reply.id}
-                              type="button"
-                              onClick={() => openReplyPanel(comment.id, reply.user, reply.text)}
-                            >
-                              <span>{reply.user.slice(0, 1)}</span>
-                              <div>
-                                <strong>{reply.user}</strong>
-                                {reply.replyingTo && <em>回复 @{reply.replyingTo}</em>}
-                                <p>{reply.text}</p>
-                                <small>{reply.date}</small>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
                         <div className="comment-reply-target">
                           <strong>回复 @{replyTargetUser || comment.user}</strong>
-                          <p>{replyTargetText || comment.text}</p>
+                          <p style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{replyTargetText || comment.text}</p>
                         </div>
                         <textarea
+                          ref={replyInputRef}
                           maxLength={1000}
                           value={replyDraft}
-                          onChange={(event) => setReplyDraft(event.target.value)}
-                          placeholder=""
+                          onChange={(event) => { setReplyDraft(event.target.value); resizeComposer(event.target) }}
+                          onFocus={(event) => resizeComposer(event.target)}
+                          onBlur={(event) => { event.target.style.height = '98px'; event.target.style.overflowY = 'auto' }}
+                          aria-label={`回复 ${replyTargetUser || comment.user}`}
+                          placeholder="请输入回复内容"
                         />
                         <div className="comment-reply-actions">
                           <small>{replyDraft.length}/1000</small>
                           <button type="button" onClick={() => { setActiveReplyCommentId(null); setReplyTargetUser(''); setReplyTargetText(''); setReplyDraft('') }}>取消</button>
-                          <button type="button" className="is-primary" onClick={() => submitReply(comment.id)}>发送</button>
+                          <button type="button" className="is-primary" onClick={() => submitReply(comment.id)}>回复评论</button>
                         </div>
                       </div>
                     )}
                   </div>
                 </article>
-              ))}
+              )})}
             </div>
+           </div>
           </div>
         )}
       </section>
 
-      <section className="related-datasets-section">
-        <header><h2>相关语料库</h2></header>
-        <div className="related-dataset-strip">
+      <aside className="detail-sidebar" aria-label="作者信息与相关语料库">
+        <section className="detail-info-card">
+          <div className="detail-author">
+            <img src={avatarUrl(administrator.avatar)} alt={`${administrator.name}的头像`} />
+            <div><h2>{administrator.name}</h2><p>{administrator.organization}</p>
+              <div className="detail-author-stats"><span>{administrator.followingCount.toLocaleString()} 关注</span><span>{followerCount(administrator).toLocaleString()} 粉丝</span><span>{administrator.collections.toLocaleString()} 被收藏</span></div>
+              <div className="detail-author-actions">
+                <button className={authorFollowed ? 'is-followed' : ''} type="button" aria-pressed={authorFollowed} title={authorFollowed ? '取消关注' : undefined} data-tooltip={authorFollowed ? '取消关注' : undefined} onClick={() => ensureVerified(() => { toggleFollow(administrator.id); notify(authorFollowed ? '已取消关注' : '已关注，可在个人主页查看') })}>{authorFollowed ? <Check size={13} /> : <Plus size={13} />}{followLabel(administrator)}</button>
+                <Link to={`/profile/${administrator.id}`}>查看主页</Link>
+              </div>
+            </div>
+          </div>
+          <section className="detail-info-section">
+            <h2><ShieldCheck size={16} />权益信息</h2>
+            <dl><div><dt>权益主体</dt><dd>{item.organization}</dd></div><div><dt>许可协议</dt><dd>{savedEdit?.license ?? 'CC BY 4.0'}</dd></div></dl>
+          </section>
+          <section className="detail-info-section">
+            <h2><Info size={16} />其他信息</h2>
+            <dl><div><dt>语种类别</dt><dd>{savedEdit?.language ?? languageForSubject(item.subject)}</dd></div><div><dt>语料格式</dt><dd>{savedEdit?.format ?? formatForSubject(item.subject)}</dd></div><div><dt>时间跨度</dt><dd>{savedEdit?.timeSpan ?? (item.subject === '数学' ? '2000年-至今' : '2020年-至今')}</dd></div></dl>
+          </section>
+        </section>
+      <section className="detail-related">
+        <h2>相关语料库</h2>
+        <div className="detail-related-list">
           {relatedRecords.map((record) => (
-            <Link className="related-dataset-card" to={`/search/datasets/${record.id}`} key={record.id}>
-              <span>{record.subject}</span>
-              <strong>{record.title}</strong>
-              <small>{record.organization} - {record.authors}</small>
+            <Link className="detail-related-card" to={`/search/datasets/${record.id}`} key={record.id}>
+              <div className="detail-related-org">{institutionLogo(record.organization) ? <img src={institutionLogo(record.organization)} alt="" /> : <Building2 size={15} />}<span title={`${record.organization} - ${record.authors}`}>{record.organization} - {record.authors}</span></div>
+              <h3>{record.title}</h3>
+              <p>{record.summary}</p>
+              <div className="detail-related-tags"><span>{record.subject}</span><span>{detailCorpusTypeLabel(record.corpusType)}</span></div>
+              <footer><time dateTime={record.publishedAt}>{record.publishedAt}</time><span><Download size={13} />{record.usage.toLocaleString()}</span><span><Eye size={13} />{record.views.toLocaleString()}</span><span><Star size={13} />{record.favorites.toLocaleString()}</span></footer>
             </Link>
           ))}
         </div>
       </section>
+      </aside>
 
-      {memberOpen && (
-        <div className="dataset-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setMemberOpen(false) }}>
-          <section className="dataset-modal member-modal member-modal-v2" role="dialog" aria-modal="true">
-            <div className="dataset-modal-title"><div><Users size={21} /><h2>管理成员</h2></div><button type="button" onClick={() => setMemberOpen(false)} aria-label="关闭"><X size={18} /></button></div>
-            <div className="member-add-title">添加成员</div>
-            <div className="member-add-row">
-              <label className="member-search-field member-search-wrap"><Search size={18} /><input value={memberQuery} onChange={(event) => { setMemberQuery(event.target.value); setMemberSelected(false) }} placeholder="请输入用户账号进行搜索" onFocus={() => setSearchOpen(true)} onBlur={() => window.setTimeout(() => setSearchOpen(false), 150)} />{searchOpen && searchResults.length > 0 && (
-                <div className="member-search-popover">
-                  {searchResults.map((option) => (
-                    <button type="button" className="member-search-item" key={option.account} onMouseDown={(event) => event.preventDefault()} onClick={() => { setMemberQuery(option.name); setMemberSelected(true); setSearchOpen(false) }}>
-                      <span>{option.name}</span>
-                    </button>
-                  ))}
-                </div>
-              )}</label>
-              <select value={memberPermission} onChange={(event) => setMemberPermission(event.target.value as MemberPermission)}><option>可管理</option><option>可上传</option></select>
-              <button type="button" disabled={!memberSelected} onClick={addMember}><UserPlus size={16} />添加成员</button>
-            </div>
-            <div className="member-list member-list-v2">
-              {members.map((member) => (
-                <div key={member.account}>
-                  <span className="member-avatar">{member.name.slice(0, 1)}</span>
-                  <div><strong>{member.name}</strong></div>
-                  <select value={member.permission} onChange={(event) => setMembers((current) => current.map((item) => item.account === member.account ? { ...item, permission: event.target.value as MemberPermission } : item))}><option>可管理</option><option>可上传</option></select>
-                  <button type="button" onClick={() => removeMember(member.account)}><Trash2 size={15} />移除</button>
-                </div>
-              ))}
-            </div>
-            <div className="dataset-modal-actions member-confirm-actions">
-              <button type="button" className="is-primary" onClick={() => { setMemberOpen(false); notify('成员设置已确认') }}>确认</button>
-            </div>
-          </section>
-        </div>
-      )}
+      {memberOpen && <MemberManagementDialog members={members} onCancel={() => setMemberOpen(false)} onConfirm={confirmMembers} />}
 
-      {joinRequestOpen && (
-        <div className="dataset-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) { setJoinRequestOpen(false); setJoinSubmitted(false) } }}>
-          <section className="dataset-modal join-request-modal" role="dialog" aria-modal="true" aria-labelledby="join-request-title">
-            <button className="join-request-close" type="button" onClick={() => { setJoinRequestOpen(false); setJoinSubmitted(false) }} aria-label="关闭"><X size={20} /></button>
-            {joinSubmitted ? (
-              <div className="join-request-success">
-                <CheckCircle2 size={52} />
-                <h2 id="join-request-title">申请已发送至管理员</h2>
-                <p>请等待审核，审核结果将在【个人主页-消息通知】通知您</p>
-                <button type="button" onClick={() => { setJoinRequestOpen(false); setJoinSubmitted(false) }}>完成</button>
-              </div>
-            ) : (
-              <>
-                <div className="join-request-illustration"><ShieldCheck size={54} /></div>
-                <h2 id="join-request-title">申请加入语料库</h2>
-                <p>当前账号未加入语料库，你可以向管理员申请权限</p>
-                <form className="join-request-form" onSubmit={submitJoinRequest}>
-                  <label>
-                    <span>申请权限</span>
-                    <select value={joinPermission} onChange={(event) => setJoinPermission(event.target.value as MemberPermission)}>
-                      <option>可管理</option>
-                      <option>可上传</option>
-                    </select>
-                  </label>
-                  <textarea maxLength={1000} value={joinRemark} onChange={(event) => setJoinRemark(event.target.value)} placeholder="添加备注（选填）" />
-                  <button type="submit">提交申请</button>
-                </form>
-              </>
-            )}
-          </section>
-        </div>
-      )}
-
-      {uploadOpen && (
-        <div className="dataset-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setUploadOpen(false) }}>
-          <form className="dataset-modal upload-corpus-modal" onSubmit={submitUpload}>
-            <div className="dataset-modal-title"><div><ArrowUpFromLine size={21} /><h2>上传语料</h2></div><button type="button" onClick={() => setUploadOpen(false)} aria-label="关闭"><X size={18} /></button></div>
-            <label className="upload-license is-required"><span>许可协议</span><select required value={uploadLicense} onChange={(event) => setUploadLicense(event.target.value)}><option value="" disabled>请选择许可协议</option>{uploadLicenseOptions.map((option) => <option value={option} key={option}>{option}</option>)}</select></label>
-            <label className="upload-license is-required"><span>备注</span><textarea required value={uploadRemark} onChange={(event) => setUploadRemark(event.target.value)} placeholder="请填写本次上传内容说明、数据来源或变更备注" /></label>
-            <section className="upload-data-section is-required">
-              <span>上传数据</span>
-              <div className="upload-mode-tabs"><button type="button" className={uploadMode === 'local' ? 'is-active' : ''} onClick={() => setUploadMode('local')}>本地上传</button><button type="button" className={uploadMode === 'link' ? 'is-active' : ''} onClick={() => setUploadMode('link')}>外部链接导入</button><button type="button" className={uploadMode === 'cli' ? 'is-active' : ''} onClick={() => setUploadMode('cli')}>命令行上传</button></div>
-              {uploadMode === 'local' ? (
-                <>
-                  {uploadSizeError && <p className="upload-size-error">{uploadSizeError}</p>}
-                  <div className="upload-drop-area"><FileArchive size={32} /><strong>{uploadFiles.length ? `已选择 ${uploadFiles.length} 个文件` : '选择需要上传的语料文件'}</strong><p>单次上传数据大小不超过 {maxUploadSizeLabel}，上传后将发送给管理员审核</p><div><button type="button" onClick={() => fileInputRef.current?.click()}><ArrowUpFromLine size={16} />上传文件</button><button type="button" onClick={() => folderInputRef.current?.click()}><FolderUp size={16} />上传文件夹</button></div><input ref={fileInputRef} hidden type="file" multiple onChange={(event) => { handleUploadFiles(event.target.files); event.currentTarget.value = '' }} /><input ref={(node) => { folderInputRef.current = node; node?.setAttribute('webkitdirectory', '') }} hidden type="file" multiple onChange={(event) => { handleUploadFiles(event.target.files); event.currentTarget.value = '' }} /></div>
-                  {uploadFiles.length > 0 && (
-                    <div className="upload-file-list">
-                      {uploadFiles.map((file) => (
-                        <div className="upload-file-card" key={file.id}>
-                          <FileText size={18} />
-                          <div><strong>{file.name}</strong><small>{formatFileSize(file.size)}</small></div>
-                          <button type="button" onClick={() => setUploadFiles((current) => current.filter((itemFile) => itemFile.id !== file.id))} aria-label={`删除 ${file.name}`}><Trash2 size={16} /></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : uploadMode === 'link' ? (
-                <div className="upload-link-panel upload-modal-link-panel">
-                  <div className="upload-link-cards">
-                    <button type="button" className={`upload-link-card${linkKind === 'url' ? ' is-active' : ''}`} onClick={() => setLinkKind('url')}>
-                      <span className="upload-link-dot">{linkKind === 'url' && <Check size={14} />}</span>
-                      <i className="upload-link-icon"><Link2 size={18} /></i>
-                      <strong>远程 URL</strong><small>从远程 URL 创建语料资源，URL 需指向具体文件</small>
-                    </button>
-                    <button type="button" className={`upload-link-card${linkKind === 'github' ? ' is-active' : ''}`} onClick={() => setLinkKind('github')}>
-                      <span className="upload-link-dot">{linkKind === 'github' && <Check size={14} />}</span>
-                      <i className="upload-link-icon"><Github size={18} /></i>
-                      <strong>GitHub 仓库</strong><small>从 GitHub 仓库归档导入，使用仓库地址或任意深层链接</small>
-                    </button>
-                  </div>
-                  <label className="upload-link-input"><span>{linkKind === 'url' ? 'URL' : 'GitHub 仓库链接'}</span><input value={externalSource} onChange={(event) => setExternalSource(event.target.value)} placeholder={linkKind === 'url' ? '请输入远程 URL，如 https://…/data.zip' : 'https://github.com/organization/repository'} /></label>
-                </div>
-              ) : (
-                <div className="upload-cli-panel">
-                  <p className="cli-guide-intro">1. 安装 CLI：<code>pip install corpusware-cli</code><br />2. 在终端运行以下命令上传语料：</p>
-                  <div className="download-code-block">
-                    <div className="download-code-head"><button type="button" onClick={() => navigator.clipboard?.writeText(`corpusware upload --corpus ${item.id} --data ./corpus`)}><Copy size={15} />复制</button></div>
-                    <pre><code>{`corpusware upload --corpus ${item.id} --data ./corpus`}</code></pre>
-                  </div>
-                </div>
-              )}
-            </section>
-            <label className="upload-confirm is-required"><input required type="checkbox" /><span>我已确认上传内容符合许可协议及平台合规要求</span></label>
-            <div className="dataset-modal-actions"><button type="button" onClick={() => setUploadOpen(false)}>取消</button><button type="submit" className="is-primary">提交审核</button></div>
-          </form>
-        </div>
-      )}
+      {joinRequestOpen && <CorpusJoinDialog onCancel={() => setJoinRequestOpen(false)} onSubmit={submitJoinRequest} />}
+      {uploadOpen && <CorpusUploadDialog corpusId={item.id} onCancel={() => setUploadOpen(false)} onSubmit={submitUpload} notify={notify} />}
 
       {toast && <div className="dataset-toast"><Check size={16} />{toast}</div>}
-    </main>
+    </div>
   )
 }

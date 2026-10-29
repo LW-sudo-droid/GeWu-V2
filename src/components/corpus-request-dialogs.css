@@ -1,0 +1,70 @@
+.cr-backdrop { position: fixed; z-index: 200; inset: 0; display: grid; place-items: center; padding: 24px; background: #20242d59; }
+.cr-dialog { --edit-accent: #4d4df5; position: relative; display: flex; flex-direction: column; width: 680px; max-width: 100%; max-height: calc(100dvh - 48px); color: #252933; background: white; border: 1px solid #e3e5ec; border-radius: 24px; box-shadow: 0 8px 26px #2126331a; outline: none; font-size: 16px; font-weight: 400; line-height: 1.5; }
+.cr-dialog button { display: inline-flex; align-items: center; justify-content: center; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; color: inherit; background: transparent; box-shadow: none; font: inherit; font-weight: 400; cursor: pointer; }
+.cr-dialog button:focus-visible { outline: 2px solid #8c7eff; outline-offset: 3px; }
+.cr-header { display: flex; flex: 0 0 66px; align-items: center; justify-content: space-between; padding: 0 24px; border-bottom: 1px solid #e4e7ef; }
+.cr-header h2 { margin: 0; color: #292e38; font-size: 20px; font-weight: 400; }
+.cr-header > button { width: 28px; height: 28px; color: #252933; border-radius: 4px; }
+.cr-form { display: flex; flex-direction: column; min-height: 0; }
+.cr-form-body { min-height: 0; padding: 24px 24px 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.cr-field { margin: 0 0 24px; }
+.cr-field > label, .cr-join-label > label { display: block; margin: 0 0 12px; color: #171a20; font-size: 16px; }
+.cr-field b, .cr-upload-data h3 b, .cr-agreement b { margin-left: 5px; color: #ff515e; font-weight: 400; }
+.cr-field select, .cr-field textarea { display: block; width: 100%; min-width: 0; min-height: 0; margin: 0; padding: 6px 12px; color: #606773; border: 1px solid #ccd2df; border-radius: 8px; outline: none; box-shadow: none; background: white; font: inherit; font-size: 16px; line-height: 1.6; }
+.cr-field select { appearance: none; height: 36px; padding-right: 36px; background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none'%3E%3Cpath d='m3 6 5 5 5-5' stroke='%2359697d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 16px center; }
+.cr-field select:has(option:checked[value=""]) { color: #a5afbe; }
+.cr-field textarea { height: 88px; padding-top: 8px; resize: none; overflow-y: auto; }
+.cr-field textarea::placeholder { color: #a5afbe; opacity: 1; }
+.cr-field select:focus, .cr-field textarea:focus { border-color: #8c7eff; }
+.cr-dialog [aria-invalid="true"]:is(input,textarea,select), .cr-upload-data.is-invalid .edit-upload-surface { border-color: #ff525d; }
+.cr-field-error { margin: 4px 0 0; color: #ff414d; font-size: 12px; line-height: 1.5; }
+.cr-upload-data > .edit-upload-module > h3 { margin-bottom: 16px; color: #171a20; font-size: 16px; font-weight: 400; }
+.cr-upload-dialog .edit-upload-surface { height: 350px; border-radius: 8px; }
+.cr-upload-dialog .edit-upload-modes { top: 20px; min-height: 44px; padding: 4px; }
+.cr-upload-dialog .edit-upload-modes button { padding: 0 24px; border-radius: 22px; font-size: 14px; }
+.cr-upload-dialog .edit-upload-modes button.is-active { color: white; background: #20242c; }
+.cr-upload-dialog .edit-upload-content { padding-top: 74px; }
+.cr-upload-dialog .edit-upload-illustration { width: 72px; height: 72px; margin-bottom: 14px; }
+.cr-upload-dialog .edit-local-upload { padding-bottom: 10px; }
+.cr-upload-dialog .edit-local-upload > strong { font-size: 14px; font-weight: 600; }
+.cr-upload-dialog .edit-local-upload > p { margin: 6px 0 22px; font-size: 12px; }
+.cr-upload-dialog .edit-upload-browse-actions button { height: 32px; padding: 0 24px; color: #5d6573; border: 1px solid #cdd3df; border-radius: 20px; background: white; font-size: 16px; }
+.cr-upload-dialog .edit-upload-browse-actions button.is-primary { color: white; border-color: #4d4df5; background: #4d4df5; }
+.cr-upload-dialog .edit-link-import, .cr-upload-dialog .edit-cli-upload { width: 90%; }
+.cr-upload-dialog .edit-link-options { gap: 14px; }
+.cr-upload-dialog .edit-link-options > button { gap: 8px; min-height: 92px; padding: 12px; border: 1px solid transparent; border-radius: 12px; background: white; }
+.cr-upload-dialog .edit-link-options > button.is-active { border-color: #8172ff; }
+.cr-upload-dialog .edit-link-symbol { width: 30px; height: 30px; flex-basis: 30px; }
+.cr-upload-dialog .edit-link-copy small { font-size: 11px; }
+.cr-upload-dialog .edit-upload-url { margin-top: 24px; }
+.cr-upload-dialog .edit-cli-command { gap: 10px; }
+.cr-upload-dialog .edit-cli-command > button { min-width: 74px; height: 34px; padding: 0 12px; border-radius: 6px; color: white; background: #4d4df5; font-size: 14px; }
+.cr-upload-dialog .edit-upload-remove { width: 36px; background: #f2f3f5; border-radius: 8px; }
+.cr-upload-dialog .edit-upload-retry { margin-left: auto; color: #7165ff; font-size: 12px; }
+.cr-agreement { position: relative; margin-top: 20px; }
+.cr-agreement > label { display: flex; align-items: center; gap: 8px; color: #343a44; font-size: 14px; cursor: pointer; }
+.cr-agreement input { appearance: none; width: 17px; height: 17px; flex: 0 0 17px; margin: 0; border: 2px solid #cdd2dc; border-radius: 4px; background: white; cursor: pointer; }
+.cr-agreement input:checked { border-color: #4d4df5; background: #4d4df5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none'%3E%3Cpath d='m3 7 2.5 2.5L11 4' stroke='white' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E") center no-repeat; }
+.cr-agreement input:focus-visible { outline: 2px solid #8c7eff; outline-offset: 2px; }
+.cr-agreement-hint { position: relative; display: table; z-index: 2; margin-top: 10px; padding: 8px 12px; border: 1px solid #e5e8f0; border-radius: 8px; color: #7f899b; background: white; box-shadow: 0 4px 14px #26314414; font-size: 12px; }
+.cr-agreement-hint::before { content: ''; position: absolute; top: -5px; left: 10px; width: 8px; height: 8px; border-left: 1px solid #e5e8f0; border-top: 1px solid #e5e8f0; background: white; transform: rotate(45deg); }
+.cr-footer { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 12px; margin: 0; padding: 16px 24px 24px; }
+.cr-dialog .cr-footer > button { min-width: 80px; height: 40px; padding: 0 22px; color: #555d69; border: 1px solid #cdd3df; border-radius: 24px; background: white; font-size: 16px; }
+.cr-dialog .cr-footer > .is-primary { color: white; background: #4d4df5; border-color: #4d4df5; }
+.cr-join-label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.cr-join-label > label { margin: 0; flex-shrink: 0; }
+.cr-join-label > span { display: flex; align-items: center; gap: 5px; color: #929bab; font-size: 13px; }
+.cr-join-label svg { flex-shrink: 0; }
+.cr-join-dialog .cr-form-body { padding-bottom: 8px; }
+.cr-dialog.cr-join-success { display: block; width: 480px; height: 412px; flex: 0 0 auto; padding: 0; overflow-y: auto; border-radius: 32px; text-align: center; box-shadow: 0 12px 32px #161b3029; }
+.cr-dialog .cr-success-close { position: absolute; top: 17px; right: 17px; width: 24px; height: 24px; color: #252933; background: transparent; }
+.cr-join-success .cr-success-close { top: 24px; right: 24px; width: 24px; height: 24px; }
+.cr-join-success .cr-success-close svg { width: 24px; height: 24px; }
+.cr-join-success .cr-success-icon { display: block; width: 52px; height: 52px; margin: 88px auto 28px; color: #00bf32; stroke: #00bf32; }
+.cr-join-success h2 { margin: 0 20px 14px; color: #20242c; font-size: 27px; font-weight: 700; line-height: 40px; }
+.cr-join-success p { margin: 0; color: #647186; font-size: 20px; font-weight: 400; line-height: 32px; }
+.cr-join-success footer { display: flex; gap: 16px; margin: 32px 28px 32px; }
+.cr-dialog.cr-join-success footer button { flex: 1; height: 60px; border: 1px solid #e2e5ec; border-radius: 32px; color: #252933; background: #f2f3f5; font-size: 22px; }
+.cr-dialog.cr-join-success footer button.is-primary { border-color: #4d4df5; color: white; background: #4d4df5; }
+@media (max-width: 700px) { .cr-dialog.cr-join-success { width: 440px; height: 392px; border-radius: 30px; } .cr-join-success .cr-success-close { top: 22px; right: 22px; width: 24px; height: 24px; } .cr-join-success .cr-success-close svg { width: 24px; height: 24px; } .cr-join-success .cr-success-icon { width: 52px; height: 52px; margin: 76px auto 26px; } .cr-join-success h2 { margin-bottom: 12px; font-size: 25px; line-height: 38px; } .cr-join-success p { font-size: 18px; line-height: 29px; } .cr-join-success footer { gap: 16px; margin: 32px 26px 26px; } .cr-dialog.cr-join-success footer button { height: 58px; font-size: 21px; border-width: 1px; } }
+@media (max-width: 600px) { .cr-backdrop { padding: 12px; } .cr-dialog { max-height: calc(100dvh - 24px); } .cr-join-label { align-items: flex-start; flex-direction: column; gap: 8px; } .cr-header { padding: 0 18px; } .cr-form-body { padding: 20px 18px 0; } .cr-footer { padding-right: 18px; padding-left: 18px; } .cr-upload-dialog .edit-upload-modes button { padding: 0 12px; font-size: 12px; } .cr-upload-dialog .edit-link-options { grid-template-columns: 1fr; gap: 10px; } .cr-upload-dialog .edit-link-options > button { min-height: 60px; } .cr-upload-dialog .edit-upload-url { margin-top: 12px; } .cr-upload-dialog .edit-cli-command { flex-wrap: wrap; } .cr-upload-dialog .edit-local-upload > p { max-width: 90%; } }
