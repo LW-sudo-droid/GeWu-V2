@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import './corpus-request-dialogs.css'
 
-export default function CorpusDialog({ title, onClose, children, className = '', labelledBy = 'corpus-dialog-title' }: { title?: string; onClose: () => void; children: ReactNode; className?: string; labelledBy?: string }) {
+export default function CorpusDialog({ title, onClose, children, className = '', labelledBy = 'corpus-dialog-title', closeLabel = '关闭申请成功弹窗' }: { title?: string; onClose: () => void; children: ReactNode; className?: string; labelledBy?: string; closeLabel?: string }) {
   const dialog = useRef<HTMLElement>(null)
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null
@@ -22,7 +22,7 @@ export default function CorpusDialog({ title, onClose, children, className = '',
       if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog.current)) { event.preventDefault(); last.focus() }
       else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog.current)) { event.preventDefault(); first.focus() }
     }}>
-      {title ? <header className="cr-header"><h2 id={labelledBy}>{title}</h2><button type="button" aria-label={`关闭${title}`} onClick={onClose}><X size={23} strokeWidth={1.7} /></button></header> : <button type="button" className="cr-success-close" aria-label="关闭申请成功弹窗" onClick={onClose}><X size={23} strokeWidth={1.7} /></button>}
+      {title ? <header className="cr-header"><h2 id={labelledBy}>{title}</h2><button type="button" aria-label={`关闭${title}`} onClick={onClose}><X size={23} strokeWidth={1.7} /></button></header> : <button type="button" className="cr-success-close" aria-label={closeLabel} onClick={onClose}><X size={23} strokeWidth={1.7} /></button>}
       {children}
     </section>
   </div>, document.body)

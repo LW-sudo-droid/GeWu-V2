@@ -20,7 +20,6 @@ import {
   UsersRound,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
-import { useApp } from '../context/app-context'
 import '../home-v2.css'
 import CorpusCommunity, { PartnersSection } from '../components/CorpusCommunity'
 import SubjectShowcase from '../components/SubjectShowcase'
@@ -92,14 +91,9 @@ const demandSteps = [
 
 export default function Home() {
   const navigate = useNavigate()
-  const { user, openAuth } = useApp()
-
   const handleUpload = () => {
-    if (user) navigate('/upload')
-    else {
-      navigate('/upload')
-      openAuth()
-    }
+    navigate('/upload')
+    window.scrollTo({ top: 0 })
   }
 
   return (

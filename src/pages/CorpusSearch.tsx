@@ -61,6 +61,7 @@ export type CorpusRecord = {
   status?: '已上线' | '建设中'
   corpusSize?: string
   storageSize?: string
+  uploadInfo?: { taskName: string; language: string; format: string; startYear: string; endYear: string; corpusAmount: string; corpusUnit: string; storageAmount: string; storageUnit: string }
 }
 
 const fieldOptions: Array<{ value: SearchField; label: string }> = [

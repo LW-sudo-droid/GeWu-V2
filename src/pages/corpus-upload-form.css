@@ -1,0 +1,111 @@
+.uf-page { min-height: 75vh; padding: 26px 2.5vw 56px; color: #252a34; background: linear-gradient(180deg, #edf0fa 0%, #f2f5fd 50%, #f5fcff 100%); font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 14px; font-weight: 400; }
+.uf-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+.uf-heading > div { display: flex; align-items: center; gap: 14px; }
+.uf-page .uf-back { display: grid; place-items: center; width: 46px; height: 46px; padding: 0; color: #252a34; border: 0; border-radius: 50%; background: #f8faff; box-shadow: 0 5px 16px #2d38531a; cursor: pointer; }
+.uf-heading h1 { margin: 0 0 3px; font-size: 21px; font-weight: 600; line-height: 1.5; }
+.uf-heading p { margin: 0; color: #798393; font-size: 14px; }
+.uf-page .uf-drafts-trigger { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 22px; color: #454c59; border: 1px solid #f2f4fb; border-radius: 30px; background: #f9faff; box-shadow: 0 5px 18px #30374a1a; font: inherit; cursor: pointer; }
+.uf-card { border: 1px solid #e0e4ed; border-radius: 23px; background: #fff; }
+.uf-page .uf-stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; margin: 0; padding: 30px; list-style: none; border-bottom: 1px solid #e7e9ef; }
+.uf-stepper li { position: relative; display: flex; align-items: center; gap: 16px; color: #ccd1db; }
+.uf-stepper i { display: grid; flex: 0 0 52px; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: #f3f4f7; font-style: normal; }
+.uf-stepper h2 { margin: 0 0 2px; font-size: 20px; font-weight: 600; line-height: 1.4; }
+.uf-stepper p { margin: 0; font-size: 13px; line-height: 1.6; }
+.uf-stepper .is-active { color: #222731; }
+.uf-stepper .is-active p { color: #7b8494; }
+.uf-stepper .is-active i { color: white; background: linear-gradient(110deg, #7950ff, #487dff 55%, #10cde9); box-shadow: inset 0 0 0 1px #ffffff70; }
+.uf-stepper .is-complete { color: #8794ae; }
+.uf-stepper .is-complete i { color: #7470ff; background: #eeefff; }
+.uf-step-arrow { flex-shrink: 0; margin-left: auto; color: #c8cedb; }
+.uf-stepper .is-active .uf-step-arrow, .uf-stepper .is-complete .uf-step-arrow { color: #23bbfb; }
+.uf-basic-form, .uf-later-form, .uf-confirm { padding: 24px 30px 30px; }
+.uf-section { margin-bottom: 26px; }
+.uf-section > h2 { position: relative; margin: 0 0 24px -8px; padding-left: 12px; font-size: 18px; font-weight: 600; line-height: 1.5; }
+.uf-section > h2::before { content: ''; position: absolute; left: 0; top: 5px; width: 3px; height: 16px; border-radius: 4px; background: linear-gradient(#7151ff, #21c9f2); }
+.uf-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.uf-field { min-width: 0; }
+.uf-field-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 22px; margin-bottom: 8px; }
+.uf-field-label label, .uf-author-field label { color: #272c34; font-size: 15px; line-height: 1.5; }
+.uf-page b { margin-left: 7px; color: #ff555d; font-weight: 400; }
+.uf-page input, .uf-page textarea, .uf-page select, .uf-page .uf-year-trigger { box-sizing: border-box; width: 100%; min-width: 0; min-height: 0; margin: 0; padding: 6px 11px; color: #454c59; border: 1px solid #cdd3df; border-radius: 6px; outline: none; background: #fff; box-shadow: none; font: inherit; font-size: 14px; font-weight: 400; line-height: 1.55; }
+.uf-page input, .uf-page select, .uf-page .uf-year-trigger { height: 36px; }
+.uf-page textarea { display: block; height: 68px; resize: none; overflow-y: auto; }
+.uf-page select { appearance: none; padding-right: 30px; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' fill='none'%3E%3Cpath d='m3 5 4.5 4.5L12 5' stroke='%23697688' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+.uf-page input::placeholder, .uf-page textarea::placeholder, .uf-page select:has(option:checked[value=""]), .uf-page .is-placeholder { color: #9ba6b6; opacity: 1; }
+.uf-page input:disabled { color: #9aa3b2; background: #f5f6fa; }
+.uf-page input:focus, .uf-page textarea:focus, .uf-page select:focus, .uf-page .uf-year-trigger:focus-visible, .uf-tags:focus-within { border-color: #8070ff; }
+.uf-page button:focus-visible, .uf-drafts-dialog button:focus-visible { outline: 2px solid #8e7dff; outline-offset: 3px; }
+.uf-page [aria-invalid="true"], .uf-page .has-error > input, .uf-page .has-error > textarea, .uf-page .has-error > select, .uf-page .has-error > .uf-tags { border-color: #ff525d; }
+.uf-page .uf-error { margin: 5px 0 0; color: #ff4b58; font-size: 12px; line-height: 1.5; }
+.uf-separated { margin-top: 30px; padding-top: 30px; border-top: 1px solid #e8ebf1; }
+.uf-authors { display: grid; gap: 16px; padding: 20px; border-radius: 16px; background: #f6f7f9; }
+.uf-author-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 34px; align-items: start; gap: 24px; }
+.uf-author-field { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.uf-author-field > label { padding-top: 6px; white-space: nowrap; }
+.uf-author-field > div { flex: 1; min-width: 0; }
+.uf-author-actions { display: flex; gap: 8px; }
+.uf-page .uf-author-action { display: grid; place-items: center; width: 34px; height: 36px; padding: 0; color: #333a47; border: 1px solid #cdd3df; border-radius: 6px; background: #fff; cursor: pointer; }
+.uf-tags { display: flex; align-content: flex-start; flex-wrap: wrap; gap: 5px; min-height: 68px; max-height: 120px; padding: 7px; overflow-y: auto; border: 1px solid #cdd3df; border-radius: 6px; background: #fff; cursor: text; }
+.uf-tags > span { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; height: 23px; padding: 0 7px; color: #454c59; border: 1px solid #e1e4ee; border-radius: 14px; background: #fff; font-size: 12px; white-space: nowrap; }
+.uf-tags > span > button { display: grid; place-items: center; flex-shrink: 0; width: 14px; height: 14px; padding: 0; border: 0; color: #697487; background: transparent; cursor: pointer; }
+.uf-page .uf-tags input { flex: 1; width: 100px; min-width: 70px; height: 23px; padding: 0 3px; border: 0; border-radius: 0; background: transparent; }
+.uf-page .uf-tags:has(input:only-child) input { min-width: 100%; }
+.uf-sub-field { margin-top: 10px; }
+.uf-example { position: relative; flex-shrink: 0; }
+.uf-example > button { display: inline-flex; align-items: center; gap: 4px; padding: 0; color: #7a8596; border: 0; background: transparent; font: inherit; font-size: 12px; cursor: help; }
+.uf-example > div { position: absolute; z-index: 30; right: 0; bottom: calc(100% + 12px); width: min(420px, 75vw); padding: 20px; visibility: hidden; opacity: 0; border: 1px solid #e4e7ee; border-radius: 16px; color: #697487; background: white; box-shadow: 0 5px 20px #2532481f; font-size: 13px; line-height: 1.8; transition: opacity .12s; }
+.uf-example:hover > div, .uf-example:focus-within > div { visibility: visible; opacity: 1; }
+.uf-example p { margin: 0; }
+.uf-example strong { color: #333b49; font-weight: 600; }
+.uf-example small { display: block; margin-top: 10px; color: #9ba4b3; font-size: 12px; }
+.uf-amount { display: grid; grid-template-columns: minmax(0, 1fr) 118px; gap: 12px; }
+.uf-year-range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 14px; }
+.uf-year-picker { position: relative; min-width: 0; }
+.uf-page .uf-year-trigger { display: flex; align-items: center; justify-content: space-between; text-align: left; cursor: pointer; }
+.uf-year-popover { position: absolute; top: calc(100% + 7px); left: 0; z-index: 35; width: max(100%, 250px); padding-bottom: 10px; border: 1px solid #e4e7ee; border-radius: 10px; background: #fff; box-shadow: 0 4px 14px #29395424; }
+.uf-year-popover header { display: flex; align-items: center; justify-content: space-between; height: 40px; padding: 0 10px; border-bottom: 1px solid #e9edf3; }
+.uf-year-popover header button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; color: #7c8799; border: 0; background: transparent; cursor: pointer; }
+.uf-year-popover header strong { font-size: 13px; font-weight: 500; }
+.uf-year-popover > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 14px 10px; }
+.uf-year-popover > div > button { height: 25px; padding: 0; color: #333b49; border: 0; border-radius: 16px; background: transparent; font: inherit; font-size: 13px; cursor: pointer; }
+.uf-year-popover > div > button:hover { background: #f0f0ff; }
+.uf-year-popover > div > .is-selected { color: #fff; background: #514cf5; }
+.uf-year-popover > div > .is-adjacent, .uf-year-popover button:disabled { color: #cbd0dc; }
+.uf-year-popover button:disabled { cursor: not-allowed; }
+.uf-page .uf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 30px; }
+.uf-page .uf-actions > button, .uf-page .uf-actions > a { display: inline-flex; align-items: center; justify-content: center; min-width: 76px; height: 32px; padding: 0 20px; color: #555c68; border: 1px solid #cdd3df; border-radius: 20px; background: #fff; box-shadow: none; font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
+.uf-page .uf-actions > .is-primary { color: #fff; border-color: #514cf5; background: #514cf5; }
+.uf-toast { position: fixed; z-index: 400; top: 110px; left: 50%; display: flex; align-items: center; gap: 8px; max-width: calc(100% - 32px); padding: 12px 22px; transform: translateX(-50%); border: 1px solid #e8eaf1; border-radius: 24px; color: #424b5a; background: #fff; box-shadow: 0 5px 20px #25324822; font-size: 14px; }
+.uf-toast svg { flex-shrink: 0; color: #6559ff; }
+.uf-later-form > h2, .uf-confirm > h2 { margin: 0 0 26px; font-size: 20px; }
+.uf-later-form .uf-field-grid > label { display: grid; gap: 10px; }
+.uf-later-form .upload-file-group { margin-top: 30px; }
+.uf-confirm dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.uf-confirm dl > div { padding: 12px; border-radius: 8px; background: #f7f8fc; }
+.uf-confirm dt { color: #8790a0; }
+.uf-confirm dd { margin: 6px 0 0; overflow-wrap: anywhere; }
+.uf-success { padding: 80px 30px; text-align: center; }
+.uf-success > svg { color: #6559ff; }
+.uf-success .uf-actions { justify-content: center; }
+.cr-dialog.uf-drafts-dialog { width: 680px; }
+.uf-draft-list { min-height: 280px; max-height: min(600px, 70vh); padding: 0 24px; overflow-y: auto; }
+.uf-draft-list > article { padding: 24px 0; border-bottom: 1px solid #e7eaf0; }
+.uf-draft-list > article:last-child { border-bottom: 0; }
+.uf-draft-list h3 { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0 0 9px; color: #242a34; font-size: 18px; font-weight: 500; line-height: 1.5; }
+.uf-draft-list article > p { margin: 0 0 20px; color: #97a1b2; font-size: 14px; }
+.uf-draft-actions { display: flex; gap: 12px; }
+.cr-dialog .uf-draft-actions > button, .cr-dialog .uf-delete-wrap > button { height: 32px; padding: 0 20px; color: #5f6672; border: 1px solid #cdd3df; border-radius: 20px; background: white; font-size: 14px; }
+.cr-dialog .uf-draft-actions > .is-primary { color: white; border-color: #514cf5; background: #514cf5; }
+.uf-delete-wrap { position: relative; }
+.uf-delete-confirm { position: absolute; z-index: 5; bottom: 42px; left: 50%; width: 230px; padding: 17px; transform: translateX(-50%); border-radius: 14px; background: white; box-shadow: 0 4px 20px #20293829; }
+.uf-delete-confirm::after { content: ''; position: absolute; bottom: -5px; left: calc(50% - 5px); width: 10px; height: 10px; transform: rotate(45deg); background: white; }
+.uf-delete-confirm > p { display: flex; align-items: center; gap: 6px; margin: 0 0 15px; color: #5f6672; font-size: 13px; white-space: nowrap; }
+.uf-delete-confirm > div { display: flex; justify-content: flex-end; gap: 8px; }
+.cr-dialog .uf-delete-confirm button { height: 30px; padding: 0 16px; color: #7c8797; border-radius: 18px; background: #f2f3f6; font-size: 13px; }
+.cr-dialog .uf-delete-confirm .is-danger { color: #fff; background: #ff4048; }
+.uf-draft-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; height: 280px; color: #bac2d2; }
+.uf-draft-empty p { color: #9aa5b5; font-size: 15px; }
+.uf-auth-required { min-height: 40vh; padding-top: 80px; text-align: center; }
+@media (min-width: 1650px) { .uf-page { padding-inline: max(2.5vw, calc((100vw - 1620px) / 2)); } }
+@media (max-width: 1050px) { .uf-stepper li { gap: 10px; } .uf-page .uf-stepper { gap: 22px; padding: 26px 22px; } .uf-stepper h2 { font-size: 17px; } .uf-stepper p { font-size: 11px; } .uf-stepper i { flex-basis: 44px; width: 44px; height: 44px; } .uf-step-arrow { width: 16px; } .uf-author-row { gap: 14px; } .uf-author-field { flex-direction: column; gap: 6px; } .uf-author-field > div { width: 100%; } .uf-author-actions { margin-top: 35px; } .uf-basic-form { padding: 24px; } }
+@media (max-width: 700px) { .uf-page { padding: 20px 14px 36px; } .uf-heading { gap: 8px; } .uf-heading > div { gap: 10px; } .uf-heading h1 { font-size: 18px; } .uf-heading p { max-width: 190px; font-size: 11px; } .uf-page .uf-back { width: 38px; height: 38px; } .uf-page .uf-drafts-trigger { min-height: 38px; padding: 0 12px; font-size: 12px; } .uf-card { border-radius: 16px; } .uf-page .uf-stepper { gap: 8px; padding: 20px 12px; } .uf-stepper li { flex-direction: column; text-align: center; gap: 8px; } .uf-stepper h2 { font-size: 12px; } .uf-stepper p, .uf-step-arrow { display: none; } .uf-stepper i { flex-basis: 38px; width: 38px; height: 38px; } .uf-stepper i svg { width: 22px; height: 22px; } .uf-basic-form, .uf-later-form, .uf-confirm { padding: 22px 18px; } .uf-field-grid, .uf-confirm dl { grid-template-columns: 1fr; gap: 20px; } .uf-author-row { grid-template-columns: minmax(0, 1fr) 34px; } .uf-author-field { grid-column: 1; } .uf-author-actions { grid-column: 2; grid-row: 1; margin-top: 34px; } .uf-authors { padding: 16px; gap: 24px; } .uf-author-row + .uf-author-row { padding-top: 18px; border-top: 1px solid #e4e7ef; } .uf-section > h2 { font-size: 17px; } .uf-year-popover { width: 240px; } .uf-year-picker:last-child .uf-year-popover { left: auto; right: 0; } .uf-example > div { width: min(330px, calc(100vw - 72px)); } .uf-note { font-size: 12px; } }
