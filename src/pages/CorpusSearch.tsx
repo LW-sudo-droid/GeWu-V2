@@ -17,6 +17,9 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import CorpusFilterSidebar, { type CorpusFilterState, type ExternalFilterTag } from '../components/CorpusFilterSidebar'
+import { createCorpusFilters } from '../data/corpus-filters'
+import { useCorpusCatalog } from '../data/corpus-catalog'
+import { matchesSubjectFilters, otherSubjectsForRecord } from '../data/corpus-subjects'
 
 type SearchMode = 'simple' | 'advanced'
 type SearchField = 'title' | 'keyword' | 'subject' | 'organization' | 'author'
@@ -54,6 +57,10 @@ export type CorpusRecord = {
   usage: number
   authors: string
   keywords: string[]
+  subjectPaths?: string[]
+  status?: '已上线' | '建设中'
+  corpusSize?: string
+  storageSize?: string
 }
 
 const fieldOptions: Array<{ value: SearchField; label: string }> = [
@@ -68,12 +75,7 @@ function placeholderForField(field: SearchField) {
   return `请输入${fieldOptions.find((option) => option.value === field)?.label ?? '检索内容'}`
 }
 
-const searchableSubjects = ['数学', '物理', '化学', '天文', '地理', '生物']
-const subjectChildrenByParent: Record<string, string[]> = {
-  化学: ['碳材料', 'f族元素', '生物医药', '能源材料', '催化', '教育教学'],
-  地理: ['地球世界模型', '地表环境与城市', '教育教学'],
-  生物: ['生命', '医学'],
-}
+const searchableSubjects = ['数学', '物理', '化学', '天文', '地理', '生物', '其他']
 const searchableInstitutions = [
   '天文学院-科维理天文与天体物理研究所', '北京未来基因诊断高精尖创新中心', '健康医疗大数据国家研究院',
   '遥感与地理信息系统研究所', '化学与分子工程学院', '环境科学与工程学院', '地球与空间科学学院',
@@ -177,15 +179,14 @@ function appliedSearchFromParams(params: URLSearchParams): AppliedSearch {
   return emptyAppliedSearch()
 }
 
-const emptyFacetFilters: CorpusFilterState = {
-  subjects: [], subSubjects: [], corpusTypes: [], institutions: [], corpusSizes: [], storageSizes: [], openness: [],
-}
+const emptyFacetFilters = createCorpusFilters()
 
 const corpusSizeBuckets = ['1千以下', '1千-1万', '1万-10万', '10万-100万', '100万及以上']
 const storageBuckets = ['500GB以下', '500GB-1TB', '1-2TB', '2TB及以上']
 
 export function recordCoverImage(id: string) {
   const [subject, num] = id.split('-')
+  if (!['math', 'physics', 'chem', 'astro', 'geo', 'bio'].includes(subject)) return `${import.meta.env.BASE_URL}images/home/subject-bio-1.jpg`
   const index = Math.min(Math.max(Number.parseInt(num ?? '1', 10) || 1, 1), 4)
   return `${import.meta.env.BASE_URL}images/home/subject-${subject}-${index}.jpg`
 }
@@ -214,9 +215,9 @@ function institutionInitial(organization: string) {
 export function recordDisplayMeta(item: CorpusRecord) {
   const index = Math.max(0, corpusRecords.findIndex((record) => record.id === item.id))
   return {
-    status: (index % 4 === 0 ? '建设中' : '已上线') as '已上线' | '建设中',
-    corpusSize: corpusSizeBuckets[index % corpusSizeBuckets.length],
-    storageSize: storageBuckets[index % storageBuckets.length],
+    status: item.status ?? (index % 4 === 0 ? '建设中' : '已上线') as '已上线' | '建设中',
+    corpusSize: item.corpusSize === '100万以上' ? '100万及以上' : item.corpusSize || corpusSizeBuckets[index % corpusSizeBuckets.length],
+    storageSize: item.storageSize === '<500GB' ? '500GB以下' : item.storageSize === '>2TB' ? '2TB及以上' : item.storageSize || storageBuckets[index % storageBuckets.length],
     opennessLabel: item.openness === '不公开' ? '不公开' : '公开',
   }
 }
@@ -274,7 +275,7 @@ function SearchHistoryPanel({
 function valueForField(item: CorpusRecord, field: SearchField) {
   if (field === 'title') return item.title
   if (field === 'keyword') return `${item.keywords.join(' ')} ${item.summary} ${item.corpusType}`
-  if (field === 'subject') return item.subject
+  if (field === 'subject') return [item.subject, ...(item.subjectPaths ?? [])].join(' ')
   if (field === 'organization') return item.organization
   return item.authors
 }
@@ -316,7 +317,14 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
   const [subjectFilter, setSubjectFilter] = useState(searchParams.get('domain') ?? '')
   const [sortKey, setSortKey] = useState<SortKey>(() => initialSort(searchParams.get('sort')))
   const [currentPage, setCurrentPage] = useState(1)
-  const [facetFilters, setFacetFilters] = useState<CorpusFilterState>(emptyFacetFilters)
+  const [facetFilters, setFacetFilters] = useState<CorpusFilterState>(() => createCorpusFilters(searchParams.get('domain') ?? '', searchParams.get('publisher') ?? ''))
+  const catalogRecords = useCorpusCatalog(corpusRecords)
+  const otherSubjectOptions = useMemo(() => {
+    const counts = new Map<string, number>()
+    catalogRecords.forEach((record) => otherSubjectsForRecord(record).forEach((subject) => counts.set(subject, (counts.get(subject) ?? 0) + 1)))
+    return Array.from(counts, ([label, count]) => ({ label, count })).sort((a, b) => a.label.localeCompare(b.label, 'zh-CN'))
+  }, [catalogRecords])
+  const otherSubjectCount = catalogRecords.filter((record) => otherSubjectsForRecord(record).length || record.subject === '其他').length
   const [resultStatusTab, setResultStatusTab] = useState<ResultStatusTab>('all')
   const [resultSearchField, setResultSearchField] = useState<SearchField>(() => {
     const field = searchParams.get('field') as SearchField
@@ -370,7 +378,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setAppliedSearch(nextApplied)
     setSubjectFilter(mapped.subject)
     setPublisherFilter(mapped.publisher)
-    setFacetFilters(emptyFacetFilters)
+    setFacetFilters(createCorpusFilters(mapped.subject, mapped.publisher))
     setFilterResetVersion((value) => value + 1)
     navigate({ pathname: '/search/results', search: `?${nextParams.toString()}` })
   }
@@ -389,7 +397,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setAppliedSearch(nextApplied)
     setSubjectFilter(mapped.subject)
     setPublisherFilter(mapped.publisher)
-    setFacetFilters(emptyFacetFilters)
+    setFacetFilters(createCorpusFilters(mapped.subject, mapped.publisher))
     setFilterResetVersion((value) => value + 1)
     navigate({ pathname: '/search/results', search: `?${nextParams.toString()}` })
   }
@@ -424,7 +432,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setAppliedSearch(nextApplied)
     setSubjectFilter(mapped.subject)
     setPublisherFilter(mapped.publisher)
-    setFacetFilters(emptyFacetFilters)
+    setFacetFilters(createCorpusFilters(mapped.subject, mapped.publisher))
     setFilterResetVersion((value) => value + 1)
     setResultSearchKeyword(normalized)
     setCurrentPage(1)
@@ -458,7 +466,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     setAppliedSearch(nextApplied)
     setSubjectFilter(mapped.subject)
     setPublisherFilter(mapped.publisher)
-    setFacetFilters(emptyFacetFilters)
+    setFacetFilters(createCorpusFilters(mapped.subject, mapped.publisher))
     setFilterResetVersion((value) => value + 1)
     setCurrentPage(1)
     syncSearchParams({
@@ -497,19 +505,13 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
   }
 
   const filteredRecords = useMemo(() => {
-    const matched = corpusRecords.filter((item, index) => {
-      if (facetFilters.subjects.length && !facetFilters.subjects.includes(item.subject)) return false
-      if (facetFilters.subSubjects.length) {
-        const selectedParents = new Set(Object.entries(subjectChildrenByParent)
-          .filter(([, children]) => children.some((child) => facetFilters.subSubjects.includes(child)))
-          .map(([parent]) => parent))
-        if (selectedParents.size && !selectedParents.has(item.subject)) return false
-      }
+    const matched = catalogRecords.filter((item) => {
+      if (!matchesSubjectFilters(item, facetFilters.subjects, facetFilters.otherSubjects)) return false
       if (facetFilters.institutions.length && !facetFilters.institutions.some((value) => `${item.organization} ${item.authors}`.includes(value))) return false
-      if (facetFilters.corpusSizes.length && !facetFilters.corpusSizes.includes(corpusSizeBuckets[index % corpusSizeBuckets.length])) return false
-      if (facetFilters.storageSizes.length && !facetFilters.storageSizes.includes(storageBuckets[index % storageBuckets.length])) return false
+      if (facetFilters.corpusSizes.length && !facetFilters.corpusSizes.includes(recordDisplayMeta(item).corpusSize)) return false
+      if (facetFilters.storageSizes.length && !facetFilters.storageSizes.includes(recordDisplayMeta(item).storageSize)) return false
       if (facetFilters.corpusTypes.length && !facetFilters.corpusTypes.some((value) => {
-        if (value === 'RAG') return item.corpusType.includes('检索增强')
+        if (value === 'RAG') return item.corpusType.includes('检索增强') || item.corpusType.includes('RAG')
         return item.corpusType.includes(value)
       })) return false
       if (facetFilters.openness.length && !facetFilters.openness.some((value) => {
@@ -539,7 +541,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     })
 
     return sortRecords(matched, sortKey)
-  }, [appliedSearch, facetFilters, sortKey])
+  }, [appliedSearch, facetFilters, sortKey, catalogRecords])
 
   const statusFilteredRecords = useMemo(() => {
     if (!isResultsPage || resultStatusTab === 'all') return filteredRecords
@@ -560,11 +562,45 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
     window.setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 20)
   }
 
+  const removeAppliedSearchTag = useCallback((id: string) => {
+    const removedField = id === 'simple-query' ? appliedSearch.simpleField : appliedSearch.conditions.find((condition) => `condition-${condition.id}` === id)?.field
+    const next = id === 'simple-query' ? emptyAppliedSearch() : {
+      ...appliedSearch,
+      conditions: appliedSearch.conditions.filter((condition) => `condition-${condition.id}` !== id),
+      startDate: id === 'start-date' ? '' : appliedSearch.startDate,
+      endDate: id === 'end-date' ? '' : appliedSearch.endDate,
+    }
+    setAppliedSearch(next)
+    if (id === 'simple-query') { setResultSearchKeyword(''); setSimpleKeyword('') }
+    const params = new URLSearchParams(searchParams)
+    if (id === 'simple-query') ['q', 'field', 'search'].forEach((key) => params.delete(key))
+    else {
+      if (next.conditions.length) params.set('conditions', JSON.stringify(next.conditions))
+      else params.delete('conditions')
+      if (id === 'start-date') params.delete('startDate')
+      if (id === 'end-date') params.delete('endDate')
+      if (!next.conditions.length && !next.startDate && !next.endDate) params.delete('search')
+    }
+    if (removedField === 'subject') {
+      setSubjectFilter('')
+      setFacetFilters((current) => ({ ...current, subjects: current.subjects.filter((value) => value !== subjectFilter), otherSubjects: subjectFilter === '其他' ? [] : current.otherSubjects }))
+      params.delete('domain')
+    }
+    if (removedField === 'organization') {
+      const mappedInstitutions = createCorpusFilters('', publisherFilter).institutions
+      setPublisherFilter('')
+      setFacetFilters((current) => ({ ...current, institutions: current.institutions.filter((value) => !mappedInstitutions.includes(value)) }))
+      params.delete('publisher')
+    }
+    setSearchParams(params, { replace: true })
+    setCurrentPage(1)
+  }, [appliedSearch, searchParams, setSearchParams, subjectFilter, publisherFilter])
+
   const externalFilterTags = useMemo<ExternalFilterTag[]>(() => {
     const tags: ExternalFilterTag[] = []
     if (appliedSearch.mode === 'simple' && appliedSearch.simpleKeyword) {
       const fieldLabel = fieldOptions.find((option) => option.value === appliedSearch.simpleField)?.label ?? '检索内容'
-      tags.push({ id: 'simple-query', label: `${fieldLabel}：${appliedSearch.simpleKeyword}`, onRemove: () => setAppliedSearch(emptyAppliedSearch()) })
+      tags.push({ id: 'simple-query', label: `${fieldLabel}：${appliedSearch.simpleKeyword}`, onRemove: () => removeAppliedSearchTag('simple-query') })
     }
     if (appliedSearch.mode === 'advanced') {
       appliedSearch.conditions.forEach((condition) => {
@@ -573,28 +609,34 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
         tags.push({
           id: `condition-${condition.id}`,
           label: `${fieldLabel}：${condition.value}`,
-          onRemove: () => setAppliedSearch((current) => ({ ...current, conditions: current.conditions.filter((item) => item.id !== condition.id) })),
+          onRemove: () => removeAppliedSearchTag(`condition-${condition.id}`),
         })
       })
-      if (appliedSearch.startDate) tags.push({ id: 'start-date', label: `起始日期：${appliedSearch.startDate}`, onRemove: () => setAppliedSearch((current) => ({ ...current, startDate: '' })) })
-      if (appliedSearch.endDate) tags.push({ id: 'end-date', label: `结束日期：${appliedSearch.endDate}`, onRemove: () => setAppliedSearch((current) => ({ ...current, endDate: '' })) })
+      if (appliedSearch.startDate) tags.push({ id: 'start-date', label: `起始日期：${appliedSearch.startDate}`, onRemove: () => removeAppliedSearchTag('start-date') })
+      if (appliedSearch.endDate) tags.push({ id: 'end-date', label: `结束日期：${appliedSearch.endDate}`, onRemove: () => removeAppliedSearchTag('end-date') })
     }
     return tags
-  }, [appliedSearch])
+  }, [appliedSearch, removeAppliedSearchTag])
 
   const resetAllResultFilters = () => {
     setAppliedSearch(emptyAppliedSearch())
     setResultSearchKeyword('')
+    setSimpleKeyword('')
+    setConditions(initialConditions())
+    setStartDate('')
+    setEndDate('')
     setPublisherFilter('')
     setSubjectFilter('')
     setResultStatusTab('all')
     setCurrentPage(1)
     setFacetFilters(emptyFacetFilters)
     setFilterResetVersion((value) => value + 1)
-    syncSearchParams({ publisher: undefined, domain: undefined, q: undefined, field: undefined, search: undefined })
+    syncSearchParams({ publisher: undefined, domain: undefined, q: undefined, field: undefined, search: undefined, conditions: undefined, startDate: undefined, endDate: undefined })
   }
 
   const clearMappedSearchFilter = (type: 'subject' | 'publisher') => {
+    if (type === 'subject') setSubjectFilter('')
+    else setPublisherFilter('')
     const mappedField: SearchField = type === 'subject' ? 'subject' : 'organization'
     const mappedParam = type === 'subject' ? 'domain' : 'publisher'
     if (appliedSearch.mode === 'simple' && appliedSearch.simpleField === mappedField) {
@@ -619,8 +661,8 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
 
   const resultFilterTags = useMemo(() => [
     ...externalFilterTags,
-    ...facetFilters.subjects.map((value) => ({ id: `subject-${value}`, label: `学科：${value}`, group: 'subjects' as const, value })),
-    ...facetFilters.subSubjects.map((value) => ({ id: `sub-subject-${value}`, label: `细分：${value}`, group: 'subSubjects' as const, value })),
+    ...facetFilters.subjects.filter((value) => (value !== '其他' || !facetFilters.otherSubjects.length) && !externalFilterTags.some((tag) => tag.label === `学科：${value}`)).map((value) => ({ id: `subject-${value}`, label: `学科：${value}`, group: 'subjects' as const, value })),
+    ...facetFilters.otherSubjects.map((value) => ({ id: `other-subject-${value}`, label: `其他学科：${value}`, group: 'otherSubjects' as const, value })),
     ...facetFilters.corpusTypes.map((value) => ({ id: `type-${value}`, label: `类型：${value}`, group: 'corpusTypes' as const, value })),
     ...facetFilters.openness.map((value) => ({ id: `open-${value}`, label: `开放：${value}`, group: 'openness' as const, value })),
     ...facetFilters.institutions.map((value) => ({ id: `institution-${value}`, label: `机构：${value}`, group: 'institutions' as const, value })),
@@ -629,8 +671,16 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
   ], [externalFilterTags, facetFilters])
 
   const removeResultFacetTag = (group: keyof CorpusFilterState, value: string) => {
-    setFacetFilters((current) => ({ ...current, [group]: current[group].filter((item) => item !== value) }))
-    setFilterResetVersion((current) => current + 1)
+    setFacetFilters((current) => {
+      const next = { ...current, [group]: current[group].filter((item) => item !== value) }
+      if (group === 'subjects' && value === '其他') next.otherSubjects = []
+      if (group === 'otherSubjects' && !next.otherSubjects.length) next.subjects = next.subjects.filter((item) => item !== '其他')
+      return next
+    })
+    if (group === 'subjects' && value === subjectFilter) clearMappedSearchFilter('subject')
+    if (group === 'otherSubjects' && facetFilters.otherSubjects.length === 1 && subjectFilter === '其他') clearMappedSearchFilter('subject')
+    if (group === 'institutions' && value === publisherFilter) clearMappedSearchFilter('publisher')
+    if (group === 'subjects' && value === '其他' || group === 'otherSubjects' && facetFilters.otherSubjects.length === 1) setFilterResetVersion((current) => current + 1)
     setCurrentPage(1)
   }
 
@@ -772,6 +822,9 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
             key={`${filterResetVersion}-${subjectFilter}-${publisherFilter}`}
             initialSubject={subjectFilter}
             initialPublisher={publisherFilter}
+            value={facetFilters}
+            otherSubjectOptions={otherSubjectOptions}
+            otherSubjectCount={otherSubjectCount}
             externalTags={externalFilterTags}
             onChange={handleFacetChange}
             onResetExternal={resetAllResultFilters}
@@ -805,6 +858,7 @@ export default function CorpusSearch({ pageType = 'search' }: { pageType?: 'sear
                 {tag.label}<X size={11} />
               </button>
             ))}
+            {resultFilterTags.length > 0 && <button type="button" className="result-clear-filters" onClick={resetAllResultFilters}>清空</button>}
             {resultFilterTags.length === 0 && <span>未设置筛选条件</span>}
           </div>
         </>}

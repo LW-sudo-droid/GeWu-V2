@@ -39,6 +39,7 @@ import CorpusJoinDialog from '../components/CorpusJoinDialog'
 import { defaultCorpusMembers, readCorpusMembers, saveCorpusMembers, type CorpusMember, type MemberPermission } from '../data/corpus-members'
 import { corpusAuditEvent, recordCorpusOperation, submitCorpusRequest } from '../data/corpus-audit'
 import { corpusRecords, institutionLogo, recordCoverImage, recordDisplayMeta } from './CorpusSearch'
+import { readCorpusSubmissions } from '../data/corpus-catalog'
 import './dataset-detail.css'
 
 type DetailTab = 'intro' | 'download' | 'comments'
@@ -315,7 +316,7 @@ function DatasetDetailContent() {
   const { user, openAuth, favorites, toggleFavorite } = useApp()
   const currentIdentity = useCurrentIdentity()
   const { isFollowing, followLabel, followerCount, toggleFollow } = useCommunity()
-  const baseItem = corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
+  const baseItem = readCorpusSubmissions().find((record) => record.id === id) ?? corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
   const [savedEdit] = useState(() => readCorpusEdits(baseItem.id))
   const item = savedEdit ? { ...baseItem, title: savedEdit.corpusName, summary: savedEdit.introduction, keywords: savedEdit.keywords, subject: savedEdit.subjectPaths[0]?.split('/')[0] ?? baseItem.subject, corpusType: savedEdit.corpusType, openness: savedEdit.openness, organization: savedEdit.organization === '其他' ? savedEdit.customOrganization : savedEdit.organization, authors: (savedEdit.department === '其他' ? savedEdit.customDepartment : savedEdit.department) || savedEdit.authors[0]?.organization || baseItem.authors } : baseItem
   const displayMeta = { ...recordDisplayMeta(baseItem), ...(savedEdit ? { corpusSize: savedEdit.corpusSize, storageSize: savedEdit.storageSize } : {}) }

@@ -18,6 +18,8 @@ import {
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useApp } from '../context/app-context'
 import { corpusRecords } from './CorpusSearch'
+import { saveCorpusSubmission } from '../data/corpus-catalog'
+import { normalizeOtherSubjects } from '../data/corpus-subjects'
 
 type Author = { name: string; contact: string; organization: string }
 type UploadGroupKey = 'sample' | 'public' | 'all'
@@ -109,6 +111,8 @@ export default function CorpusUpload() {
   const [keywords, setKeywords] = useState<string[]>(editRecord?.keywords ?? [])
   const [dataSource, setDataSource] = useState(editRecord ? '高校专业教材、科研文献、课程资源及经专家校验的领域数据' : '')
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(editRecord ? [editRecord.subject] : [])
+  const [otherSubjectInput, setOtherSubjectInput] = useState('')
+  const [submittedId, setSubmittedId] = useState('')
   const [selectedChildren, setSelectedChildren] = useState<Record<string, string[]>>(() => editRecord && subjectChildren[editRecord.subject] ? { [editRecord.subject]: subjectChildren[editRecord.subject] } : {})
   const [corpusType, setCorpusType] = useState(editRecord?.corpusType.includes('后训练') ? '后训练' : editRecord?.corpusType.includes('RAG') ? 'RAG' : '')
   const [orgType, setOrgType] = useState(editRecord ? (editRecord.organization.includes('大学') ? '高校' : editRecord.organization.includes('研究院') ? '新型研发机构' : '企业') : '')
@@ -169,7 +173,7 @@ export default function CorpusUpload() {
 
   const saveDraft = () => {
     if (!user) return
-    window.localStorage.setItem(`gw-upload-draft-${user.account}`, JSON.stringify({ authors, corpusName, introduction, keywords, dataSource, selectedSubjects, selectedChildren, corpusType, orgType, organization, department, customOrganization, customDepartment, province, corpusSize, corpusSizeDetail, storageSize, storageSizeDetail, supplyStatus, supplyMode, license, openness, uploads, step }))
+    window.localStorage.setItem(`gw-upload-draft-${user.account}`, JSON.stringify({ authors, corpusName, introduction, keywords, dataSource, selectedSubjects, selectedChildren, otherSubjectInput, corpusType, orgType, organization, department, customOrganization, customDepartment, province, corpusSize, corpusSizeDetail, storageSize, storageSizeDetail, supplyStatus, supplyMode, license, openness, uploads, step }))
     notify('当前内容已保存')
   }
 
@@ -180,6 +184,7 @@ export default function CorpusUpload() {
   const submitBasic = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selectedSubjects.length) return notify('请选择至少一个学科领域')
+    if (selectedSubjects.includes('其他') && !normalizeOtherSubjects(otherSubjectInput).length) return notify('请填写其他学科名称，六大学科请直接勾选')
     if (!corpusType) return notify('请选择语料类型')
     setStep(2)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -202,7 +207,19 @@ export default function CorpusUpload() {
   }
 
   const submitReview = () => {
-    saveDraft()
+    if (selectedSubjects.includes('其他') && !normalizeOtherSubjects(otherSubjectInput).length) return notify('请填写其他学科名称')
+    const id = (editRecord?.id ?? submittedId) || `upload-${crypto.randomUUID()}`
+    const subjectPaths = selectedSubjects.flatMap((subject) => subject === '其他' ? normalizeOtherSubjects(otherSubjectInput).map((value) => `其他/${value}`) : selectedChildren[subject]?.length ? selectedChildren[subject].map((value) => `${subject}/${value}`) : [subject])
+    try {
+      saveDraft()
+      saveCorpusSubmission({ id, title: corpusName.trim(), summary: introduction.trim(), organization: effectiveOrganization,
+        subject: selectedSubjects[0], subjectPaths, corpusType, openness, keywords,
+        authors: [effectiveDepartment, ...authors.map((author) => author.name)].filter(Boolean).join('、'),
+        publishedAt: new Date().toLocaleDateString('sv-SE'), views: 0, favorites: 0, usage: 0,
+        status: '建设中', corpusSize, storageSize,
+      })
+      setSubmittedId(id)
+    } catch { notify('保存失败，请检查浏览器存储空间后重试'); return }
     setStep(4)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -247,7 +264,9 @@ export default function CorpusUpload() {
                     <div className="is-wide example-field-row"><label><span>语料库主要数据来源 *</span><textarea required value={dataSource} onChange={(event) => setDataSource(event.target.value)} placeholder="请说明语料库的主要数据来源" /></label><aside><strong>填写样例</strong><p>北京大学出版社、北京大学101计划、科学出版社、高等教育出版社；数学各二级学科教材；分类参考：GB/T 13745、NSFC数学学科分类。</p><small>以上仅供参考，请根据实际语料库建设的数据来源填写。</small></aside></div>
                   </div>
 
-                  <div className="upload-choice-field"><span>学科领域 *</span><div className="subject-choice-grid">{subjects.map((subject) => <div key={subject} className={selectedSubjects.includes(subject) ? 'is-selected' : ''}><label><input type="checkbox" checked={selectedSubjects.includes(subject)} onChange={() => toggleSubject(subject)} /><strong>{subject}</strong></label>{selectedSubjects.includes(subject) && subjectChildren[subject] && <div>{subjectChildren[subject].map((child) => <label key={child}><input type="checkbox" checked={(selectedChildren[subject] ?? []).includes(child)} onChange={() => toggleChild(subject, child)} />{child}</label>)}</div>}</div>)}</div></div>
+                  <div className="upload-choice-field"><span>学科领域 *</span><div className="subject-choice-grid">{[...subjects, '其他'].map((subject) => <div key={subject} className={selectedSubjects.includes(subject) ? 'is-selected' : ''}><label><input type="checkbox" checked={selectedSubjects.includes(subject)} onChange={() => toggleSubject(subject)} /><strong>{subject}</strong></label>{selectedSubjects.includes(subject) && subjectChildren[subject] && <div>{subjectChildren[subject].map((child) => <label key={child}><input type="checkbox" checked={(selectedChildren[subject] ?? []).includes(child)} onChange={() => toggleChild(subject, child)} />{child}</label>)}</div>}</div>)}</div>
+                    {selectedSubjects.includes('其他') && <label className="upload-other-subject-input"><span>其他学科名称 *</span><input required value={otherSubjectInput} onChange={(event) => setOtherSubjectInput(event.target.value)} placeholder="请输入学科名称，多个学科用顿号或逗号分隔" /></label>}
+                  </div>
 
                   <div className="upload-choice-field"><span>语料类型 *</span><div className="option-pill-row">{['预训练', '后训练', 'RAG', '微调'].map((item) => <label className={corpusType === item ? 'is-selected' : ''} key={item}><input type="radio" name="corpus-type" checked={corpusType === item} onChange={() => setCorpusType(item)} />{item}</label>)}</div></div>
 
@@ -286,13 +305,13 @@ export default function CorpusUpload() {
               <div>
                 <header className="upload-form-title"><div><span>第三步</span><h2>确认信息</h2></div><p>请核对以下内容，确认无误后提交审核</p></header>
                 <section className="upload-confirm-section"><h3>作者信息</h3>{authors.map((author, index) => <div className="confirm-author" key={index}><strong>{author.name}</strong><span>{author.contact}</span><span>{author.organization}</span></div>)}</section>
-                <section className="upload-confirm-section"><h3>语料库信息</h3><dl><div><dt>语料库名称</dt><dd>{corpusName}</dd></div><div><dt>语料库关键词</dt><dd>{keywords.join('、')}</dd></div><div className="is-wide"><dt>语料库介绍</dt><dd>{introduction}</dd></div><div className="is-wide"><dt>主要数据来源</dt><dd>{dataSource}</dd></div><div><dt>学科领域</dt><dd>{selectedSubjects.join('、')}</dd></div><div><dt>语料类型</dt><dd>{corpusType}</dd></div><div><dt>发布机构</dt><dd>{[effectiveOrganization, effectiveDepartment].filter(Boolean).join(' - ')}</dd></div><div><dt>所在省份</dt><dd>{province}</dd></div><div><dt>语料规模</dt><dd>{corpusSize}</dd></div><div><dt>存储容量</dt><dd>{storageSize}</dd></div><div><dt>对外供给</dt><dd>{supplyStatus}</dd></div><div><dt>供给方式</dt><dd>{supplyMode}</dd></div></dl></section>
+                <section className="upload-confirm-section"><h3>语料库信息</h3><dl><div><dt>语料库名称</dt><dd>{corpusName}</dd></div><div><dt>语料库关键词</dt><dd>{keywords.join('、')}</dd></div><div className="is-wide"><dt>语料库介绍</dt><dd>{introduction}</dd></div><div className="is-wide"><dt>主要数据来源</dt><dd>{dataSource}</dd></div><div><dt>学科领域</dt><dd>{selectedSubjects.map((subject) => subject === '其他' ? `其他（${normalizeOtherSubjects(otherSubjectInput).join('、')}）` : subject).join('、')}</dd></div><div><dt>语料类型</dt><dd>{corpusType}</dd></div><div><dt>发布机构</dt><dd>{[effectiveOrganization, effectiveDepartment].filter(Boolean).join(' - ')}</dd></div><div><dt>所在省份</dt><dd>{province}</dd></div><div><dt>语料规模</dt><dd>{corpusSize}</dd></div><div><dt>存储容量</dt><dd>{storageSize}</dd></div><div><dt>对外供给</dt><dd>{supplyStatus}</dd></div><div><dt>供给方式</dt><dd>{supplyMode}</dd></div></dl></section>
                 <section className="upload-confirm-section"><h3>文件与开放信息</h3><dl><div><dt>许可协议</dt><dd>{license}</dd></div><div><dt>开放程度</dt><dd>{openness}</dd></div><div><dt>示例数据</dt><dd>{groupLabel(uploads.sample)}</dd></div>{openness === '部分公开' && <div><dt>公开部分数据</dt><dd>{groupLabel(uploads.public)}</dd></div>}<div><dt>全部数据</dt><dd>{groupLabel(uploads.all)}</dd></div></dl></section>
                 <div className="upload-form-actions"><button type="button" onClick={saveDraft}><Save size={16} />保存</button><button type="button" onClick={() => setStep(2)}>上一步</button><button type="button" className="is-primary" onClick={submitReview}>提交审核</button></div>
               </div>
             )}
 
-            {step === 4 && <div className="upload-success"><CheckCircle2 size={64} /><span>第四步</span><h2>语料库上传成功</h2><p>平台已收到您的语料库信息和文件，审核进度与结果可在个人主页查看。</p><div><Link to="/profile">前往个人主页</Link><button type="button" onClick={() => navigate(`/search/datasets/${editRecord?.id ?? corpusRecords[0].id}`)}>查看语料详情</button></div></div>}
+            {step === 4 && <div className="upload-success"><CheckCircle2 size={64} /><span>第四步</span><h2>语料库上传成功</h2><p>平台已收到您的语料库信息和文件，审核进度与结果可在个人主页查看。</p><div><Link to="/profile">前往个人主页</Link><button type="button" onClick={() => navigate(`/search/datasets/${submittedId || editRecord?.id || corpusRecords[0].id}`)}>查看语料详情</button></div></div>}
           </section>
         </div>
       </div>

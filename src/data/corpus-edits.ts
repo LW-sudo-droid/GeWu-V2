@@ -18,4 +18,5 @@ export function readCorpusEdits(id: string): CorpusEdits | null {
 
 export function saveCorpusEdits(id: string, value: CorpusEdits) {
   localStorage.setItem(`gw-corpus-edit-${id}`, JSON.stringify(value))
+  window.dispatchEvent(new Event('gw-corpus-catalog-changed'))
 }

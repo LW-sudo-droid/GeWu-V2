@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { ArrowLeft, CheckCircle2, FileText, Plus, Trash2, X } from 'lucide-react'
 import { corpusRecords, recordDisplayMeta } from './CorpusSearch'
+import { readCorpusSubmissions } from '../data/corpus-catalog'
 import { provinces, pkuDepartments, subjectChildren, subjects, universities } from './CorpusUpload'
 import { readCorpusEdits, saveCorpusEdits } from '../data/corpus-edits'
 import { recordCorpusOperation } from '../data/corpus-audit'
@@ -22,11 +23,11 @@ function DatasetEditContent() {
   const identity = useCurrentIdentity()
   const { id = '' } = useParams()
   const navigate = useNavigate()
-  const item = corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
+  const item = readCorpusSubmissions().find((record) => record.id === id) ?? corpusRecords.find((record) => record.id === id) ?? corpusRecords[0]
   const meta = recordDisplayMeta(item)
   const [saved] = useState(() => readCorpusEdits(item.id))
   const [authors, setAuthors] = useState<Author[]>(saved?.authors ?? [{ name: '张伟', contact: '', organization: item.authors }])
-  const [subjectPaths, setSubjectPaths] = useState<string[]>(saved?.subjectPaths ?? [item.subject])
+  const [subjectPaths, setSubjectPaths] = useState<string[]>(saved?.subjectPaths ?? item.subjectPaths ?? [item.subject])
   const [subject, setSubject] = useState(saved?.subjectPaths[0]?.split('/')[0] ?? item.subject)
   const [corpusName, setCorpusName] = useState(saved?.corpusName ?? (item.title))
   const [introduction, setIntroduction] = useState(saved?.introduction ?? (item.summary))

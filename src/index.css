@@ -23025,6 +23025,36 @@ body {
   padding-top: 8px;
 }
 
+/* Clear all filters stays beside the condition chips, without a chip border. */
+.search-page:has(.back-to-search) .result-filter-tags .result-clear-filters {
+  flex: 0 0 auto;
+  margin-left: 6px;
+  padding: 3px 4px;
+  color: #6254ff;
+  background: transparent;
+  border-color: transparent;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.search-page:has(.back-to-search) .result-filter-tags .result-clear-filters:hover {
+  color: #4635e8;
+  background: rgba(98, 84, 255, .06);
+  border-color: transparent;
+}
+
+.other-subject-children { padding-left: 24px; }
+.search-page:has(.back-to-search) .other-subject-facet > .institution-tree-row { min-height: 36px; }
+.search-page:has(.back-to-search) .other-subject-facet > .institution-tree-row > label { font-size: 12px; font-weight: inherit; }
+.upload-other-subject-input { display: grid; gap: 8px; margin-top: 12px; }
+.upload-other-subject-input input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d4dce8;
+  border-radius: 8px;
+  background: #fff;
+}
+
 /* Keep search home and result pages on the same continuous canvas as the
    demand plaza: the hero artwork fades into the page color without a seam. */
 .search-page,

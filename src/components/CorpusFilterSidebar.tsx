@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type SetStateAction } from 'react'
 import { ChevronDown, ChevronUp, RotateCcw, Search, X } from 'lucide-react'
+import { createCorpusFilters, pkuDepartments } from '../data/corpus-filters'
 
 export type CorpusFilterState = {
   subjects: string[]
-  subSubjects: string[]
+  otherSubjects: string[]
   corpusTypes: string[]
   institutions: string[]
   corpusSizes: string[]
@@ -26,15 +27,6 @@ const subjectOptions: Option[] = [
   { label: '天文', count: 87 }, { label: '地理', count: 124 }, { label: '生物', count: 173 },
 ]
 
-const subjectChildren: Record<string, Option[]> = {
-  化学: [
-    { label: '碳材料', count: 34 }, { label: 'f族元素', count: 21 }, { label: '生物医药', count: 42 },
-    { label: '能源材料', count: 39 }, { label: '催化', count: 37 }, { label: '教育教学', count: 23 },
-  ],
-  地理: [{ label: '地球世界模型', count: 48 }, { label: '地表环境与城市', count: 51 }, { label: '教育教学', count: 25 }],
-  生物: [{ label: '生命', count: 112 }, { label: '医学', count: 61 }],
-}
-
 const corpusTypeOptions: Option[] = [
   { label: '预训练', count: 286 }, { label: '后训练', count: 214 }, { label: 'RAG', count: 137 }, { label: '微调', count: 165 },
 ]
@@ -47,39 +39,6 @@ const storageOptions: Option[] = [
 ]
 const opennessOptions: Option[] = [
   { label: '公开', count: 843 }, { label: '不公开', count: 57 },
-]
-
-const pkuDepartments: Option[] = [
-  { label: '数学科学学院', count: 52 },
-  { label: '物理学院', count: 50 },
-  { label: '物理学院大气与海洋科学系', count: 12 },
-  { label: '物理学院技术物理系', count: 11 },
-  { label: '物理学院现代光学研究所', count: 10 },
-  { label: '物理学院电子显微镜专业实验室', count: 8 },
-  { label: '化学与分子工程学院', count: 45 },
-  { label: '地球与空间科学学院', count: 24 },
-  { label: '材料科学与工程学院', count: 16 },
-  { label: '生命科学学院', count: 35 },
-  { label: '现代农学院', count: 9 },
-  { label: '基础医学院', count: 14 },
-  { label: '药学院', count: 21 },
-  { label: '药学院天然药物及仿生药物全国重点实验室', count: 8 },
-  { label: '公共卫生学院', count: 12 },
-  { label: '人工智能研究院', count: 13 },
-  { label: '定量生物学中心', count: 7 },
-  { label: '生物医学前沿创新中心', count: 8 },
-  { label: '健康医疗大数据国家研究院', count: 17 },
-  { label: '核糖核酸北京研究中心', count: 6 },
-  { label: '国际机器学习研究中心', count: 9 },
-  { label: '北京国际数学研究中心', count: 15 },
-  { label: '遥感与地理信息系统研究所', count: 28 },
-  { label: '科维理天文与天体物理研究所', count: 19 },
-  { label: '国际癌症研究院', count: 7 },
-  { label: '肿瘤医院', count: 10 },
-  { label: '第一医院肾内科', count: 6 },
-  { label: '鄞州数智健康联合研究院', count: 5 },
-  { label: '深圳研究生院新材料学院', count: 8 },
-  { label: '其他', count: 8, custom: true },
 ]
 
 const institutionGroups: InstitutionGroup[] = [
@@ -120,16 +79,6 @@ function groupKnownValues(group: InstitutionGroup) {
 function initialInstitutionGroup(initialPublisher: string) {
   return institutionGroups.find((group) => group.label === initialPublisher || group.children.some((node) => node.label === initialPublisher || node.children?.some((child) => child.label === initialPublisher)))?.label ?? ''
 }
-
-const emptyFilters = (initialSubject = '', initialPublisher = ''): CorpusFilterState => ({
-  subjects: initialSubject ? [initialSubject] : [],
-  subSubjects: subjectChildren[initialSubject]?.map((item) => item.label) ?? [],
-  corpusTypes: [],
-  institutions: initialPublisher === '北京大学' ? pkuDepartments.filter((item) => !item.custom).map((item) => item.label) : initialPublisher ? [initialPublisher] : [],
-  corpusSizes: [],
-  storageSizes: [],
-  openness: [],
-})
 
 function toggleValue(values: string[], value: string) {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value]
@@ -197,6 +146,9 @@ export default function CorpusFilterSidebar({
   onResetExternal,
   onInitialFilterCleared,
   showAppliedPanel = true,
+  value,
+  otherSubjectOptions = [],
+  otherSubjectCount = 0,
 }: {
   initialSubject?: string
   initialPublisher?: string
@@ -205,10 +157,19 @@ export default function CorpusFilterSidebar({
   onResetExternal: () => void
   onInitialFilterCleared?: (type: 'subject' | 'publisher') => void
   showAppliedPanel?: boolean
+  value?: CorpusFilterState
+  otherSubjectOptions?: Option[]
+  otherSubjectCount?: number
 }) {
-  const [filters, setFilters] = useState(() => emptyFilters(initialSubject, initialPublisher))
-  const [subjectVisible, setSubjectVisible] = useState(6)
+  const [localFilters, setLocalFilters] = useState(() => createCorpusFilters(initialSubject, initialPublisher))
+  const filters = value ?? localFilters
+  const setFilters = (update: SetStateAction<CorpusFilterState>) => {
+    if (value) onChange(typeof update === 'function' ? update(value) : update)
+    else setLocalFilters(update)
+  }
   const [subjectExpanded, setSubjectExpanded] = useState(true)
+  const [otherExpanded, setOtherExpanded] = useState(false)
+  const [otherVisible, setOtherVisible] = useState(5)
   const [institutionQuery, setInstitutionQuery] = useState('')
   const [institutionExpanded, setInstitutionExpanded] = useState(true)
   const [openInstitutionGroups, setOpenInstitutionGroups] = useState<string[]>(() => {
@@ -224,32 +185,31 @@ export default function CorpusFilterSidebar({
   const [customInstitutionEnabled, setCustomInstitutionEnabled] = useState<string[]>([])
   const [customInstitutionValues, setCustomInstitutionValues] = useState<Record<string, string>>({})
 
-  useEffect(() => onChange(filters), [filters, onChange])
+  useEffect(() => { if (!value) onChange(localFilters) }, [localFilters, onChange, value])
 
   const update = <K extends keyof CorpusFilterState>(key: K, values: CorpusFilterState[K]) => {
     setFilters((current) => ({ ...current, [key]: values }))
   }
 
   const toggleSubject = (subject: string) => {
-    const selected = filters.subjects.includes(subject)
-    if (selected && subject === initialSubject) onInitialFilterCleared?.('subject')
-    const children = subjectChildren[subject]?.map((item) => item.label) ?? []
-    setFilters((current) => ({
-      ...current,
-      subjects: selected ? current.subjects.filter((item) => item !== subject) : [...current.subjects, subject],
-      subSubjects: selected ? current.subSubjects.filter((item) => !children.includes(item)) : Array.from(new Set([...current.subSubjects, ...children])),
-    }))
+    if (filters.subjects.includes(subject) && subject === initialSubject) onInitialFilterCleared?.('subject')
+    setFilters((current) => ({ ...current, subjects: toggleValue(current.subjects, subject) }))
   }
 
-  const toggleSubSubject = (parent: string, child: string) => {
-    const nextChildren = toggleValue(filters.subSubjects, child)
-    const parentChildren = subjectChildren[parent].map((item) => item.label)
-    const hasAny = nextChildren.some((item) => parentChildren.includes(item))
-    setFilters((current) => ({
-      ...current,
-      subjects: hasAny ? Array.from(new Set([...current.subjects, parent])) : current.subjects.filter((item) => item !== parent),
-      subSubjects: nextChildren,
-    }))
+  const toggleOther = () => {
+    const selected = filters.subjects.includes('其他')
+    if (selected && initialSubject === '其他') onInitialFilterCleared?.('subject')
+    setFilters((current) => ({ ...current, subjects: toggleValue(current.subjects, '其他'), otherSubjects: selected ? [] : otherSubjectOptions.map((option) => option.label) }))
+    setOtherExpanded(!selected)
+    if (selected) setOtherVisible(5)
+  }
+
+  const toggleOtherChild = (subject: string) => {
+    const selected = filters.subjects.includes('其他')
+    const next = toggleValue(selected && !filters.otherSubjects.length ? otherSubjectOptions.map((option) => option.label) : filters.otherSubjects, subject)
+    if (!next.length && initialSubject === '其他') onInitialFilterCleared?.('subject')
+    setFilters((current) => ({ ...current, subjects: next.length ? Array.from(new Set([...current.subjects, '其他'])) : current.subjects.filter((item) => item !== '其他'), otherSubjects: next }))
+    if (!next.length) { setOtherExpanded(false); setOtherVisible(5) }
   }
 
   const toggleInstitutionGroup = (group: InstitutionGroup) => {
@@ -315,8 +275,8 @@ export default function CorpusFilterSidebar({
   }
 
   const internalTags = useMemo(() => [
-    ...filters.subjects.map((value) => ({ group: 'subjects' as const, value, label: `学科领域：${value}` })),
-    ...filters.subSubjects.map((value) => ({ group: 'subSubjects' as const, value, label: `细分学科：${value}` })),
+    ...filters.subjects.filter((value) => value !== '其他' || !filters.otherSubjects.length).map((value) => ({ group: 'subjects' as const, value, label: `学科领域：${value}` })),
+    ...filters.otherSubjects.map((value) => ({ group: 'otherSubjects' as const, value, label: `其他学科：${value}` })),
     ...filters.corpusTypes.map((value) => ({ group: 'corpusTypes' as const, value, label: `语料类型：${value}` })),
     ...filters.institutions.map((value) => ({ group: 'institutions' as const, value, label: `发布机构：${value}` })),
     ...filters.corpusSizes.map((value) => ({ group: 'corpusSizes' as const, value, label: `语料规模：${value}` })),
@@ -325,9 +285,10 @@ export default function CorpusFilterSidebar({
   ], [filters])
 
   const resetAll = () => {
-    setFilters(emptyFilters())
-    setSubjectVisible(6)
+    setFilters(createCorpusFilters())
     setSubjectExpanded(true)
+    setOtherExpanded(false)
+    setOtherVisible(5)
     setInstitutionQuery('')
     setInstitutionExpanded(true)
     setOpenInstitutionGroups([])
@@ -342,33 +303,11 @@ export default function CorpusFilterSidebar({
   const totalApplied = externalTags.length + internalTags.length
 
   const removeInternalTag = (group: keyof CorpusFilterState, value: string) => {
+    if (group === 'subjects' && value === '其他') { toggleOther(); return }
+    if (group === 'otherSubjects') { toggleOtherChild(value); return }
     if (group === 'subjects' && value === initialSubject) onInitialFilterCleared?.('subject')
     if (group === 'institutions' && (value === initialPublisher || initialPublisher === '北京大学' && pkuDepartments.some((item) => item.label === value))) {
       onInitialFilterCleared?.('publisher')
-    }
-    if (group === 'subjects') {
-      const children = subjectChildren[value]?.map((item) => item.label) ?? []
-      setFilters((current) => ({
-        ...current,
-        subjects: current.subjects.filter((item) => item !== value),
-        subSubjects: current.subSubjects.filter((item) => !children.includes(item)),
-      }))
-      return
-    }
-    if (group === 'subSubjects') {
-      const parent = Object.entries(subjectChildren).find(([, children]) => children.some((child) => child.label === value))?.[0]
-      setFilters((current) => {
-        const nextSubSubjects = current.subSubjects.filter((item) => item !== value)
-        if (!parent) return { ...current, subSubjects: nextSubSubjects }
-        const parentChildren = subjectChildren[parent].map((item) => item.label)
-        const hasAny = nextSubSubjects.some((item) => parentChildren.includes(item))
-        return {
-          ...current,
-          subSubjects: nextSubSubjects,
-          subjects: hasAny ? current.subjects : current.subjects.filter((item) => item !== parent),
-        }
-      })
-      return
     }
     update(group, filters[group].filter((item) => item !== value))
     if (group === 'institutions') {
@@ -398,18 +337,16 @@ export default function CorpusFilterSidebar({
 
       <section className="facet-section">
         <FacetTitle title="按学科领域" expanded={subjectExpanded} onToggle={() => setSubjectExpanded((value) => !value)} />
-        {subjectExpanded && <>
-          {subjectOptions.slice(0, subjectVisible).map((option) => (
-            <div key={option.label}>
-              <OptionRow option={option} checked={filters.subjects.includes(option.label)} onChange={() => toggleSubject(option.label)} />
-              {filters.subjects.includes(option.label) && subjectChildren[option.label] && (
-                <div className="nested-facet-list">
-                  {subjectChildren[option.label].map((child) => <OptionRow key={child.label} option={child} nested checked={filters.subSubjects.includes(child.label)} onChange={() => toggleSubSubject(option.label, child.label)} />)}
-                </div>
-              )}
-            </div>
-          ))}
-        </>}
+        {subjectExpanded && subjectOptions.map((option) => (
+          <OptionRow key={option.label} option={option} checked={filters.subjects.includes(option.label)} onChange={() => toggleSubject(option.label)} />
+        ))}
+        {subjectExpanded && <div className="other-subject-facet">
+          <InstitutionTreeRow label="其他" count={otherSubjectCount} level={1} checked={filters.subjects.includes('其他')} expandable={otherSubjectOptions.length > 0} expanded={otherExpanded} onChange={toggleOther} onExpand={() => setOtherExpanded((current) => !current)} />
+          {otherExpanded && otherSubjectOptions.length > 0 && <div className="other-subject-children">
+            {otherSubjectOptions.slice(0, otherVisible).map((option) => <OptionRow key={option.label} option={option} nested checked={filters.subjects.includes('其他') && (!filters.otherSubjects.length || filters.otherSubjects.includes(option.label))} onChange={() => toggleOtherChild(option.label)} />)}
+            <ExpandButton visible={otherVisible} total={otherSubjectOptions.length} onExpand={() => setOtherVisible((current) => current + 5)} onCollapse={() => setOtherVisible(5)} />
+          </div>}
+        </div>}
       </section>
 
       <SimpleFacet title="语料类型" options={corpusTypeOptions} selected={filters.corpusTypes} onToggle={(value) => update('corpusTypes', toggleValue(filters.corpusTypes, value))} />
