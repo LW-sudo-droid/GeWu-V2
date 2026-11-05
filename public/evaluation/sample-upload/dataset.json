@@ -1,0 +1,35 @@
+{
+  "name": "基础物理计算评测集（模拟上传）",
+  "version": "v1.0.0",
+  "license": "CC0-1.0",
+  "demo": true,
+  "samples": [
+    {
+      "id": "mechanics-001",
+      "split": "test",
+      "input": "物体从静止开始做匀加速直线运动，加速度为 2 m/s²，运动 3 s。求末速度。",
+      "expected_output": {
+        "answer": 6,
+        "unit": "m/s"
+      }
+    },
+    {
+      "id": "mechanics-002",
+      "split": "test",
+      "input": "质量为 2 kg 的物体加速度为 3 m/s²。求合力。",
+      "expected_output": {
+        "answer": 6,
+        "unit": "N"
+      }
+    },
+    {
+      "id": "mechanics-003",
+      "split": "test",
+      "input": "质量为 2 kg 的物体速度为 4 m/s。求动能。",
+      "expected_output": {
+        "answer": 16,
+        "unit": "J"
+      }
+    }
+  ]
+}
