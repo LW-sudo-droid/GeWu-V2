@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router'
+import { Link, NavLink, useNavigate, useLocation } from 'react-router'
 import { ChevronDown, LogOut, Menu, UserRound, X } from 'lucide-react'
 import LogoMark from './LogoMark'
 import { useApp } from '../context/app-context'
@@ -19,6 +19,7 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+  const isHome = useLocation().pathname === '/'
   const { user, openAuth, signOut } = useApp()
 
   useEffect(() => {
@@ -35,8 +36,8 @@ export default function Header() {
     <header className="site-header">
       <div className="header-inner">
         <Link className="brand" to="/" aria-label="格物·科学语料库首页">
-          <LogoMark size={44} />
-          <span className="brand-copy">
+          {isHome ? <img className="home-brand-image" src={`${import.meta.env.BASE_URL}images/home/brand.svg`} alt="格物·科学语料库" /> : <LogoMark size={44} />}
+          <span className="brand-copy" hidden={isHome}>
             <strong>格物 · 科学语料库</strong>
             <small>科学语料共建共享平台</small>
           </span>

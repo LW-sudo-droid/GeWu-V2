@@ -320,7 +320,7 @@ export default function SubjectShowcase() {
   return (
     <section className="home-subjects" aria-labelledby="home-subjects-title">
       <div className="home-subjects-inner">
-        <h2 id="home-subjects-title">六大<span className="text-gradient">学科领域</span>建设特色</h2>
+        <h2 id="home-subjects-title"><span className="text-gradient">六大学科</span>领域建设特色</h2>
 
         <div className="home-subject-tabs" aria-label="学科切换">
           {subjectData.map((item) => (
@@ -340,7 +340,7 @@ export default function SubjectShowcase() {
           <article className="home-subject-corpus" key={`${subject.name}-${activeFeature}`}>
             <div className="home-subject-cover">
               <img src={coverSrc} alt="" loading="lazy" />
-              <span className="cover-badge">部分公开</span>
+              <span className="cover-badge">公开</span>
             </div>
             <div className="home-subject-corpus-body">
               <div className="corpus-meta-row">
@@ -350,7 +350,7 @@ export default function SubjectShowcase() {
               <h3>{feature.title}</h3>
               <p>{feature.detail}</p>
               <footer>
-                <span className="card-org-mark" aria-hidden="true">北</span>
+                <img className="card-org-mark" src={`${import.meta.env.BASE_URL}images/partners/pku.svg`} alt="" />
                 <strong className="card-organization-name">{feature.organization}</strong>
                 <span><Download size={14} />{metrics.downloads}</span>
                 <span><Eye size={14} />{metrics.views}</span>
@@ -388,7 +388,7 @@ export default function SubjectShowcase() {
               </div>
             </article>
 
-            <article className="home-subject-card">
+            <article className="home-subject-card home-subject-services-card">
               <header><Sparkles size={18} /><h4>服务场景</h4></header>
               <ul className="home-subject-services">
                 {subject.services.map((item) => <li key={item}><i />{item}</li>)}

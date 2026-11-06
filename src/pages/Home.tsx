@@ -3,7 +3,7 @@ import {
   Bookmark,
   Briefcase,
   CloudUpload,
-  Compass,
+  ClipboardCheck,
   Crosshair,
   Database,
   Edit3,
@@ -21,6 +21,9 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router'
 import '../home-v2.css'
+import '../home-design.css'
+import HomeOrbit from '../components/home/HomeOrbit'
+import HomeMetricIcon from '../components/home/HomeMetricIcon'
 import CorpusCommunity, { PartnersSection } from '../components/CorpusCommunity'
 import SubjectShowcase from '../components/SubjectShowcase'
 import QualityCorpusDiscovery from '../components/QualityCorpusDiscovery'
@@ -32,17 +35,10 @@ const heroMetrics = [
   { icon: UsersRound, value: '400', unit: '万', label: '服务用户', tone: 'purple' },
 ]
 
-const orbitNodes = [
-  { key: 'talent', icon: UsersRound, title: '人才', detail: '多学科专业力量' },
-  { key: 'model', icon: Network, title: '模型', detail: '智能模型' },
-  { key: 'tools', icon: Briefcase, title: '工具', detail: '智能化生产工具链' },
-  { key: 'data', icon: Database, title: '数据', detail: '高质量科学语料' },
-]
-
 const flowSteps = [
   { icon: Crosshair, title: '语料检索', description: '精准发现科学语料' },
-  { icon: Compass, title: '语料发现', description: '最新优质成果内容' },
   { icon: CloudUpload, title: '语料上传', description: '开放汇交·持续共建' },
+  { icon: ClipboardCheck, title: '语料评测', description: '科学评测集 · 展示模型表现' },
   { icon: Orbit, title: '需求广场', description: '发布语料需求' },
   { icon: Briefcase, title: '工具市场', description: '专业加工工具' },
 ]
@@ -117,34 +113,13 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="home-hero-orbit" aria-label="数据、工具、人才、模型共进化循环">
-            <span className="orbit-ring ring-outer" aria-hidden="true" />
-            <span className="orbit-ring ring-middle" aria-hidden="true" />
-            <span className="orbit-ring ring-inner" aria-hidden="true" />
-            <span className="orbit-dot dot-b" aria-hidden="true" />
-            <span className="orbit-dot dot-d" aria-hidden="true" />
-            <div className="orbit-center">
-              <span>科学语料</span>
-              <strong>共进化</strong>
-            </div>
-            <div className="orbit-spin" aria-hidden="true">
-              {orbitNodes.map((node) => (
-                <div className={`orbit-node orbit-${node.key}`} key={node.key}>
-                  <span className="orbit-node-icon"><node.icon size={24} /></span>
-                  <span className="orbit-node-copy">
-                    <strong>{node.title}</strong>
-                    <small>{node.detail}</small>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <HomeOrbit />
         </div>
 
         <div className="home-metrics">
           {heroMetrics.map((item) => (
             <div className="home-metric-card" key={item.label}>
-              <span className={`home-metric-icon tone-${item.tone}`}><item.icon size={26} /></span>
+              <span className={`home-metric-icon tone-${item.tone}`}><HomeMetricIcon kind={item.tone} /></span>
               <div className="home-metric-copy">
                 <p><strong>{item.value}</strong><em>{item.unit}</em></p>
                 <span>{item.label}</span>

@@ -158,7 +158,7 @@ export default function QualityCorpusDiscovery() {
             <Link className="home-quality-card" to={`/search/datasets/${item.id}`} key={item.id}>
               <div className="home-quality-cover">
                 <img src={`${import.meta.env.BASE_URL}images/home/quality-${item.id}.jpg`} alt="" loading="lazy" />
-                <span className="cover-badge">部分公开</span>
+                <span className="cover-badge">公开</span>
               </div>
               <div className="home-quality-body">
                 <div className="corpus-meta-row">
@@ -168,7 +168,7 @@ export default function QualityCorpusDiscovery() {
                 <h3>{item.title}</h3>
                 <p>{item.summary}</p>
                 <footer>
-                  <span className="card-org-mark" aria-hidden="true">北</span>
+                  <img className="card-org-mark" src={`${import.meta.env.BASE_URL}images/partners/pku.svg`} alt="" />
                   <strong className="card-organization-name">{item.organization}</strong>
                   <span><Download size={14} />{formatCount(item.downloads)}</span>
                   <span><Eye size={14} />{formatCount(item.views)}</span>

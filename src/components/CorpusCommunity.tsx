@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Building2, FlaskConical, GraduationCap, MapPinned, UsersRound } from 'lucide-react'
 import { ecosystemGroups } from '../data/ecosystem'
+import HomePartnerMark from './home/HomePartnerMark'
 
 type Position = [number, number]
 
@@ -38,7 +39,7 @@ type CategoryDefinition = {
   national: CommunityMetric
 }
 
-const MAP_WIDTH = 760
+const MAP_WIDTH = 600
 const MAP_HEIGHT = 520
 const MAP_PADDING = 22
 
@@ -107,14 +108,17 @@ const provinceMetricOverrides: Partial<Record<string, Record<CategoryKey, Commun
   },
 }
 
-const communityPartners = Object.entries(ecosystemGroups).flatMap(([group, value]) => (
+const communityPartners = Object.entries(ecosystemGroups).filter(([group]) => group !== '个人').flatMap(([group, value]) => (
   value.members.map((member) => ({ ...member, group }))
 ))
 
 const partnerRows = [
-  communityPartners.slice(0, Math.ceil(communityPartners.length / 2)),
-  communityPartners.slice(Math.ceil(communityPartners.length / 2)),
-]
+  ['京能集团', '厦门大学', '武汉大学', '北京大学', '清华大学', '中国联通', '南京大学'],
+  ['字节跳动', '蚂蚁集团', '复旦大学', '华为', '万方数据', '上海交通大学', '鹏城实验室'],
+].map((names) => names.flatMap((name) => {
+  const partner = communityPartners.find((item) => item.name === name)
+  return partner ? [partner] : []
+}))
 
 function visitCoordinates(geometry: ProvinceGeometry, callback: (position: Position) => void) {
   const polygons = geometry.type === 'Polygon'
@@ -126,36 +130,33 @@ function visitCoordinates(geometry: ProvinceGeometry, callback: (position: Posit
   })
 }
 
+// A conic projection keeps the national silhouette balanced at this card size.
 function buildProjection(features: ProvinceFeature[]) {
-  let minLongitude = Number.POSITIVE_INFINITY
-  let maxLongitude = Number.NEGATIVE_INFINITY
-  let minLatitude = Number.POSITIVE_INFINITY
-  let maxLatitude = Number.NEGATIVE_INFINITY
-
-  features.forEach((feature) => {
-    visitCoordinates(feature.geometry, ([longitude, latitude]) => {
-      minLongitude = Math.min(minLongitude, longitude)
-      maxLongitude = Math.max(maxLongitude, longitude)
-      minLatitude = Math.min(minLatitude, latitude)
-      maxLatitude = Math.max(maxLatitude, latitude)
-    })
-  })
-
-  const longitudeSpan = maxLongitude - minLongitude
-  const latitudeSpan = maxLatitude - minLatitude
-  const scale = Math.min(
-    (MAP_WIDTH - MAP_PADDING * 2) / longitudeSpan,
-    (MAP_HEIGHT - MAP_PADDING * 2) / latitudeSpan,
-  )
-  const contentWidth = longitudeSpan * scale
-  const contentHeight = latitudeSpan * scale
-  const xOffset = (MAP_WIDTH - contentWidth) / 2
-  const yOffset = (MAP_HEIGHT - contentHeight) / 2
-
-  return ([longitude, latitude]: Position): Position => [
-    xOffset + (longitude - minLongitude) * scale,
-    yOffset + (maxLatitude - latitude) * scale,
-  ]
+  const radians = Math.PI / 180
+  const phi1 = 25 * radians
+  const phi2 = 47 * radians
+  const n = (Math.sin(phi1) + Math.sin(phi2)) / 2
+  const c = Math.cos(phi1) ** 2 + 2 * n * Math.sin(phi1)
+  const project = ([longitude, latitude]: Position): Position => {
+    const rho = Math.sqrt(c - 2 * n * Math.sin(latitude * radians)) / n
+    const theta = n * (longitude - 105) * radians
+    return [rho * Math.sin(theta), rho * Math.cos(theta)]
+  }
+  const points: Position[] = []
+  features.forEach((feature) => visitCoordinates(feature.geometry, (point) => points.push(project(point))))
+  const xs = points.map(([x]) => x)
+  const ys = points.map(([, y]) => y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const scale = Math.min((MAP_WIDTH - MAP_PADDING * 2) / (maxX - minX), (MAP_HEIGHT - MAP_PADDING * 2) / (maxY - minY))
+  const xOffset = (MAP_WIDTH - (maxX - minX) * scale) / 2
+  const yOffset = (MAP_HEIGHT - (maxY - minY) * scale) / 2
+  return (point: Position): Position => {
+    const [x, y] = project(point)
+    return [xOffset + (x - minX) * scale, yOffset + (y - minY) * scale]
+  }
 }
 
 function geometryToPath(geometry: ProvinceGeometry, project: (position: Position) => Position) {
@@ -341,8 +342,8 @@ export function PartnersSection() {
             <div className={`partner-marquee-row ${index === 1 ? 'is-reverse' : ''}`} key={index}>
               <div className="partner-marquee-track">
                 {[...row, ...row].map((partner, partnerIndex) => (
-                  <div className="home-partner-card" key={`${partner.name}-${partnerIndex}`} aria-hidden={partnerIndex >= row.length}>
-                    {partner.logo ? <img src={partner.logo} alt="" /> : <i>{partner.name.slice(0, 2)}</i>}
+                  <div className="home-partner-card" data-partner={partner.name} key={`${partner.name}-${partnerIndex}`} aria-hidden={partnerIndex >= row.length}>
+                    <HomePartnerMark name={partner.name} logo={partner.logo} />
                     <strong>{partner.name}</strong>
                   </div>
                 ))}
