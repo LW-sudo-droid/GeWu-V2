@@ -38,7 +38,6 @@ export default function CorpusEvaluation() {
       detailId: datasetId,
       benchmarkId,
       onUpload: () => userRef.current ? navigate('/evaluation/upload') : openAuth('/evaluation/upload'),
-      onDetail: id => { navigate(`/evaluation/datasets/${encodeURIComponent(id)}`); window.scrollTo(0,0) },
       onBack: () => navigate('/evaluation'),
       onLeaderboard: id => { navigate(`/evaluation?benchmark=${encodeURIComponent(id)}`); window.scrollTo(0,0) },
     })

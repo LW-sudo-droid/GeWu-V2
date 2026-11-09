@@ -1,8 +1,73 @@
-.evaluation-upload-page { min-height: 75vh; padding: 30px 24px 60px; background: linear-gradient(#edf2fc,#f7faff); color: #252b38; }
-.eu-inner { max-width: 1200px; margin: auto; }.eu-back { display: inline-flex; align-items: center; gap: 8px; color: #59657d; margin-bottom: 24px; }
-.eu-panel,.eu-success { border: 1px solid #e5e8f1; background: white; border-radius: 22px; padding: 30px; }
-.eu-panel > header { display: flex; align-items: center; gap: 14px; border-bottom: 1px solid #edf0f6; padding-bottom: 22px; margin-bottom: 28px; color: #6558ee; }.eu-panel h1 { font-size: 24px; color: #242b38; margin: 0 0 6px; }.eu-panel header p { margin: 0; color: #8a94a6; font-size: 14px; }
-.eu-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }.eu-grid label,.eu-grid fieldset { display: flex; flex-direction: column; gap: 10px; font-size: 14px; }.eu-grid b { display: contents; color: #f45d68; }.eu-wide { grid-column: 1/-1; }
-.eu-grid :is(input:not([type=checkbox]),textarea,select) { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #dbe0eb; border-radius: 8px; background: #fff; font: inherit; color: #414b60; }.eu-grid textarea { min-height: 100px; resize: vertical; }.eu-grid fieldset { border: 0; padding: 0; margin: 0; }.eu-grid legend { margin-bottom: 14px; }.eu-choices { display: flex; gap: 14px 24px; flex-wrap: wrap; }.eu-choices label { display: inline-flex; flex-direction: row; align-items: center; gap: 6px; color: #657088; }.eu-choices input { accent-color: #6153f4; }
-.eu-note { margin: 26px 0 20px; color: #939bad; font-size: 12px; }.eu-message { color: #6655e7; }.eu-panel footer { display: flex; gap: 12px; align-items: center; }.eu-panel footer :is(button,a),.eu-success a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #dce0ed; border-radius: 24px; min-height: 38px; padding: 0 20px; font: inherit; font-size: 14px; cursor: pointer; background: white; color: #606a7e; }.eu-panel footer .eu-primary,.eu-success a { background: #5d50f1; border-color: #5d50f1; color: #fff; }.eu-success { text-align: center; padding: 64px 24px; }.eu-success svg { color: #35bf82; }.eu-success h1 { font-size: 24px; }.eu-success p { color: #8c96a8; margin: 16px 0 30px; }
-@media(max-width:600px){.evaluation-upload-page { padding-inline: 16px; }.eu-panel { padding: 22px 16px; }.eu-grid { grid-template-columns: 1fr; gap: 20px; }.eu-choices { gap: 12px 16px; }}
+.evaluation-upload-page { --edit-accent: #514cf5; }
+.eu-step-fields { min-width: 0; margin: 0; padding: 0; border: 0; }
+.evaluation-upload-page .uf-stepper li > div { min-width: 0; }
+.evaluation-upload-page .uf-stepper h2 { font-size: clamp(16px, 1.4vw, 20px); }
+.evaluation-upload-page .uf-field-label small,
+.eu-files > h3 small, .eu-muted { color: #798393; font-size: 13px; font-weight: 400; }
+.eu-muted { margin: 8px 0 0; }
+
+.eu-multiselect { position: relative; }
+.eu-multiselect summary { list-style: none; }
+.eu-multiselect summary::-webkit-details-marker { display: none; }
+.eu-multiselect summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eu-multiselect summary svg { margin-left: 8px; flex: none; }
+.eu-multiselect[open] summary { border-color: #8070ff; }
+.eu-multi-options, .eu-corpus-results { position: absolute; z-index: 15; inset: calc(100% + 6px) 0 auto; display: grid; gap: 3px; max-height: 230px; overflow: auto; overscroll-behavior: contain; padding: 7px; border: 1px solid #e4e7ee; border-radius: 9px; background: #fff; box-shadow: 0 5px 16px #2d38531a; }
+.eu-multi-options label { display: flex; align-items: center; gap: 8px; padding: 6px 9px; border-radius: 5px; cursor: pointer; }
+.eu-multi-options label:hover, .eu-corpus-results button:hover { background: #f1f4ff; }
+.evaluation-upload-page input[type=checkbox] { width: 16px; height: 16px; padding: 0; accent-color: #514cf5; flex: none; }
+.evaluation-upload-page input[type=checkbox][aria-invalid=true] { outline: 1px solid #ff525d; outline-offset: 2px; }
+.evaluation-upload-page .uf-tags > span > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.evaluation-upload-page .uf-tags input { min-width: min(250px, 100%); }
+.eu-corpus-search { position: relative; }
+.eu-corpus-search > svg { position: absolute; top: 10px; left: 11px; color: #8c97a9; pointer-events: none; }
+.evaluation-upload-page .eu-corpus-search input { padding-left: 34px; }
+.evaluation-upload-page .uf-field:has(.eu-corpus-search) { position: relative; }
+.eu-corpus-results { position: relative; inset: auto; margin-top: 6px; }
+.eu-corpus-results button { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 7px 9px; border: 0; border-radius: 5px; background: #fff; text-align: left; }
+.eu-corpus-results p { margin: 8px; color: #798393; }
+.eu-corpus-results small { color: #798393; }
+.eu-linked-corpora { min-height: 0; margin-top: 8px; border-color: #edf0f6; }
+
+.eu-files + .eu-files { margin-top: 22px; }
+.evaluation-upload-page .edit-upload-surface { height: auto; min-height: 238px; }
+.evaluation-upload-page .edit-upload-content { min-height: 238px; height: auto; padding: 72px 0 12px; }
+.evaluation-upload-page .edit-upload-modes { top: 14px; min-height: 40px; }
+.evaluation-upload-page .eu-attachment-surface, .evaluation-upload-page .eu-attachment-surface .edit-upload-content { min-height: 175px; }
+.evaluation-upload-page .eu-attachment-surface .edit-upload-content { padding-top: 12px; }
+.eu-upload-icon { display: grid; place-items: center; width: 60px; height: 60px; margin-bottom: 10px; color: #6f6cff; border-radius: 16px; background: #e8eaff; }
+.evaluation-upload-page .edit-upload-file small { flex: none; margin-left: auto; }
+.evaluation-upload-page .edit-cli-command { margin: 0 0 16px; }
+.evaluation-upload-page .edit-upload-url { margin-top: 16px; }
+.evaluation-upload-page .edit-upload-surface[aria-invalid=true] { border-color: #ff525d; }
+.evaluation-upload-page :is(button,select):disabled { opacity: .58; cursor: not-allowed; }
+
+.eu-review-section + .eu-review-section { margin-top: 24px; }
+.eu-review-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.eu-review-heading h3 { margin: 0; font-size: 17px; }
+.eu-review-heading button { padding: 6px 12px; color: #514cf5; border: 0; background: transparent; }
+.eu-review-section dl { margin: 10px 0 0; }
+.eu-review-section dd { white-space: pre-wrap; }
+.eu-review-section dd ul { margin: 5px 0 0; padding-left: 20px; }
+.eu-review-authors p { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 8px 0 0; padding: 10px 12px; background: #f7f8fc; border-radius: 8px; overflow-wrap: anywhere; }
+.eu-review-section h4 { margin-bottom: 8px; }
+.eu-authorization { display: flex; align-items: flex-start; gap: 8px; margin-top: 26px; cursor: pointer; }
+.evaluation-upload-page .eu-authorization input { margin-top: 3px; }
+.evaluation-upload-page .eu-confirm-actions { justify-content: flex-end; }
+.evaluation-upload-page .uf-success p a { color: #514cf5; }
+.cr-dialog.eu-leave-dialog { width: 450px; }
+.cr-dialog.eu-leave-dialog .cr-footer { padding-top: 24px; flex-wrap: wrap; }
+.cr-dialog.eu-leave-dialog .cr-footer button { font-size: 14px; }
+
+@media (max-width: 700px) {
+  .evaluation-upload-page .uf-stepper h2 { font-size: 13px; }
+  .evaluation-upload-page .edit-upload-modes button { padding-inline: 10px; font-size: 12px; }
+  .evaluation-upload-page .edit-link-import, .evaluation-upload-page .edit-cli-upload { width: calc(100% - 26px); }
+  .evaluation-upload-page .edit-link-options { grid-template-columns: 1fr; gap: 8px; }
+  .evaluation-upload-page .edit-link-options > button { min-height: 58px; padding: 8px 12px; }
+  .evaluation-upload-page .edit-cli-command { gap: 6px; }
+  .evaluation-upload-page .edit-cli-command > button { min-width: 58px; padding-inline: 6px; }
+  .evaluation-upload-page .edit-local-upload > p { font-size: 12px; }
+}
+.eu-review-file { max-width: 100%; padding: 0; color: #514cf5; border: 0; background: none; font: inherit; text-align: left; overflow-wrap: anywhere; }
+.eu-review-section dd a { color: #514cf5; }

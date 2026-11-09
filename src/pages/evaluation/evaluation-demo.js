@@ -1,15 +1,20 @@
 import { EVALUATION_SUBJECTS, EVALUATION_TASKS, EVALUATION_PARADIGMS, EVALUATION_PERMISSIONS, normalizeEvaluationResource, readApprovedEvaluationUploads } from '../../data/evaluation-catalog'
+import { downloadEvaluationFile, evaluationFiles, readEvaluationTask } from '../../data/evaluation-upload'
 // Adapted from the supplied standalone evaluation demo.
 // All UI queries are scoped to the page shadow root.
 export function mountEvaluation(evaluationRoot, assetBase, options = {}) {
   const previousOverflow = document.body.style.overflow;
 
 const paths={institution:'<path d="m3 9 9-6 9 6M4 10h16M5 10v10m5-10v10m4-10v10m5-10v10M3 21h18"/>',
+ 'chevron-up':'<path d="m6 15 6-6 6 6"/>',
  'chevron-down':'<path d="m6 9 6 6 6-6"/>',
  'plus':'<path d="M12 5v14M5 12h14"/>',
  'search':'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/>',
  'upload':'<path d="M12 16V3m-4 4 4-4 4 4M4 14v6h16v-6"/>',
  'download':'<path d="M12 3v13m-4-4 4 4 4-4M4 15v5h16v-5"/>',
+ 'eye':'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+ 'star':'<path d="m12 3 2.7 5.8 6.3.8-4.6 4.5 1.1 6.3-5.5-3-5.5 3 1.1-6.3L3 9.6l6.3-.8L12 3Z"/>',
+ 'share':'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4m-6.8 7 6.8 4"/>',
  'arrow-right':'<path d="M4 12h15m-6-6 6 6-6 6"/>',
  'external':'<path d="M14 4h6v6m0-6L10 14M10 4H4v16h16v-6"/>',
  'shield':'<path d="m12 3 8 3v6c0 4-5 8-8 9-3-1-8-5-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/>',
@@ -46,42 +51,255 @@ const realResults={"gpqa":[{"name":"Gemini 3.1 Pro Preview (02/26)","score":95.4
 const resultConfig={"gpqa": {"sourceUpdated": "2026-09-01", "decimals": 2, "scale": 100, "resultNote": "收录 Vals AI 公开成绩；该榜已归档，不再测试新模型。"}, "terminal": {"sourceUpdated": "2026-10-25", "decimals": 2, "scale": 100, "resultNote": "收录 Vals AI 43 条模型／框架配置成绩；保留 Mini-SWE-agent 等框架信息。"}, "bixbench": {"sourceUpdated": "2026-10-16", "decimals": 3, "scale": 1, "unit": "0–1 分", "resultNote": "收录官方默认榜单 20 条成绩；保留 fallback 等配置。", "caveat": "按原始 0–1 平均得分展示，不换算为百分制。"}, "chembench": {"sourceUpdated": "", "decimals": 3, "scale": 1, "unit": "0–1 分", "resultUrl": "https://huggingface.co/datasets/jablonkagroup/ChemBench-Results/viewer/default/2.0.0", "resultNote": "使用官方结果库 2.0.0 分区。仅收录 verified=true、未使用 harness 的模型记录，排除测试条目。", "coverage": "40 条筛选后成绩", "caveat": "结果库的模型元信息可能缺失。分数保留原始尺度，展示时四舍五入为三位小数。"}, "phybench": {"sourceUpdated": "2025-05-18", "version": "论文 v2", "resultUrl": "https://arxiv.org/html/2504.16074v2#S1.F1", "decimals": 1, "scale": 100, "resultNote": "收录论文 v2 Figure 1 的 19 个模型准确率；不使用错误分析子集或人类基线分数。", "method": "使用论文 v2 Figure 1 的全量 PHYBench 平均准确率。论文同时报告 EED 得分，本页只展示准确率。"}, "astro": {"sourceUpdated": "2025-10-21", "decimals": 2, "scale": 100, "resultUrl": "https://arxiv.org/html/2510.00063v2#S4.T1", "resultNote": "收录论文 v2 Table 1 的 25 个模型 Overall 列。"}, "sciknow": {"sourceUpdated": "2025-10-07", "decimals": 3, "scale": 1, "unit": "0–1 分", "resultUrl": "https://arxiv.org/html/2406.09098v4#S3.T1", "resultNote": "收录论文 v4 Table 1 的 20 个模型 Overall 列，零样本测试。"}, "geo": {"sourceUpdated": "", "decimals": 0, "scale": 100, "resultNote": "收录 Axis Spatial 页面可核对的 78 条配置成绩；无成绩记录不收录。保留推理设置与框架。"}, "aime": {"sourceUpdated": "", "decimals": 1, "scale": 100, "resultNote": "收录 LLM Stats 页面前 50 条公开成绩。原网页的 0–1 准确率乘以 100 后按百分数展示；包含模型方自报结果。"}, "mmlu": {"sourceUpdated": "", "decimals": 1, "scale": 100, "resultNote": "收录 LLM Stats 页面前 50 条公开成绩。原网页的 0–1 准确率乘以 100 后按百分数展示；包含模型方自报结果。"}};
 benchmarks.forEach(b=>Object.assign(b,resultConfig[b.id]));
 const $=id=>evaluationRoot.getElementById(id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state={id:'gpqa',query:'',access:'all',view:'table',sort:'score',direction:-1,page:1,selected:[],module:'catalog'},lastFocus=null,toastTimer;
-const pageSize=8,current=()=>benchmarks.find(b=>b.id===state.id);
+let state={id:'gpqa',query:'',access:'all',view:'table',direction:-1,page:1,selected:[],module:'catalog'},lastFocus=null,toastTimer;
+const pageSize=10,current=()=>benchmarks.find(b=>b.id===state.id);
 function modelMeta(name){const n=name.toLowerCase();let org='未披露',mark='◈',color='#8b79c7',open=null;
  const labs=[[/gemini|gemma/,'Google','✦','#5f8de3'],[/gpt|^o[134](?:[- (]|$)|chatgpt/,'OpenAI','◎','#658d82'],[/claude/,'Anthropic','✳','#bf9a82'],[/deepseek/,'DeepSeek','≈','#6d8ce5'],[/qwen|qwq/,'Alibaba / Qwen','✧','#8b6bd9'],[/kimi/,'Moonshot AI','K','#626b85'],[/glm/,'Z.ai','Z','#8395c0'],[/grok/,'xAI','𝕏','#555c70'],[/minimax/,'MiniMax','M','#dc939e'],[/llama|galactica/,'Meta','∞','#7b9dd1'],[/mistral|mixtral|magistral/,'Mistral AI','M','#799aad'],[/ovis/,'AIDC-AI','O','#7187bf'],[/internvl/,'OpenGVLab','I','#779da1'],[/doubao|seed/,'ByteDance','D','#7795c0'],[/phi-/,'Microsoft','Φ','#7aa5b4'],[/nemotron/,'NVIDIA','N','#7ea268']];
  for(const [rx,o,m,c] of labs)if(rx.test(n)){org=o;mark=m;color=c;break;}
  if(/gemma|llama|galactica|gpt[- ]oss|deepseek|qwq|qwen.*(?:\d+b|instruct)|qwen.*vl|ovis|internvl|sail-vl|minicpm|llava|mistral|mixtral|phi-|chemdfm|chemllm|molinst|sciglm|llasmol|kimi.*k2|nemotron/.test(n))open=true;
  else if(/gpt|chatgpt|^o[134](?:[- (]|$)|gemini|claude|grok|doubao|qwen.*(?:max|plus)|kimi.*k3|command/.test(n))open=false;
  return {org,mark,color,open};}
-function scoreText(r){return r.score.toFixed(current().decimals??2);}
-function scoreWidth(r){return Math.max(0,Math.min(100,r.score/(current().scale||100)*100));}
-function weightText(r){return r.open===true?'开放权重':r.open===false?'闭源':'未披露';}
-function allRows(){const b=current();let rows=(realResults[b.id]||[]).map((r,i)=>({...modelMeta(r.name),...r,key:String(i),source:b.source,url:b.resultUrl||b.url,date:'2026-11-04'})).sort((a,b)=>b.score-a.score);let rank=1;return rows.map((r,i)=>{if(i===0||r.score!==rows[i-1].score)rank=i+1;return {...r,rank};});}
-function filteredRows(){let rows=allRows().filter(r=>(state.access==='all'||(state.access==='open'?r.open===true:r.open===false))&&(`${r.name} ${r.org}`).toLowerCase().includes(state.query.trim().toLowerCase()));rows.sort((a,b)=>state.sort==='name'?state.direction*a.name.localeCompare(b.name):state.direction*(a.score-b.score));return rows;}
-function renderBenchmarkTabs(){ $('benchmarkTabs').innerHTML=benchmarks.map(b=>`<button class="benchmark-chip ${b.id===state.id?'active':''}" role="tab" aria-selected="${b.id===state.id}" data-benchmark="${b.id}">${icon(b.icon,13)}${esc(b.name)}</button>`).join('');$('benchmarkTabs').querySelectorAll('button').forEach(el=>el.onclick=()=>selectBenchmark(el.dataset.benchmark));}
-function selectBenchmark(id){if(id!==state.id){state.id=id;state.page=1;state.selected=[];initCatalog();renderBenchmarkTabs();renderSummary();renderResults();switchModule('catalog');if(options.benchmarkId&&benchmarks.some(b=>b.id===options.benchmarkId))selectBenchmark(options.benchmarkId);if(options.detailId){catalogState.detail=options.detailId;renderStandaloneDetail();}}if(state.module!=='leaderboard')switchModule('leaderboard');}
-function sourceDate(b){return /^\d{4}-\d{2}-\d{2}$/.test(b.sourceUpdated||'')?b.sourceUpdated.replace(/(\d{4})-(\d{2})-(\d{2})/,'$1年$2月$3日'):'未标注';}
-function renderSummary(){const b=current();$('benchmarkTitle').textContent=b.name;$('benchmarkDesc').textContent=b.desc;$('taskTag').innerHTML=b.subjects.split(' · ').map(t=>`<span class="tag">${esc(t)}</span>`).join('');$('benchmarkIcon').innerHTML=icon(b.icon,25);$('sourceLink').href=b.resultUrl||b.url;$('metadata').innerHTML=`<span class="meta-item">${icon('chart',12)}<strong>${esc(b.metric)}（${b.unit}）</strong> ↑ 越高越好</span><span class="meta-dot"></span><span class="meta-item">${icon('layers',12)}${esc(b.version)} · ${esc(b.size)}</span><span class="meta-dot"></span><span class="meta-item">${icon('globe',12)}参考来源：<strong>${esc(b.source)}</strong></span><span class="meta-item metadata-action">来源更新：${sourceDate(b)}</span>`;}
-function renderResults(){const rows=filteredRows(),maxPage=Math.max(1,Math.ceil(rows.length/pageSize));state.page=Math.min(state.page,maxPage);const start=(state.page-1)*pageSize,paged=rows.slice(start,start+pageSize);$('clearSearch').classList.toggle('hidden',!state.query);$('resetBtn').classList.toggle('hidden',!state.query&&state.access==='all');$('filterCount').textContent='';
- if(!rows.length){$('results').innerHTML=`<div class="empty-state">${icon('search',30)}<strong>没有找到匹配的模型</strong>试试其他名称，或重置筛选条件。<div style="margin-top:16px"><button class="btn" id="emptyReset">重置筛选</button></div></div>`;$('emptyReset').onclick=resetFilters;}
- else if(state.view==='table'){ $('results').innerHTML=`<div class="table-scroll"><table aria-label="${esc(current().name)} 模型榜单"><thead><tr><th><input type="checkbox" id="selectAll" aria-label="选择本页前三个模型" ${paged.slice(0,3).every(r=>state.selected.includes(r.key))?'checked':''}></th><th>排名</th><th><button id="sortName">模型 ${icon('sort',11)}</button></th><th><button id="sortScore">${esc(current().metric)} ↑ ${icon('sort',11)}</button></th><th>权重开放</th><th>来源</th></tr></thead><tbody>${paged.map(r=>`<tr class="data-row ${r.rank===1?'rank-first':''} ${state.selected.includes(r.key)?'selected':''}"><td><input type="checkbox" data-select="${r.key}" aria-label="选择 ${esc(r.name)}" ${state.selected.includes(r.key)?'checked':''}></td><td><span class="rank ${r.rank<4?'top'+r.rank:''}">${String(r.rank).padStart(2,'0')}</span></td><td><div class="model-cell"><div class="model-avatar" style="color:${r.color}">${r.mark}</div><div style="min-width:0"><div class="model-name">${esc(r.name)}</div><div class="model-meta">${esc(r.org)}</div></div></div></td><td><div class="score-cell"><span class="score-number">${scoreText(r)}</span><span class="score-track"><span class="score-fill" style="width:${scoreWidth(r)}%"></span></span></div></td><td><span class="weight-tag ${r.open===true?'open':''}"><i></i>${weightText(r)}</span></td><td><a class="result-source source-link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(r.name)} 成绩来源">${esc(r.source)} ${icon('external',11)}</a></td></tr>`).join('')}</tbody></table></div>`;
- $('sortName').onclick=()=>sortBy('name');$('sortScore').onclick=()=>sortBy('score');$('selectAll').onchange=e=>{if(e.target.checked){state.selected=paged.slice(0,3).map(r=>r.key);}else state.selected=state.selected.filter(k=>!paged.slice(0,3).some(r=>r.key===k));renderResults();};$('results').querySelectorAll('[data-select]').forEach(el=>el.onchange=()=>toggleSelected(el.dataset.select));}
- else{$('results').innerHTML=`<div class="chart-view"><div class="chart-info"><span>${esc(current().metric)} · 越高越好</span><span>${esc(current().version)} · 单位：${current().unit}</span></div>${paged.map((r,i)=>`<div class="chart-row"><span class="chart-name" title="${esc(r.name)}">${esc(r.name)}</span><div class="chart-track"><div class="chart-fill" style="width:${scoreWidth(r)}%;background:linear-gradient(90deg,${i<3?'#9d88ed,#6b47e6':'#b1baf1,#8c9ae1'})"></div></div><span class="chart-val">${scoreText(r)}</span></div>`).join('')}<div class="chart-axis"><span>0</span>${[.25,.5,.75,1].map(v=>`<span>${v*(current().scale||100)}</span>`).join('')}</div></div>`;}
- $('resultSummary').textContent='';$('pagination').innerHTML=`<button ${state.page===1?'disabled':''} id="prevPage" aria-label="上一页">${icon('chevron-left',12)}</button>${Array.from({length:maxPage},(_,i)=>i).filter(i=>i===0||i===maxPage-1||Math.abs(i+1-state.page)<=1).map((i,j,a)=>`${j&&i-a[j-1]>1?'<span class="page-gap">…</span>':''}<button class="${state.page===i+1?'active':''}" ${state.page===i+1?'aria-current="page"':''} data-page="${i+1}" aria-label="第 ${i+1} 页">${i+1}</button>`).join('')}<button ${state.page===maxPage?'disabled':''} id="nextPage" aria-label="下一页">${icon('chevron-right',12)}</button>`;$('prevPage').onclick=()=>{state.page--;renderResults()};$('nextPage').onclick=()=>{state.page++;renderResults()};$('pagination').querySelectorAll('[data-page]').forEach(el=>el.onclick=()=>{state.page=Number(el.dataset.page);renderResults()});renderTray();}
-function sortBy(key){state.direction=state.sort===key?-state.direction:key==='score'?-1:1;state.sort=key;state.page=1;renderResults();}
-function toggleSelected(key){if(state.selected.includes(key))state.selected=state.selected.filter(k=>k!==key);else if(state.selected.length<3)state.selected.push(key);else toast('最多选择 3 个模型进行比较');renderResults();}
-function renderTray(){const el=$('compareTray');el.classList.toggle('hidden',!state.selected.length||state.module!=='leaderboard');if(!state.selected.length)return;const names=allRows().filter(r=>state.selected.includes(r.key)).map(r=>r.name);el.innerHTML=`<span>已选 <strong>${names.length}</strong> 个模型</span><span class="tray-models">${names.map(esc).join(' / ')}</span><button class="clear" id="clearSelection">清空</button><button class="btn btn-primary" id="compareBtn" ${names.length<2?'disabled':''}>对比模型 ${icon('arrow-right',13)}</button>`;$('clearSelection').onclick=()=>{state.selected=[];renderResults()};$('compareBtn').onclick=showComparison;}
-function resetFilters(){state.query='';state.access='all';state.page=1;$('modelSearch').value='';evaluationRoot.querySelectorAll('[data-access]').forEach(b=>{b.classList.toggle('active',b.dataset.access==='all');b.setAttribute('aria-pressed',b.dataset.access==='all')});renderResults();}
-function setView(view){state.view=view;['table','chart'].forEach(v=>{$(v+'ViewBtn').classList.toggle('active',v===view);$(v+'ViewBtn').setAttribute('aria-pressed',v===view)});renderResults();}
+function scoreText(row){return row.score.toFixed(current().decimals??2);}
+function scoreWidth(row){return Math.max(0,Math.min(100,row.score/(current().scale||100)*100));}
+function modelType(row){return row.open===true?'开源':row.open===false?'闭源':'未披露';}
+function allRows(){
+ const benchmark=current();
+ const ranked=(realResults[benchmark.id]||[]).map((row,index)=>({
+  ...modelMeta(row.name),...row,key:String(index),source:benchmark.source,url:benchmark.resultUrl||benchmark.url,
+ })).sort((a,b)=>b.score-a.score);
+ let rank=0;
+ return ranked.map((row,index)=>{
+  if(index===0||row.score!==ranked[index-1].score)rank=index+1;
+  return {...row,rank};
+ });
+}
+function sortedRows(rows){
+ return state.direction===-1?rows:rows.sort((a,b)=>a.score-b.score);
+}
+function filteredRows(){
+ const query=state.query.trim().toLowerCase();
+ return sortedRows(allRows().filter(row=>
+  (state.access==='all'||(state.access==='open'?row.open===true:row.open===false))
+  &&[row.name,row.org].some(value=>value.toLowerCase().includes(query))
+ ));
+}
+function syncBenchmarkArrows(){
+ const tabs=$('benchmarkTabs');
+ if(!tabs)return;
+ const limit=tabs.scrollWidth-tabs.clientWidth;
+ $('benchmarkArrows').classList.toggle('hidden',limit<=1);
+ $('benchmarkPrev').disabled=tabs.scrollLeft<=1;
+ $('benchmarkNext').disabled=tabs.scrollLeft>=limit-1;
+}
+function revealBenchmarkTab(){
+ const tabs=$('benchmarkTabs'),active=tabs.querySelector('.active');
+ if(!active||!tabs.clientWidth)return;
+ const viewport=tabs.getBoundingClientRect(),item=active.getBoundingClientRect();
+ if(item.left<viewport.left)tabs.scrollBy({left:item.left-viewport.left});
+ else if(item.right>viewport.right)tabs.scrollBy({left:item.right-viewport.right});
+ syncBenchmarkArrows();
+}
+function renderBenchmarkTabs(){
+ const tabs=$('benchmarkTabs');
+ if(!tabs.firstElementChild){
+  $('benchmarkCount').textContent=benchmarks.length;
+  tabs.innerHTML=benchmarks.map(b=>`<button type="button" class="benchmark-chip" id="benchmark-tab-${b.id}" role="tab" aria-controls="benchmarkPanel" data-benchmark="${b.id}">${icon(b.icon,16)}${esc(b.name)}</button>`).join('');
+  tabs.querySelectorAll('button').forEach(button=>button.onclick=()=>selectBenchmark(button.dataset.benchmark));
+  tabs.onkeydown=event=>{
+   const index=benchmarks.findIndex(b=>b.id===state.id);
+   const next={ArrowLeft:(index-1+benchmarks.length)%benchmarks.length,ArrowRight:(index+1)%benchmarks.length,Home:0,End:benchmarks.length-1}[event.key];
+   if(next===undefined)return;
+   event.preventDefault();
+   const id=benchmarks[next].id;
+   selectBenchmark(id);
+   $('benchmark-tab-'+id).focus({preventScroll:true});
+  };
+ }
+ tabs.querySelectorAll('button').forEach(button=>{
+  const active=button.dataset.benchmark===state.id;
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-selected',String(active));
+  button.tabIndex=active?0:-1;
+ });
+ $('benchmarkPanel').setAttribute('aria-labelledby','benchmark-tab-'+state.id);
+ revealBenchmarkTab();
+}
+function selectBenchmark(id){
+ if(id!==state.id){
+  state.id=id;
+  state.page=1;
+  state.selected=[];
+  renderBenchmarkTabs();
+  renderSummary();
+  renderResults();
+ }
+ if(state.module!=='leaderboard')switchModule('leaderboard');
+}
+const benchmarkOfficialSources={
+ chembench:'https://chembench.lamalab.org/',
+ terminal:'https://www.terminal-bench-science.ai/',
+ bixbench:'https://advances.edisonscientific.com/benchmarks/bixbench3/',
+ phybench:'https://www.phybench.cn/',
+ geo:'https://github.com/Solirinai/GeoBenchX',
+ sciknow:'https://github.com/hicai-zju/sciknoweval',
+ aime:'https://maa.org/maa-invitational-competitions/',
+};
+function renderSummary(){
+ const b=current(),details=catalogMeta[b.id];
+ $('benchmarkTitle').textContent=b.name;
+ $('benchmarkDesc').textContent=b.desc;
+ $('taskTag').innerHTML=details.subjects.map(tag=>`<span class="tag">${esc(tag)}</span>`).join('');
+ $('benchmarkIcon').innerHTML=icon(b.icon,25);
+ $('sourceLink').href=benchmarkOfficialSources[b.id]||b.paper;
+ const fields=[
+  ['评测指标',`${b.metric}（${b.unit}）`,'chart'],
+  ['评测集规模',b.size,'layers'],
+  ['发布机构',details.team,'institution'],
+  ['更新时间',b.sourceUpdated||'来源未标注','calendar'],
+ ];
+ $('metadata').innerHTML=fields.map(([label,value,symbol])=>`<div class="meta-item"><div class="meta-symbol">${icon(symbol,17)}</div><div><dt>${label}</dt><dd>${esc(value)}</dd></div></div>`).join('');
+}
+function renderModelTable(rows){
+ const selected=new Set(state.selected);
+ const picked=rows.filter(row=>selected.has(row.key)).length;
+ const ascending=state.direction===1;
+ $('results').innerHTML=`<div class="table-scroll"><table aria-label="${esc(current().name)} 模型榜单">
+ <thead><tr>
+  <th scope="col"><input type="checkbox" id="selectAll" aria-label="选择本页全部模型" ${picked===rows.length?'checked':''}></th>
+  <th scope="col">排名</th>
+  <th scope="col">模型</th>
+  <th scope="col" aria-sort="${ascending?'ascending':'descending'}"><button type="button" id="sortScore" aria-label="成绩，点击${ascending?'降序':'升序'}">成绩 ${icon(ascending?'chevron-up':'chevron-down',14)}</button></th>
+  <th scope="col">模型开放类型</th><th scope="col">来源</th>
+ </tr></thead>
+ <tbody>${rows.map(row=>`<tr class="data-row ${row.rank===1?'rank-first':''} ${selected.has(row.key)?'selected':''}">
+  <td><input type="checkbox" data-select="${row.key}" aria-label="选择 ${esc(row.name)}" ${selected.has(row.key)?'checked':''}></td>
+  <td><span class="rank ${row.rank<4?'top'+row.rank:''}">${String(row.rank).padStart(2,'0')}</span></td>
+  <td><div class="model-cell"><div class="model-avatar" style="color:${row.color}" aria-hidden="true">${row.mark}</div><div class="model-copy">
+   <div class="model-name" title="${esc(row.name)}">${esc(row.name)}</div><div class="model-meta" title="${esc(row.setting||row.org)}">${esc(row.org)}</div>
+  </div></div></td>
+  <td><div class="score-cell"><span class="score-number">${scoreText(row)}${current().unit==='%'?'%':''}</span><span class="score-track" aria-hidden="true"><span class="score-fill" style="width:${scoreWidth(row)}%"></span></span></div></td>
+  <td><span class="weight-tag ${row.open===true?'open':row.open===false?'closed':''}"><i></i>${modelType(row)}</span></td>
+  <td><a class="result-source source-link" href="${esc(row.url)}" target="_blank" rel="noopener noreferrer" aria-label="${esc(row.name)} 成绩来源">${esc(row.source)} ${icon('external',13)}</a></td>
+ </tr>`).join('')}</tbody></table></div>`;
+ $('sortScore').onclick=()=>{state.direction*=-1;state.page=1;renderResults();};
+ const selectAll=$('selectAll');
+ selectAll.indeterminate=picked>0&&picked<rows.length;
+ selectAll.onchange=()=>{
+  for(const row of rows){
+   if(selectAll.checked)selected.add(row.key);
+   else selected.delete(row.key);
+  }
+  state.selected=[...selected];
+  renderResults();
+ };
+ $('results').querySelectorAll('[data-select]').forEach(input=>input.onchange=()=>{
+  if(input.checked)selected.add(input.dataset.select);
+  else selected.delete(input.dataset.select);
+  state.selected=[...selected];
+  renderResults();
+ });
+}
+function renderModelChart(rows){
+ const benchmark=current();
+ $('results').innerHTML=`<div class="chart-view">
+  <div class="chart-info"><span>${esc(benchmark.metric)} · 越高越好</span><span>单位 ${esc(benchmark.unit)}</span></div>
+  ${rows.map(row=>`<div class="chart-row"><span class="chart-name" title="${esc(row.name)}">${esc(row.name)}</span><div class="chart-track" aria-hidden="true"><div class="chart-fill" style="width:${scoreWidth(row)}%"></div></div><span class="chart-val">${scoreText(row)}${benchmark.unit==='%'?'%':''}</span></div>`).join('')}
+  <div class="chart-axis" aria-hidden="true"><span>0</span>${[.25,.5,.75,1].map(value=>`<span>${value*(benchmark.scale||100)}</span>`).join('')}</div>
+ </div>`;
+}
+function renderBoardPagination(maxPage){
+ const pagination=$('pagination');
+ pagination.innerHTML=`<button type="button" ${state.page===1?'disabled':''} id="prevPage" aria-label="上一页">${icon('chevron-left',14)}</button>
+  ${Array.from({length:maxPage},(_,index)=>index+1).filter(number=>number===1||number===maxPage||Math.abs(number-state.page)<=1).map((number,index,pages)=>`${index&&number-pages[index-1]>1?'<span class="page-gap">…</span>':''}<button type="button" class="${state.page===number?'active':''}" ${state.page===number?'aria-current="page"':''} data-page="${number}" aria-label="第 ${number} 页">${number}</button>`).join('')}
+  <button type="button" ${state.page===maxPage?'disabled':''} id="nextPage" aria-label="下一页">${icon('chevron-right',14)}</button>`;
+ $('prevPage').onclick=()=>{state.page--;renderResults();};
+ $('nextPage').onclick=()=>{state.page++;renderResults();};
+ pagination.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>{state.page=Number(button.dataset.page);renderResults();});
+}
+function renderResults(){
+ const focused=evaluationRoot.activeElement;
+ const rows=filteredRows(),maxPage=Math.max(1,Math.ceil(rows.length/pageSize));
+ state.page=Math.min(state.page,maxPage);
+ const start=(state.page-1)*pageSize,paged=rows.slice(start,start+pageSize);
+ $('clearSearch').classList.toggle('hidden',!state.query);
+ $('resetBtn').classList.toggle('hidden',!state.query&&state.access==='all');
+ $('resultSummary').textContent=rows.length?`第 ${start+1}–${start+paged.length} 条，共 ${rows.length} 条成绩`:'共 0 条成绩';
+ $('pagination').classList.toggle('hidden',!rows.length);
+ if(!rows.length){
+  $('results').innerHTML=`<div class="empty-state">${icon('search',30)}<strong>没有找到匹配的模型</strong><span>试试其他名称，或重置筛选条件。</span><button type="button" class="btn" id="emptyReset">重置筛选</button></div>`;
+  $('emptyReset').onclick=resetFilters;
+ }else if(state.view==='table')renderModelTable(paged);
+ else renderModelChart(paged);
+ renderBoardPagination(maxPage);
+ renderTray();
+ if(focused&&!focused.isConnected){
+  const replacement=focused.id?$(focused.id):focused.dataset.select!==undefined?$('results').querySelector(`[data-select="${focused.dataset.select}"]`):null;
+  replacement?.focus({preventScroll:true});
+ }
+}
+function renderTray(){
+ const tray=$('compareTray');
+ const count=state.selected.length;
+ tray.classList.toggle('hidden',!count||state.module!=='leaderboard');
+ if(!count)return;
+ const canCompare=count>=2&&count<=3;
+ const names=allRows().filter(row=>state.selected.includes(row.key)).slice(0,3).map(row=>row.name);
+ tray.innerHTML=`<span>已选 <strong>${count}</strong> 条成绩</span><span class="tray-models">${names.map(esc).join(' / ')}${count>3?'…':''}</span><button type="button" class="clear" id="clearSelection">清空</button><button type="button" class="btn btn-primary" id="compareBtn" ${canCompare?'':'disabled'} title="可对比 2 至 3 个模型">对比模型 ${icon('arrow-right',13)}</button>`;
+ $('clearSelection').onclick=()=>{state.selected=[];renderResults();};
+ $('compareBtn').onclick=showComparison;
+}
+function resetFilters(){
+ state.query='';
+ state.access='all';
+ state.page=1;
+ $('modelSearch').value='';
+ evaluationRoot.querySelectorAll('[data-access]').forEach(button=>{
+  const active=button.dataset.access==='all';
+  button.classList.toggle('active',active);
+  button.setAttribute('aria-pressed',String(active));
+ });
+ renderResults();
+}
+function setView(view){
+ state.view=view;
+ for(const item of ['table','chart']){
+  $(item+'ViewBtn').classList.toggle('active',item===view);
+  $(item+'ViewBtn').setAttribute('aria-pressed',String(item===view));
+ }
+ renderResults();
+}
 function modal(title,body,actions='',wide=false){closeModal();lastFocus=evaluationRoot.activeElement;$('modalRoot').innerHTML=`<div class="modal-overlay" id="modalOverlay"><section class="modal ${wide?'wide':''}" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-header"><h3 id="modalTitle">${title}</h3><button class="modal-close" id="closeModal" aria-label="关闭弹窗">${icon('close',18)}</button></div><div class="modal-body">${body}</div><div class="modal-footer">${actions||'<button class="btn btn-primary" id="modalDone">知道了</button>'}</div></section></div>`;document.body.style.overflow='hidden';$('closeModal').onclick=closeModal;$('modalOverlay').onclick=e=>{if(e.target===$('modalOverlay'))closeModal()};if($('modalDone'))$('modalDone').onclick=closeModal;$('closeModal').focus();}
-function closeModal(){if(!$('modalRoot').firstElementChild)return;$('modalRoot').innerHTML='';document.body.style.overflow=catalogState.detail&&!options.detailId?'hidden':'';if(lastFocus?.isConnected)lastFocus.focus({preventScroll:true});else if(catalogState.detail)$('catalogDrawerClose')?.focus({preventScroll:true});}
+function closeModal(){if(!$('modalRoot').firstElementChild)return;$('modalRoot').innerHTML='';document.body.style.overflow=catalogState.detail?'hidden':previousOverflow;if(lastFocus?.isConnected)lastFocus.focus({preventScroll:true});else if(catalogState.detail)$('catalogDrawerClose')?.focus({preventScroll:true});}
 function toast(message){clearTimeout(toastTimer);$('toastRoot').innerHTML=`<div class="toast">${icon('check',16)}${esc(message)}</div>`;toastTimer=setTimeout(()=>$('toastRoot').innerHTML='',3200);}
-function showMethod(){const b=current();modal(`${esc(b.name)} · 评测说明`,`<h4>这个评测测什么？</h4><p>${esc(b.method)}</p><h4>怎样理解分数？</h4><p>当前指标为「${esc(b.metric)}」，越高越好。分数仅适合在相同评测版本与测试条件下比较，不与其他评测集相加或计算综合排名。</p><h4>数据说明</h4><p>${esc(b.caveat)}</p><div class="note-box">本页收录公开榜单与论文成绩，整理于 2026-11-04。来源发布与本页整理时间分别标注；点击表格中的来源链接可核对原始成绩。</div>`,`<a class="btn" href="${b.paper}" target="_blank" rel="noopener noreferrer">评测项目与文档 ${icon('external',12)}</a><button class="btn btn-primary" id="modalDone">知道了</button>`);}
-function showDetail(){openCatalogDetail(state.id);}
-function showComparison(){const rows=allRows().filter(r=>state.selected.includes(r.key));if(rows.length<2)return;modal('模型对比',`<p>在 <strong>${esc(current().name)}</strong> 中比较所选模型的公开成绩。</p><div class="compare-grid" style="grid-template-columns:repeat(${rows.length},minmax(0,1fr))">${rows.map(r=>`<div class="compare-card"><div class="model-avatar" style="color:${r.color}">${r.mark}</div><h4>${esc(r.name)}</h4><div class="small">${esc(r.org)}</div><div class="big-score">${scoreText(r)}</div><div class="small">${esc(current().metric)}</div><div style="margin-top:16px;font-size:10px">${weightText(r)}</div></div>`).join('')}</div><div class="note-box">仅对比当前评测集，不计算跨评测集综合分。</div>`,'',true);}
-function exportCsv(){const rows=filteredRows();if(!rows.length){toast('没有可以导出的结果');return;}const quote=s=>'"'+String(s).replace(/"/g,'""')+'"';const lines=[['评测集','排名','模型','机构','成绩','单位','权重开放','配置','来源链接'],...rows.map(r=>[current().name,r.rank,r.name,r.org,scoreText(r),current().unit,weightText(r),r.setting,r.url])].map(row=>row.map(quote).join(','));const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=current().name+'-成绩.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast(`已导出 ${rows.length} 条成绩`);}
-function switchModule(module){if(catalogState.detail)closeCatalogDrawer(false);state.module=module;const isBoard=module==='leaderboard';$('leaderboardPage').classList.toggle('hidden',!isBoard);$('catalogPage').classList.toggle('hidden',isBoard);$('catalogTab').classList.toggle('active',!isBoard);$('leaderboardTab').classList.toggle('active',isBoard);$('catalogTab').setAttribute('aria-selected',!isBoard);$('leaderboardTab').setAttribute('aria-selected',isBoard);if(!isBoard){catalogState.detail=null;renderCatalog();}renderTray();}
+function showDetail(){openCatalogDetail(state.id,$('detailBtn'));}
+function showComparison(){const rows=allRows().filter(r=>state.selected.includes(r.key));if(rows.length<2||rows.length>3)return;modal('模型对比',`<p>在 <strong>${esc(current().name)}</strong> 中比较所选模型的公开成绩。</p><div class="compare-grid" style="grid-template-columns:repeat(${rows.length},minmax(0,1fr))">${rows.map(r=>`<div class="compare-card"><div class="model-avatar" style="color:${r.color}">${r.mark}</div><h4>${esc(r.name)}</h4><div class="small">${esc(r.org)}</div><div class="big-score">${scoreText(r)}</div><div class="small">${esc(current().metric)}</div><div style="margin-top:16px;font-size:10px">${modelType(r)}</div></div>`).join('')}</div><div class="note-box">仅对比当前评测集，不计算跨评测集综合分。</div>`,'',true);}
+async function exportLeaderboard(){
+ const benchmark=current(),button=$('exportBtn');
+ const rows=sortedRows(allRows().filter(row=>!state.selected.length||state.selected.includes(row.key)));
+ if(!rows.length){toast('没有可以导出的成绩');return;}
+ button.disabled=true;
+ try{
+  const {default:writeExcelFile}=await import('write-excel-file/browser');
+  const headers=['评测集','排名','模型名称','模型厂商','成绩','单位','模型开放类型','评测配置','来源','来源链接'];
+  const decimals=benchmark.decimals??2;
+  const scoreFormat=decimals?'0.'+'0'.repeat(decimals):'0';
+  const data=[
+   headers.map(value=>({value,fontWeight:'bold',textColor:'#303852',backgroundColor:'#EDF1FF'})),
+   ...rows.map(row=>[
+    benchmark.name,row.rank,row.name,row.org,{value:row.score,format:scoreFormat},benchmark.unit,
+    modelType(row),row.setting||null,row.source,row.url,
+   ]),
+  ];
+  await writeExcelFile(data,{
+   sheet:'模型表现',stickyRowsCount:1,
+   columns:[26,9,49,26,12,12,18,28,23,70].map(width=>({width})),
+  }).toFile(benchmark.name+'-评测榜单.xlsx');
+  if(button.isConnected)toast(`已导出 ${rows.length} 条成绩`);
+ }catch{
+  if(button.isConnected)toast('导出失败，请重试');
+ }finally{button.disabled=false;}
+}
+function switchModule(module){if(catalogState.detail)closeCatalogDrawer(false);state.module=module;const isBoard=module==='leaderboard';$('leaderboardPage').classList.toggle('hidden',!isBoard);$('catalogPage').classList.toggle('hidden',isBoard);$('catalogTab').classList.toggle('active',!isBoard);$('leaderboardTab').classList.toggle('active',isBoard);$('catalogTab').setAttribute('aria-selected',!isBoard);$('leaderboardTab').setAttribute('aria-selected',isBoard);if(isBoard)revealBenchmarkTab();else{catalogState.detail=null;renderCatalog();}renderTray();}
 const catalogMeta={
  gpqa:{year:2023,team:'GPQA 团队',subjects:['物理','化学','生物'],tasks:['科学问答','科学推理'],paradigms:['静态问答'],keywords:['研究生','专业知识','多步推理']},
  chembench:{year:2024,team:'LamaLab',subjects:['化学'],tasks:['科学问答','科学推理'],paradigms:['静态问答'],keywords:['化学知识','分子','安全']},
@@ -96,62 +314,187 @@ const catalogMeta={
 };
 const extraCatalogResources=[{"id":"math500","name":"MATH-500","subjects":["数学"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答"],"desc":"从 MATH 中选取的 500 道数学题，覆盖代数、几何、数论等方向，用于比较多步骤解题能力。","paper":"https://huggingface.co/datasets/HuggingFaceH4/MATH-500","url":"https://huggingface.co/datasets/HuggingFaceH4/MATH-500","year":2024,"size":"500 题","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"Hugging Face H4","version":"项目公开版","icon":"math","keywords":["MATH-500","数学","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"从 MATH 中选取的 500 道数学题，覆盖代数、几何、数论等方向，用于比较多步骤解题能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"gsm8k","name":"GSM8K","subjects":["数学"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答"],"desc":"以数学应用题考察数量关系理解、算术计算和分步推理，适合作为基础能力评测。","paper":"https://huggingface.co/datasets/openai/gsm8k","url":"https://huggingface.co/datasets/openai/gsm8k","year":2021,"size":"训练与测试划分见数据卡","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"OpenAI","version":"项目公开版","icon":"math","keywords":["GSM8K","数学","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"以数学应用题考察数量关系理解、算术计算和分步推理，适合作为基础能力评测。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"olympiad","name":"OlympiadBench","subjects":["数学","物理"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答","模型或人工评分"],"desc":"收录数学与物理竞赛题，包含文字和图像输入，支持中英文开放式解题与证明任务。","paper":"https://github.com/OpenBMB/OlympiadBench","url":"https://github.com/OpenBMB/OlympiadBench","year":2024,"size":"8,476 题","language":"中文/英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"OpenBMB / OlympiadBench 团队","version":"项目公开版","icon":"math","keywords":["OlympiadBench","数学","物理","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"收录数学与物理竞赛题，包含文字和图像输入，支持中英文开放式解题与证明任务。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"minif2f","name":"miniF2F","subjects":["数学"],"tasks":["科学推理"],"paradigms":["代码或产物验证"],"desc":"将竞赛与课程数学题转为形式化命题，通过 Lean 等证明系统验证自动定理证明结果。","paper":"https://github.com/openai/miniF2F","url":"https://github.com/openai/miniF2F","year":2021,"size":"Lean / Metamath：验证与测试各 244 题","language":"英文","caveat":"不同形式化系统与版本需分别配置环境；自然语言解答不能直接代替形式化证明。","team":"miniF2F 作者团队","version":"项目公开版","icon":"math","keywords":["miniF2F","数学","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"将竞赛与课程数学题转为形式化命题，通过 Lean 等证明系统验证自动定理证明结果。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"omnimath","name":"Omni-MATH","subjects":["数学"],"tasks":["科学推理"],"paradigms":["静态问答","模型或人工评分"],"desc":"覆盖多个子领域和难度层级的奥赛数学题，考察高难度解题与长链条推理能力。","paper":"https://github.com/KbsdJames/Omni-MATH","url":"https://github.com/KbsdJames/Omni-MATH","year":2024,"size":"4,428 题","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"Omni-MATH 团队","version":"项目公开版","icon":"math","keywords":["Omni-MATH","数学","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"覆盖多个子领域和难度层级的奥赛数学题，考察高难度解题与长链条推理能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"ugphysics","name":"UGPhysics","subjects":["物理"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答","模型或人工评分"],"desc":"覆盖本科物理多个核心学科，考察物理概念、规律运用和计算求解能力。","paper":"https://github.com/YangLabHKUST/UGPhysics","url":"https://github.com/YangLabHKUST/UGPhysics","year":2025,"size":"5,520 道不同问题","language":"中文/英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"YangLab / HKUST","version":"项目公开版","icon":"atom","keywords":["UGPhysics","物理","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"覆盖本科物理多个核心学科，考察物理概念、规律运用和计算求解能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"physreason","name":"PhysReason","subjects":["物理"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答","模型或人工评分"],"desc":"将物理知识题与分难度的推理题结合，分别评估最终答案和分步解题过程。","paper":"https://github.com/zhang-xinyu-1204/PhysReason","url":"https://github.com/zhang-xinyu-1204/PhysReason","year":2025,"size":"1,200 题","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"PhysReason 团队","version":"项目公开版","icon":"atom","keywords":["PhysReason","物理","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"将物理知识题与分难度的推理题结合，分别评估最终答案和分步解题过程。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"physalign","name":"PhysAlign","subjects":["物理"],"tasks":["科学推理"],"paradigms":["静态问答"],"desc":"结合物理题目与图示，区分模型是否识别了符号，以及是否把物理量对应到正确对象。","paper":"https://github.com/HCPLab-SYSU/PhysAlign","url":"https://github.com/HCPLab-SYSU/PhysAlign","year":2026,"size":"3,341 个局部探针","language":"英文","caveat":"示例代码中的合成样例不等于正式数据；正式分布通过仓库链接的 Hugging Face 数据集获取。","team":"HCPLab / SYSU","version":"项目公开版","icon":"atom","keywords":["PhysAlign","物理","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"结合物理题目与图示，区分模型是否识别了符号，以及是否把物理量对应到正确对象。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"chemllmbench","name":"ChemLLMBench","subjects":["化学"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答","代码或产物验证"],"desc":"覆盖分子性质、反应预测、逆合成与分子描述等化学任务，提供任务数据和评测代码。","paper":"https://github.com/ChemFoundationModels/ChemLLMBench","url":"https://github.com/ChemFoundationModels/ChemLLMBench","year":2023,"size":"8 类任务","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"ChemFoundationModels","version":"项目公开版","icon":"flask","keywords":["ChemLLMBench","化学","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"覆盖分子性质、反应预测、逆合成与分子描述等化学任务，提供任务数据和评测代码。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"chemeval","name":"ChemEval","subjects":["化学"],"tasks":["科学问答","科学推理"],"paradigms":["静态问答","模型或人工评分"],"desc":"从化学基础知识到专业应用，综合考察文本与多模态化学理解、推理和生成能力。","paper":"https://github.com/USTC-StarTeam/ChemEval","url":"https://github.com/USTC-StarTeam/ChemEval","year":2024,"size":"具体任务划分见项目","language":"英文","caveat":"项目包含文本和多模态任务，应使用对应子集的评分脚本。","team":"USTC-StarTeam","version":"项目公开版","icon":"flask","keywords":["ChemEval","化学","科学问答","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"从化学基础知识到专业应用，综合考察文本与多模态化学理解、推理和生成能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"chemcot","name":"ChemCoTBench","subjects":["化学"],"tasks":["科学推理"],"paradigms":["静态问答","代码或产物验证"],"desc":"通过分子理解、编辑优化和反应预测等任务，评估模型能否逐步完成化学操作与推理。","paper":"https://github.com/IDEA-XL/ChemCoTBench","url":"https://github.com/IDEA-XL/ChemCoTBench","year":2025,"size":"任务划分见项目","language":"英文","caveat":"训练用思维链数据与正式测试集应分开使用。","team":"IDEA-XL","version":"项目公开版","icon":"flask","keywords":["ChemCoTBench","化学","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"通过分子理解、编辑优化和反应预测等任务，评估模型能否逐步完成化学操作与推理。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"astrobench","name":"AstroBench MCQ","subjects":["天文"],"tasks":["科学问答","文献理解"],"paradigms":["静态问答"],"desc":"基于天文与天体物理研究综述构建的选择题，考察专业知识记忆和研究内容理解。","paper":"https://huggingface.co/datasets/AstroMLab/Astrobench_MCQ_v1_Public","url":"https://huggingface.co/datasets/AstroMLab/Astrobench_MCQ_v1_Public","year":2024,"size":"约 3.85k 条公开记录","language":"英文","caveat":"公开版本不包含答案键；需按照数据卡的官方流程获取评分，不能直接完成本地自动判分。","team":"AstroMLab","version":"MCQ v1 Public","icon":"orbit","keywords":["AstroBench MCQ","天文","科学问答","文献理解"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"基于天文与天体物理研究综述构建的选择题，考察专业知识记忆和研究内容理解。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"astrovis","name":"AstroVisBench","subjects":["天文"],"tasks":["科学计算","数据分析","科研任务"],"paradigms":["代码或产物验证","模型或人工评分"],"desc":"让模型编写代码处理天文数据并生成科学图表，分别检查计算结果与可视化表现。","paper":"https://github.com/NSF-Simons-CosmicAI-Institute/AstroVisBench","url":"https://github.com/NSF-Simons-CosmicAI-Institute/AstroVisBench","year":2025,"size":"计算与可视化任务","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"NSF-Simons CosmicAI Institute","version":"项目公开版","icon":"orbit","keywords":["AstroVisBench","天文","科学计算","数据分析","科研任务"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"让模型编写代码处理天文数据并生成科学图表，分别检查计算结果与可视化表现。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"astroqa","name":"Astro-QA","subjects":["天文"],"tasks":["科学问答","科学推理"],"paradigms":["静态问答","模型或人工评分"],"desc":"覆盖天体物理、天体力学和天文观测方法等主题，比较模型回答不同类型天文问题的能力。","paper":"https://github.com/ACMISLab/Astro-QA","url":"https://github.com/ACMISLab/Astro-QA","year":2024,"size":"2,709 题","language":"中文/英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"ACMISLab","version":"项目公开版","icon":"orbit","keywords":["Astro-QA","天文","科学问答","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"覆盖天体物理、天体力学和天文观测方法等主题，比较模型回答不同类型天文问题的能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"usaaao","name":"USAAAO QA","subjects":["天文","物理"],"tasks":["科学推理","科学计算"],"paradigms":["静态问答"],"desc":"以天文奥林匹克题目和图像材料，考察天文知识运用与定量解题能力。","paper":"https://huggingface.co/datasets/AstroMLab/USAAAO_QA","url":"https://huggingface.co/datasets/AstroMLab/USAAAO_QA","year":2026,"size":"见官方数据卡","language":"英文","caveat":"Hugging Face 仓库设有访问条件，需自行登录并接受项目条件后获取数据。","team":"AstroMLab","version":"项目公开版","icon":"orbit","keywords":["USAAAO QA","天文","物理","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"以天文奥林匹克题目和图像材料，考察天文知识运用与定量解题能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"部分开放","checkedAt":"2026-11-04"},{"id":"geobenchllm","name":"GeoBenchLLM","subjects":["地理"],"tasks":["科学问答","科学推理"],"paradigms":["静态问答"],"desc":"汇集地理相关子数据集，比较模型对地理知识、位置关系和空间任务的理解与推理能力。","paper":"https://github.com/Rfr2003/GeoBenchLLM","url":"https://github.com/Rfr2003/GeoBenchLLM","year":null,"size":"17 个子数据集、8 类任务","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"GeoBenchLLM 团队","version":"项目公开版","icon":"globe","keywords":["GeoBenchLLM","地理","科学问答","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"汇集地理相关子数据集，比较模型对地理知识、位置关系和空间任务的理解与推理能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"geovlm","name":"GEOBench-VLM","subjects":["地理"],"tasks":["科学问答","数据分析"],"paradigms":["静态问答","代码或产物验证"],"desc":"面向遥感与地理空间图像，覆盖场景理解、目标计数定位及时间变化等视觉任务。","paper":"https://github.com/Tarekbouamer/GEOBench-VLM","url":"https://github.com/Tarekbouamer/GEOBench-VLM","year":2024,"size":"31 类细分任务","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"GEOBench-VLM 团队","version":"项目公开版","icon":"globe","keywords":["GEOBench-VLM","地理","科学问答","数据分析"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"面向遥感与地理空间图像，覆盖场景理解、目标计数定位及时间变化等视觉任务。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"geoexpert","name":"GeoExpertQueries","subjects":["地理"],"tasks":["数据分析","科研任务"],"paradigms":["智能体任务","代码或产物验证","模型或人工评分"],"desc":"由地理专家编写并交叉核对的 GIS 分析工作流，考察多工具地理空间分析能力。","paper":"https://github.com/google-research/geospatial-reasoning-benchmarks","url":"https://github.com/google-research/geospatial-reasoning-benchmarks","year":2026,"size":"公开开发集 25 项任务","language":"英文","caveat":"公开仓库提供开发划分及工作流；保留测试集不等同于已公开下载。","team":"Google Research","version":"Development split","icon":"globe","keywords":["GeoExpertQueries","地理","数据分析","科研任务"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"由地理专家编写并交叉核对的 GIS 分析工作流，考察多工具地理空间分析能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"geoguess","name":"GeoBench · 图像定位","subjects":["地理"],"tasks":["科学推理"],"paradigms":["静态问答"],"desc":"根据街景等图像线索预测国家与经纬度，衡量模型的视觉地理定位和空间推断能力。","paper":"https://github.com/ccmdi/geobench","url":"https://github.com/ccmdi/geobench","year":2025,"size":"按所选地图构建测试样本","language":"英文","caveat":"这是地理图像定位评测，区别于同名的几何、遥感或搜索优化项目。","team":"CCMDI","version":"项目公开版","icon":"globe","keywords":["GeoBench · 图像定位","地理","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"根据街景等图像线索预测国家与经纬度，衡量模型的视觉地理定位和空间推断能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"labbench","name":"LAB-Bench","subjects":["生物"],"tasks":["科学问答","文献理解","科学推理"],"paradigms":["静态问答"],"desc":"覆盖生物研究中的文献、图表、实验流程和序列相关问题，侧重实际研究技能。","paper":"https://huggingface.co/datasets/futurehouse/lab-bench","url":"https://huggingface.co/datasets/futurehouse/lab-bench","year":2024,"size":"公开子集见数据卡","language":"英文","caveat":"公开子集与完整评测范围需区分；按原数据卡许可使用，不能作为训练材料。","team":"FutureHouse","version":"项目公开版","icon":"dna","keywords":["LAB-Bench","生物","科学问答","文献理解","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"覆盖生物研究中的文献、图表、实验流程和序列相关问题，侧重实际研究技能。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"bixbench1","name":"BixBench","subjects":["生物"],"tasks":["数据分析","科研任务"],"paradigms":["智能体任务","代码或产物验证"],"desc":"让智能体探索真实生物数据、执行多步分析并解释结果，提供容器环境与评测工具。","paper":"https://github.com/Future-House/BixBench","url":"https://github.com/Future-House/BixBench","year":2025,"size":"v1.5 记录见原项目","language":"英文","caveat":"BixBench 与 BixBench3 为不同版本与任务范围，应分别配置和报告成绩。","team":"FutureHouse","version":"v1.5","icon":"dna","keywords":["BixBench","生物","数据分析","科研任务"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"让智能体探索真实生物数据、执行多步分析并解释结果，提供容器环境与评测工具。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"biopro","name":"BioProBench","subjects":["生物"],"tasks":["科学问答","科学推理","文献理解"],"paradigms":["静态问答","模型或人工评分"],"desc":"围绕生物实验流程，评估问答、步骤排序、错误修正、流程生成和程序性推理。","paper":"https://github.com/YuyangSunshine/bioprobench","url":"https://github.com/YuyangSunshine/bioprobench","year":2025,"size":"5 类核心任务","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"BioProBench 团队","version":"项目公开版","icon":"dna","keywords":["BioProBench","生物","科学问答","科学推理","文献理解"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"围绕生物实验流程，评估问答、步骤排序、错误修正、流程生成和程序性推理。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"geneturing","name":"GeneTuring","subjects":["生物"],"tasks":["科学问答","科学推理"],"paradigms":["静态问答","检索评测"],"desc":"围绕基因名称、位置、关联和序列等问题，测试模型的基因组学知识及工具辅助能力。","paper":"https://github.com/Winnie09/GeneTuring","url":"https://github.com/Winnie09/GeneTuring","year":2023,"size":"基因组学问答模块","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"GeneTuring 团队","version":"项目公开版","icon":"dna","keywords":["GeneTuring","生物","科学问答","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"围绕基因名称、位置、关联和序列等问题，测试模型的基因组学知识及工具辅助能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"pubmedqa","name":"PubMedQA","subjects":["生物"],"tasks":["文献理解","科学问答"],"paradigms":["静态问答"],"desc":"阅读生物医学论文摘要中的证据，对研究问题给出 yes、no 或 maybe 判断。","paper":"https://github.com/pubmedqa/pubmedqa","url":"https://github.com/pubmedqa/pubmedqa","year":2019,"size":"PQA-L 等划分见项目","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"PubMedQA 团队","version":"项目公开版","icon":"dna","keywords":["PubMedQA","生物","文献理解","科学问答"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"阅读生物医学论文摘要中的证据，对研究问题给出 yes、no 或 maybe 判断。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"scibench","name":"SciBench","subjects":["数学","物理","化学","跨学科"],"tasks":["科学计算","科学推理"],"paradigms":["静态问答"],"desc":"以大学教材中的科学问题，考察数学、物理和化学领域的定量推理与复杂求解能力。","paper":"https://github.com/mandyyyyii/scibench","url":"https://github.com/mandyyyyii/scibench","year":2023,"size":"各教材与子集见项目","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"SciBench 团队","version":"项目公开版","icon":"math","keywords":["SciBench","数学","物理","化学","跨学科","科学计算","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"以大学教材中的科学问题，考察数学、物理和化学领域的定量推理与复杂求解能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"scieval","name":"SciEval","subjects":["物理","化学","生物","跨学科"],"tasks":["科学问答","科学推理","科学计算"],"paradigms":["静态问答"],"desc":"从科学基础知识、知识应用、计算和研究能力多个层次，评价模型在科学内容上的表现。","paper":"https://github.com/OpenDFM/SciEval","url":"https://github.com/OpenDFM/SciEval","year":2023,"size":"约 18,000 道客观题及少量主观题","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"OpenDFM","version":"项目公开版","icon":"atom","keywords":["SciEval","物理","化学","生物","跨学科","科学问答","科学推理","科学计算"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"从科学基础知识、知识应用、计算和研究能力多个层次，评价模型在科学内容上的表现。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"sciassess","name":"SciAssess","subjects":["化学","生物","跨学科"],"tasks":["文献理解","科学推理"],"paradigms":["静态问答","模型或人工评分"],"desc":"针对科学文献中的信息提取、图表理解和分析推理，覆盖化学、生物与材料等领域。","paper":"https://github.com/sci-assess/SciAssess","url":"https://github.com/sci-assess/SciAssess","year":2024,"size":"任务划分见项目","language":"英文","caveat":"原始论文 PDF 不随仓库分发，需根据 DOI 自行合法获取并按文档组织文件。","team":"SciAssess 团队","version":"项目公开版","icon":"flask","keywords":["SciAssess","化学","生物","跨学科","文献理解","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"针对科学文献中的信息提取、图表理解和分析推理，覆盖化学、生物与材料等领域。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"scicode","name":"SciCode","subjects":["数学","物理","化学","生物","跨学科"],"tasks":["科学计算","科研任务"],"paradigms":["代码或产物验证"],"desc":"将真实科学问题拆解为可编程任务，通过测试用例检验模型生成的计算与仿真代码。","paper":"https://github.com/scicode-bench/SciCode","url":"https://github.com/scicode-bench/SciCode","year":2024,"size":"80 个主问题、338 个子问题","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"SciCode 团队","version":"项目公开版","icon":"math","keywords":["SciCode","数学","物理","化学","生物","跨学科","科学计算","科研任务"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"将真实科学问题拆解为可编程任务，通过测试用例检验模型生成的计算与仿真代码。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"sab","name":"ScienceAgentBench","subjects":["化学","生物","地理","跨学科"],"tasks":["科研任务","数据分析"],"paradigms":["智能体任务","代码或产物验证"],"desc":"基于论文中的真实分析任务，要求智能体读取数据、编写程序并生成可验证的研究结果。","paper":"https://github.com/OSU-NLP-Group/ScienceAgentBench","url":"https://github.com/OSU-NLP-Group/ScienceAgentBench","year":2024,"size":"原版 102 项任务；最新划分见项目","language":"英文","caveat":"项目已发布 verified 划分；正式使用时请配套下载该划分对应的评测材料。","team":"OSU-NLP-Group","version":"Verified split","icon":"flask","keywords":["ScienceAgentBench","化学","生物","地理","跨学科","科研任务","数据分析"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"基于论文中的真实分析任务，要求智能体读取数据、编写程序并生成可验证的研究结果。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"},{"id":"scicueval","name":"SciCUEval","subjects":["物理","化学","生物","跨学科"],"tasks":["文献理解","科学推理"],"paradigms":["静态问答"],"desc":"通过文本、表格与知识图谱，评价科学上下文中的信息识别、信息整合和证据推理能力。","paper":"https://github.com/HICAI-ZJU/SciCUEval","url":"https://github.com/HICAI-ZJU/SciCUEval","year":2025,"size":"10 个子数据集","language":"英文","caveat":"请使用原项目指定的数据划分、评分代码和环境，按原始许可获取并使用。","team":"浙江大学 HICAI","version":"项目公开版","icon":"atom","keywords":["SciCUEval","物理","化学","生物","跨学科","文献理解","科学推理"],"metric":"原项目任务指标","unit":"见评分文档","direction":"按原项目定义比较","method":"通过文本、表格与知识图谱，评价科学上下文中的信息识别、信息整合和证据推理能力。具体输入、输出格式和评分方式参见原项目文档。","permission":"仅展示元信息","checkedAt":"2026-11-04"}];
 extraCatalogResources.push({"id": "platform-physics-demo", "name": "基础物理计算评测集（模拟上传）", "subjects": ["物理"], "tasks": ["科学推理", "科学计算"], "paradigms": ["静态问答"], "desc": "面向基础力学计算，检验模型提取题目条件、运用物理公式并按规定格式输出结果的能力。", "paper": assetBase + "evaluation/sample-upload/README.md", "url": assetBase + "evaluation/sample-upload/README.md", "year": 2026, "size": "3 道演示题 · test 划分", "language": "中文", "team": "科学计算实验室（虚构）", "authors": "林知、陈序（虚构）", "version": "v1.0.0", "updatedAt": "2026年11月05日", "icon": "atom", "keywords": ["基础力学", "数值计算", "结构化输出"], "metric": "Accuracy", "unit": "%", "direction": "越高越好", "method": "按数值误差与单位匹配计算正确率。", "permission": "公开共享", "checkedAt": "2026-11-05", "origin": "platform", "status": "approved", "caveat": "模拟上传资源，仅用于页面与流程演示。"});
-const catalogDefaults = () => ({query:'',subjects:[],tasks:[],paradigms:[],permissions:[],taskOthers:[],paradigmOthers:[],year:'',sort:'year',page:1,detail:null});
+const catalogDefaults = () => ({query:'',subjects:[],tasks:[],paradigms:[],permissions:[],taskOthers:[],paradigmOthers:[],yearFrom:'',yearTo:'',sort:'year',page:1,detail:null});
 let catalogState=catalogDefaults();
-try { const saved=JSON.parse(sessionStorage.getItem('science-evaluation-catalog-state')||'null'); if(saved && typeof saved==='object') { for(const key of ['query','year'])if(typeof saved[key]==='string')catalogState[key]=saved[key]; for(const key of ['subjects','tasks','paradigms','permissions','taskOthers','paradigmOthers'])if(Array.isArray(saved[key]))catalogState[key]=saved[key].filter(x=>typeof x==='string'); if(['year','name','views','favorites'].includes(saved.sort))catalogState.sort=saved.sort;if(Number.isInteger(saved.page)&&saved.page>0)catalogState.page=saved.page; }}catch{}
+try { const saved=JSON.parse(sessionStorage.getItem('science-evaluation-catalog-state')||'null'); if(saved && typeof saved==='object') { if(typeof saved.query==='string')catalogState.query=saved.query;
+ for(const key of ['yearFrom','yearTo']){
+  const year=saved[key]??saved.year;
+  if(typeof year==='string'&&/^\d{1,4}$/.test(year)&&Number(year)>0)catalogState[key]=year;
+ } for(const key of ['subjects','tasks','paradigms','permissions','taskOthers','paradigmOthers'])if(Array.isArray(saved[key]))catalogState[key]=saved[key].filter(x=>typeof x==='string'); if(['year','name','views','favorites'].includes(saved.sort))catalogState.sort=saved.sort;if(Number.isInteger(saved.page)&&saved.page>0)catalogState.page=saved.page; }}catch{}
 let catalogPlan=[];try{const plan=JSON.parse(localStorage.getItem('science-demo-plan')||'[]');if(Array.isArray(plan))catalogPlan=[...new Set(plan)].filter(id=>[...benchmarks,...extraCatalogResources,...readApprovedEvaluationUploads()].some(b=>b.id===id));}catch{}
 const featuredCatalog=['math500','ugphysics','chembench','astrovis','geobenchllm','labbench','scicode','scibench','sciassess'];
-function catalogViews(){try{return JSON.parse(localStorage.getItem('science-evaluation-views')||'{}')}catch{return {}}}
+const catalogActivity = {
+ views: { key: 'science-evaluation-views', fallback: {} },
+ downloads: { key: 'science-evaluation-downloads', fallback: {} },
+};
+const catalogFavoritesKey='science-evaluation-favorites';
+let temporaryFavorites;
+function readCatalogFavorites(){
+ if(temporaryFavorites)return new Set(temporaryFavorites);
+ try{
+  const saved=JSON.parse(localStorage.getItem(catalogFavoritesKey)||'[]');
+  return new Set(Array.isArray(saved)?saved.filter(id=>typeof id==='string'):[]);
+ }catch{return new Set();}
+}
+function updateActivityDisplay(type,id,total){
+ evaluationRoot.querySelectorAll(`[data-resource-id="${CSS.escape(id)}"] [data-activity="${type}"]`).forEach(value=>{
+  const count=Number(value.dataset.baseCount)+total;
+  value.textContent=count.toLocaleString('zh-CN');
+  const card=value.closest('.catalog-card');
+  if(card&&type==='views')card.dataset.viewCount=String(count);
+  if(card&&type==='favorites')card.dataset.favoriteCount=String(count);
+ });
+}
+function syncCatalogFavorite(id,saved){
+ updateActivityDisplay('favorites',id,Number(saved));
+ if($('catalogDrawerBody')?.dataset.resourceId!==id)return;
+ const button=$('catalogDetailFavorite');
+ button.setAttribute('aria-pressed',String(saved));
+ button.classList.toggle('is-active',saved);
+ button.querySelector('span').textContent=saved?'已收藏':'收藏';
+}
+function toggleCatalogFavorite(id){
+ const toggle=()=>{
+  const favorites=readCatalogFavorites(),saved=!favorites.has(id);
+  if(saved)favorites.add(id);
+  else favorites.delete(id);
+  try{
+   localStorage.setItem(catalogFavoritesKey,JSON.stringify([...favorites]));
+   temporaryFavorites=undefined;
+  }catch{temporaryFavorites=favorites;}
+  syncCatalogFavorite(id,saved);
+  if($('toastRoot'))toast(saved?'已收藏评测集':'已取消收藏');
+ };
+ if(navigator.locks)void navigator.locks.request(catalogFavoritesKey,toggle).catch(toggle);
+ else toggle();
+}
+function syncCatalogFavoritesFromStorage(event){
+ if(event.key!==catalogFavoritesKey&&event.key!==null)return;
+ const favorites=readCatalogFavorites();
+ evaluationRoot.querySelectorAll('[data-resource-id]').forEach(({dataset})=>{
+  if(dataset.resourceId)syncCatalogFavorite(dataset.resourceId,favorites.has(dataset.resourceId));
+ });
+}
+window.addEventListener('storage',syncCatalogFavoritesFromStorage);
+
+function readCatalogActivity(type){
+ const {key,fallback}=catalogActivity[type];
+ try{return {...JSON.parse(localStorage.getItem(key)||'{}'),...fallback};}catch{return {...fallback};}
+}
+function catalogActivityCount(counters,id){
+ const count=Number(counters[id]);
+ return Number.isSafeInteger(count)&&count>0?count:0;
+}
+function recordCatalogActivity(type,id){
+ const {key,fallback}=catalogActivity[type];
+ const increment=()=>{
+  const counters=readCatalogActivity(type);
+  const total=catalogActivityCount(counters,id)+1;
+  try{
+   localStorage.setItem(key,JSON.stringify({...counters,[id]:total}));
+   delete fallback[id];
+  }catch{fallback[id]=total;}
+  updateActivityDisplay(type,id,total);
+ };
+ if(navigator.locks)void navigator.locks.request(key,increment).catch(increment);
+ else increment();
+}
 const catalogItems=()=>{
- const views=catalogViews();
+ const views=readCatalogActivity('views'),downloads=readCatalogActivity('downloads');
+ const favorites=readCatalogFavorites();
  const items=[...benchmarks.map(b=>({...b,...catalogMeta[b.id],permission:'仅展示元信息',language:'英文',checkedAt:'2026-11-04',hasLeaderboard:true})),...extraCatalogResources.filter(b=>b.origin!=='platform'||b.status==='approved'),...readApprovedEvaluationUploads()];
- return [...new Map(items.map(b=>[b.id,b])).values()].map((raw,i)=>{const b=normalizeEvaluationResource(raw);return {...b,viewCount:b.viewCount+(Number(views[b.id])||0),order:featuredCatalog.includes(b.id)?featuredCatalog.indexOf(b.id):featuredCatalog.length+i};});
+ return [...new Map(items.map(b=>[b.id,b])).values()].map((raw,i)=>{
+  const b=normalizeEvaluationResource(raw);
+  const favorite=favorites.has(b.id);
+  return {...b,favorite,baseFavorites:b.favoriteCount,baseViews:b.viewCount,baseDownloads:b.downloadCount,favoriteCount:b.favoriteCount+Number(favorite),viewCount:b.viewCount+catalogActivityCount(views,b.id),downloadCount:b.downloadCount+catalogActivityCount(downloads,b.id),order:featuredCatalog.includes(b.id)?featuredCatalog.indexOf(b.id):featuredCatalog.length+i};
+ });
 };
 function catalogMatches(){
  const q=catalogState.query.toLocaleLowerCase();
  const rows=catalogItems().filter(b=>(!q||[b.name,b.desc,b.team,b.paper,b.paperTitle||'',b.method||'',...b.keywords,...b.tasks,...b.paradigms,...b.taskOthers,...b.paradigmOthers].join(' ').toLocaleLowerCase().includes(q))
   &&['subjects','tasks','paradigms'].every(key=>!catalogState[key].length||catalogState[key].some(t=>b[key].includes(t)))
   &&['taskOthers','paradigmOthers'].every(key=>!catalogState[key].length||catalogState[key].some(t=>b[key].includes(t)))
-  &&(!catalogState.permissions.length||catalogState.permissions.includes(b.permission))&&(!catalogState.year||String(b.year)===catalogState.year));
+  &&(!catalogState.permissions.length||catalogState.permissions.includes(b.permission))&&(!catalogState.yearFrom||b.year>=Number(catalogState.yearFrom))
+  &&(!catalogState.yearTo||(b.year>0&&b.year<=Number(catalogState.yearTo))));
  rows.sort((a,b)=>catalogState.sort==='name'?a.name.localeCompare(b.name,'en',{numeric:true}):catalogState.sort==='views'?b.viewCount-a.viewCount||a.order-b.order:catalogState.sort==='favorites'?b.favoriteCount-a.favoriteCount||a.order-b.order:(b.year||0)-(a.year||0)||a.order-b.order);
  return rows;
 }
 function catalogHighlight(text){text=String(text||'');const q=catalogState.query;if(!q)return esc(text);let start=0,out='',at=0,lower=text.toLocaleLowerCase(),needle=q.toLocaleLowerCase();while((at=lower.indexOf(needle,start))!==-1){out+=esc(text.slice(start,at))+'<mark>'+esc(text.slice(at,at+q.length))+'</mark>';start=at+q.length;}return out+esc(text.slice(start));}
 function catalogExcerpt(text){const q=catalogState.query.toLocaleLowerCase(),at=q?text.toLocaleLowerCase().indexOf(q):-1;return catalogHighlight(at>40?'…'+text.slice(Math.max(0,at-20)):text);}
-let catalogYearMax=0,catalogYearMin=0;
-function closeCatalogYears(){ $('catalogYearOptions').classList.add('hidden');$('catalogYearTrigger').setAttribute('aria-expanded','false'); }
-function syncCatalogYear(){
- $('catalogYear').value=catalogState.year;
- $('catalogYearTrigger').querySelector('span').textContent=catalogState.year?catalogState.year+' 年':'全部年份';
- evaluationRoot.querySelectorAll('[data-catalog-year]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.catalogYear===catalogState.year)));
+const catalogYearBounds=[['yearFrom','起始年份','起始年'],['yearTo','结束年份','结束年']];
+const yearTrigger=key=>$('catalog-'+key);
+const yearOptions=key=>$('catalog-'+key+'-options');
+
+function closeCatalogYears(){
+ for(const [key] of catalogYearBounds){
+  yearOptions(key).classList.add('hidden');
+  yearTrigger(key).setAttribute('aria-expanded','false');
+ }
 }
-function renderCatalogYears(){
- const list=$('catalogYearOptions'),scroll=list.scrollTop,focus=evaluationRoot.activeElement?.dataset.catalogYear;
- list.innerHTML='<button type="button" role="option" data-catalog-year="">全部年份</button>'+Array.from({length:catalogYearMax-catalogYearMin+1},(_,i)=>catalogYearMax-i).map(year=>`<button type="button" role="option" data-catalog-year="${year}">${year} 年</button>`).join('');
- evaluationRoot.querySelectorAll('[data-catalog-year]').forEach(el=>{
-  el.onclick=()=>{catalogState.year=el.dataset.catalogYear;catalogState.page=1;closeCatalogYears();renderCatalog();$('catalogYearTrigger').focus();};
-  el.onkeydown=e=>{
-   if(!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;e.preventDefault();
-   const options=[...list.querySelectorAll('[role="option"]')],index=options.indexOf(el);
-   if(e.key==='ArrowDown'&&index===options.length-1&&catalogYearMin>1){catalogYearMin=Math.max(1,catalogYearMin-20);renderCatalogYears();list.querySelector(`[data-catalog-year="${Number(el.dataset.catalogYear)-1}"]`)?.focus();return;}
-   options[e.key==='Home'?0:e.key==='End'?options.length-1:Math.max(0,Math.min(options.length-1,index+(e.key==='ArrowDown'?1:-1)))].focus();
-  };
- });
- syncCatalogYear();list.scrollTop=scroll;
- if(focus!==undefined)list.querySelector(`[data-catalog-year="${focus}"]`)?.focus({preventScroll:true});
+function syncCatalogYears(){
+ for(const [key,label,placeholder] of catalogYearBounds){
+  const year=catalogState[key];
+  yearTrigger(key).querySelector('span').textContent=year||placeholder;
+  yearTrigger(key).setAttribute('aria-label',year?`${label}：${year} 年`:label);
+  yearOptions(key).querySelectorAll('[data-catalog-year]').forEach(el=>el.setAttribute('aria-selected',String(el.dataset.catalogYear===year)));
+ }
 }
 function initCatalogYears(){
- catalogYearMax=Math.max(new Date().getFullYear(),...catalogItems().map(b=>b.year));catalogYearMin=Math.max(1,Math.min(catalogYearMax-24,Number(catalogState.year)||catalogYearMax-24));
- renderCatalogYears();
- $('catalogYearTrigger').onclick=()=>{
-  const list=$('catalogYearOptions'),open=list.classList.contains('hidden');list.classList.toggle('hidden',!open);$('catalogYearTrigger').setAttribute('aria-expanded',String(open));
-  if(open){const selected=list.querySelector('[aria-selected="true"]');selected?.focus({preventScroll:true});selected?.scrollIntoView({block:'nearest'});}
- };
- $('catalogYearOptions').onscroll=()=>{
-  const list=$('catalogYearOptions');if(list.scrollTop+list.clientHeight>=list.scrollHeight-40&&catalogYearMin>1){catalogYearMin=Math.max(1,catalogYearMin-20);renderCatalogYears();}
- };
+ const max=Math.max(new Date().getFullYear(),...catalogItems().map(b=>b.year),Number(catalogState.yearFrom),Number(catalogState.yearTo));
+ for(const [key] of catalogYearBounds){
+  const trigger=yearTrigger(key),list=yearOptions(key);
+  let min=max+1;
+  function addYears(count){
+   const next=Math.max(1,min-count);
+   for(let year=min-1;year>=next;year--)list.insertAdjacentHTML('beforeend',`<button type="button" role="option" tabindex="-1" data-catalog-year="${year}">${year} 年</button>`);
+   min=next;
+  }
+  addYears(25);
+  function open(){
+   closeCatalogYears();
+   list.classList.remove('hidden');
+   trigger.setAttribute('aria-expanded','true');
+   const year=Number(catalogState[key]);
+   if(year&&year<min)addYears(min-year);
+   syncCatalogYears();
+   const option=list.querySelector('[aria-selected="true"]')||list.firstElementChild;
+   option.focus({preventScroll:true});
+   list.scrollTop=option.offsetTop-Math.max(0,(list.clientHeight-option.offsetHeight)/2);
+  }
+  trigger.onclick=()=>{
+   if(list.classList.contains('hidden'))open();
+   else closeCatalogYears();
+  };
+  trigger.onkeydown=e=>{if(e.key==='ArrowDown'){e.preventDefault();open();}};
+  list.onscroll=()=>{
+   if(!list.classList.contains('hidden')&&list.scrollTop+list.clientHeight>=list.scrollHeight-40&&min>1){
+    addYears(20);
+    syncCatalogYears();
+   }
+  };
+  list.onclick=e=>{
+   const option=e.target.closest('[data-catalog-year]');
+   if(!option)return;
+   catalogState[key]=option.dataset.catalogYear;
+   if(catalogState.yearFrom&&catalogState.yearTo&&Number(catalogState.yearFrom)>Number(catalogState.yearTo)){
+    [catalogState.yearFrom,catalogState.yearTo]=[catalogState.yearTo,catalogState.yearFrom];
+   }
+   catalogState.page=1;
+   closeCatalogYears();
+   renderCatalog();
+   trigger.focus({preventScroll:true});
+  };
+  list.onkeydown=e=>{
+   const option=e.target.closest('[data-catalog-year]');
+   if(!option||!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
+   e.preventDefault();
+   if(e.key==='ArrowDown'&&!option.nextElementSibling&&min>1){addYears(20);syncCatalogYears();}
+   const target={ArrowDown:option.nextElementSibling,ArrowUp:option.previousElementSibling,Home:list.firstElementChild,End:list.lastElementChild}[e.key];
+   target?.focus();
+  };
+ }
 }
-const handleYearOutside=e=>{if(!e.composedPath().includes($('catalogYearPicker')))closeCatalogYears();};
+const handleYearOutside=e=>{if(!e.composedPath().includes($('catalogYearRange')))closeCatalogYears();};
 document.addEventListener('pointerdown',handleYearOutside);
 
 function initCatalog(){
@@ -161,7 +504,7 @@ function initCatalog(){
   return `<details class="other-filter hidden" id="${key}Filter"><summary>选择${label}</summary><div>${values.length?values.map(v=>`<label class="catalog-check"><input type="checkbox" data-catalog-filter="${key}" value="${esc(v)}" aria-label="${label}：${esc(v)}">${esc(v)}</label>`).join(''):`<p>暂无${label}</p>`}</div></details>`;
  };
  $('catalogFilters').innerHTML=groups.map(([key,label,values])=>`<fieldset class="filter-group"><legend>${label}</legend><label class="catalog-check"><input type="checkbox" data-filter-all="${key}" aria-label="${label}：全部" checked>全部</label>${values.map(v=>`<label class="catalog-check"><input type="checkbox" data-catalog-filter="${key}" value="${esc(v)}" aria-label="${label}：${esc(v)}">${esc(v)}</label>`).join('')}${key==='tasks'?custom('taskOthers','其他任务类型'):key==='paradigms'?custom('paradigmOthers','其他评测范式'):''}</fieldset>`).join('')+
- '<fieldset class="filter-group catalog-year-filter"><legend>发布年份</legend><div class="catalog-year-picker" id="catalogYearPicker"><input type="hidden" id="catalogYear"><button type="button" id="catalogYearTrigger" aria-haspopup="listbox" aria-expanded="false"><span>全部年份</span>'+icon('chevron-down',13)+'</button><div class="catalog-year-options hidden" id="catalogYearOptions" role="listbox" aria-label="发布年份"></div></div></fieldset>';
+ `<fieldset class="filter-group catalog-year-filter"><legend>发布年份</legend><div class="catalog-year-range" id="catalogYearRange">${catalogYearBounds.map(([key,label,placeholder])=>`<div class="catalog-year-picker"><button type="button" class="catalog-year-trigger" id="catalog-${key}" aria-label="${label}" aria-controls="catalog-${key}-options" aria-haspopup="listbox" aria-expanded="false"><span>${placeholder}</span>${icon('chevron-down',12)}</button><div class="catalog-year-options hidden" id="catalog-${key}-options" role="listbox" aria-label="${label}"></div></div>`).join('<span class="catalog-year-dash" aria-hidden="true">–</span>')}</div></fieldset>`;
  evaluationRoot.querySelectorAll('[data-catalog-filter]').forEach(el=>el.onchange=()=>{
   const key=el.dataset.catalogFilter;catalogState[key]=el.checked?[...new Set([...catalogState[key],el.value])]:catalogState[key].filter(v=>v!==el.value);
   if(key==='tasks'&&!catalogState.tasks.includes('其他'))catalogState.taskOthers=[];
@@ -178,40 +521,48 @@ function initCatalog(){
 function clearCatalogFilters(){catalogState=catalogDefaults();$('catalogSearch').value='';renderCatalog();}
 function removeCatalogFilter(key,value){
  if(key==='query'){catalogState.query='';$('catalogSearch').value='';}
- else if(key==='year')catalogState.year='';else catalogState[key]=catalogState[key].filter(x=>x!==value);
+ else if(key==='year'){catalogState.yearFrom='';catalogState.yearTo='';}else catalogState[key]=catalogState[key].filter(x=>x!==value);
  if(!catalogState.tasks.includes('其他'))catalogState.taskOthers=[];
  if(!catalogState.paradigms.includes('其他'))catalogState.paradigmOthers=[];
  catalogState.page=1;renderCatalog();
 }
-function openCatalogDetail(id){
- const views=catalogViews();views[id]=(Number(views[id])||0)+1;try{localStorage.setItem('science-evaluation-views',JSON.stringify(views))}catch{}
- if(options.onDetail){options.onDetail(id);return;}
- catalogState.detail=id;renderCatalogDetail();
+let drawerOpener;
+function openCatalogDetail(id,opener=evaluationRoot.activeElement){
+ if(!catalogState.detail)drawerOpener=opener;
+ catalogState.detail=id;
+ closeCatalogYears();
+ renderCatalogDetail();
+ if($('catalogDrawerBody')?.dataset.resourceId===id)recordCatalogActivity('views',id);
 }
 function renderCatalog(){
  if(catalogState.detail){renderCatalogDetail();return;}
- const rows=catalogMatches(),totalPages=Math.max(1,Math.ceil(rows.length/9));catalogState.page=Math.max(1,Math.min(catalogState.page,totalPages));
- const paged=rows.slice((catalogState.page-1)*9,catalogState.page*9);
+ const pageSize=12,rows=catalogMatches(),totalPages=Math.max(1,Math.ceil(rows.length/pageSize));catalogState.page=Math.max(1,Math.min(catalogState.page,totalPages));
+ const paged=rows.slice((catalogState.page-1)*pageSize,catalogState.page*pageSize);
  try{sessionStorage.setItem('science-evaluation-catalog-state',JSON.stringify({...catalogState,detail:null}))}catch{}
- $('catalogListView').classList.remove('hidden');$('catalogDetailView').classList.add('hidden');$('catalogTotal').textContent=`共 ${rows.length} 个评测集`;
- syncCatalogYear();$('catalogSort').value=catalogState.sort;
+ $('catalogTotal').textContent=`共 ${rows.length} 个评测集`;
+ syncCatalogYears();$('catalogSort').value=catalogState.sort;
  evaluationRoot.querySelectorAll('[data-catalog-filter]').forEach(el=>el.checked=catalogState[el.dataset.catalogFilter].includes(el.value));
  evaluationRoot.querySelectorAll('[data-filter-all]').forEach(el=>el.checked=!catalogState[el.dataset.filterAll].length);
  $('taskOthersFilter').classList.toggle('hidden',!catalogState.tasks.includes('其他'));$('paradigmOthersFilter').classList.toggle('hidden',!catalogState.paradigms.includes('其他'));
  const active=[];if(catalogState.query)active.push(['query',catalogState.query,'搜索：'+catalogState.query]);
  const labels={subjects:'学科领域',tasks:'任务类型',paradigms:'评测范式',permissions:'权限范围',taskOthers:'其他任务',paradigmOthers:'其他范式'};
- for(const key of Object.keys(labels))catalogState[key].forEach(v=>active.push([key,v,labels[key]+'：'+v]));if(catalogState.year)active.push(['year',catalogState.year,'发布年份：'+catalogState.year+' 年']);
+ for(const key of Object.keys(labels))catalogState[key].forEach(v=>active.push([key,v,labels[key]+'：'+v]));const {yearFrom,yearTo}=catalogState;
+ if(yearFrom||yearTo){
+  const range=yearFrom&&yearTo?yearFrom===yearTo?`${yearFrom} 年`:`${yearFrom}–${yearTo} 年`:yearFrom?`${yearFrom} 年及以后`:`${yearTo} 年及以前`;
+  active.push(['year','','发布年份：'+range]);
+ }
  $('catalogActiveRow').classList.toggle('hidden',!active.length);
  $('catalogActiveTags').innerHTML=active.map(([key,v,label],i)=>`<button class="applied-tag" data-remove-filter="${i}" aria-label="移除筛选：${esc(label)}">${esc(label)} ${icon('close',12)}</button>`).join('');
  evaluationRoot.querySelectorAll('[data-remove-filter]').forEach(el=>el.onclick=()=>{const[key,v]=active[Number(el.dataset.removeFilter)];removeCatalogFilter(key,v);});
- $('catalog').innerHTML=paged.map(b=>`<article class="catalog-card ${catalogPlan.includes(b.id)?'in-plan':''}" data-resource-id="${esc(b.id)}" data-view-count="${b.viewCount}" data-favorite-count="${b.favoriteCount}">
+ $('catalog').innerHTML=paged.map(b=>{const official=b.origin==='platform'?'':safeResourceUrl(officialSource(b));return `<article class="catalog-card ${catalogPlan.includes(b.id)?'in-plan':''}" data-resource-id="${esc(b.id)}" data-view-count="${b.viewCount}" data-favorite-count="${b.favoriteCount}">
   <div class="card-top"><div class="benchmark-icon">${icon(b.icon,21)}</div><h3 title="${esc(b.name)}">${catalogHighlight(b.name)}</h3><span class="catalog-permission permission-${b.permission==='公开'?'public':b.permission==='受限'?'restricted':'private'}" title="${esc(b.permissionNote||b.permission)}">${b.permission}</span></div>
   <div class="catalog-tags">${b.subjects.map(t=>`<span class="catalog-tag tag-subject" aria-label="学科领域：${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.tasks.filter(t=>t!=='其他'||!b.taskOthers.length),...b.taskOthers])].map(t=>`<span class="catalog-tag tag-task" aria-label="任务类型：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.paradigms.filter(t=>t!=='其他'||!b.paradigmOthers.length),...b.paradigmOthers])].map(t=>`<span class="catalog-tag tag-paradigm" aria-label="评测范式：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}</div>
   <p class="catalog-summary" title="${esc(b.desc)}">${catalogExcerpt(b.desc)}</p>${catalogState.query&&b.team.toLocaleLowerCase().includes(catalogState.query.toLocaleLowerCase())?`<div class="catalog-team" title="${esc(b.team)}">提供团队：${catalogHighlight(b.team)}</div>`:''}
-  <div class="catalog-card-meta"><time class="catalog-updated" ${b.updatedAt?`datetime="${b.updatedAt}"`:''}>${b.updatedAt?b.updatedAt+' 更新':'更新时间暂未提供'}</time>${b.origin!=='platform'&&b.paper?`<a class="catalog-resource-link" href="${esc(b.paper)}" target="_blank" rel="noopener noreferrer">官方链接 ${icon('external',11)}</a>`:''}</div>
-  <div class="catalog-card-actions"><a class="btn" href="${assetBase}evaluation/datasets/${encodeURIComponent(b.id)}" data-catalog-detail="${esc(b.id)}">${icon('book',13)}查看详情</a><button class="btn ${catalogPlan.includes(b.id)?'is-saved':''}" data-plan-toggle="${esc(b.id)}" aria-pressed="${catalogPlan.includes(b.id)}" aria-label="${catalogPlan.includes(b.id)?'移出清单':'加入清单'}：${esc(b.name)}">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button></div></article>`).join('')||`<div class="catalog-empty" role="status">${icon('search',40)}<h3>暂无匹配的评测集</h3><p>试试其他搜索词，或调整筛选条件。</p><button class="btn" id="catalogEmptyReset">重置</button></div>`;
+  <div class="catalog-card-meta"><time class="catalog-updated" ${b.updatedAt?`datetime="${b.updatedAt}"`:''}>${b.updatedAt?b.updatedAt+' 更新':'更新时间暂未提供'}</time>${official?`<a class="catalog-resource-link" href="${esc(official)}" target="_blank" rel="noopener noreferrer">官方链接 ${icon('external',11)}</a>`:''}</div>
+  ${evaluationActivity(b,'catalog-card-activity')}
+  <div class="catalog-card-actions"><button type="button" class="btn" data-catalog-detail="${esc(b.id)}">${icon('book',13)}查看详情</button><button class="btn ${catalogPlan.includes(b.id)?'is-saved':''}" data-plan-toggle="${esc(b.id)}" aria-pressed="${catalogPlan.includes(b.id)}" aria-label="${catalogPlan.includes(b.id)?'移出清单':'加入清单'}：${esc(b.name)}">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button></div></article>`;}).join('')||`<div class="catalog-empty" role="status">${icon('search',40)}<h3>暂无匹配的评测集</h3><p>试试其他搜索词，或调整筛选条件。</p><button class="btn" id="catalogEmptyReset">重置</button></div>`;
  if($('catalogEmptyReset'))$('catalogEmptyReset').onclick=clearCatalogFilters;
- evaluationRoot.querySelectorAll('[data-catalog-detail]').forEach(el=>el.onclick=e=>{if(e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;e.preventDefault();openCatalogDetail(el.dataset.catalogDetail);});bindCatalogPlanButtons();
+ evaluationRoot.querySelectorAll('[data-catalog-detail]').forEach(el=>el.onclick=()=>openCatalogDetail(el.dataset.catalogDetail,el));bindCatalogPlanButtons();
  const first=Math.max(1,catalogState.page-5),last=Math.min(totalPages,catalogState.page+5);
  $('catalogPagination').innerHTML=rows.length?`<button id="catalogPrev" aria-label="评测集上一页" ${catalogState.page===1?'disabled':''}>${icon('chevron-left',14)}</button>${Array.from({length:last-first+1},(_,i)=>first+i).map(n=>`<button data-catalog-page="${n}" ${n===catalogState.page?'aria-current="page"':''} class="${n===catalogState.page?'active':''}">${n}</button>`).join('')}<button id="catalogNext" aria-label="评测集下一页" ${catalogState.page===totalPages?'disabled':''}>${icon('chevron-right',14)}</button>`:'';
  evaluationRoot.querySelectorAll('[data-catalog-page]').forEach(el=>el.onclick=()=>{catalogState.page=Number(el.dataset.catalogPage);renderCatalog();});if($('catalogPrev'))$('catalogPrev').onclick=()=>{catalogState.page--;renderCatalog();};if($('catalogNext'))$('catalogNext').onclick=()=>{catalogState.page++;renderCatalog();};renderCatalogPlan();
@@ -221,13 +572,31 @@ function persistCatalogPlan(){try{localStorage.setItem('science-demo-plan',JSON.
 function toggleCatalogPlan(id){catalogPlan=catalogPlan.includes(id)?catalogPlan.filter(v=>v!==id):[...catalogPlan,id];persistCatalogPlan();renderCatalog();}
 function bindCatalogPlanButtons(){evaluationRoot.querySelectorAll('[data-plan-toggle]').forEach(el=>el.onclick=()=>toggleCatalogPlan(el.dataset.planToggle));}
 function renderCatalogPlan(){const n=catalogPlan.length;const markup=`<button class="btn ${n?'btn-primary':''} catalog-plan-entry" data-open-plan aria-label="我的评测清单（${n}）">${icon('bookmark',14)}我的评测清单 <span class="plan-count">${n}</span></button>`;$('catalogPlanTop').innerHTML=markup;if($('catalogDetailPlanTop'))$('catalogDetailPlanTop').innerHTML=markup;evaluationRoot.querySelectorAll('[data-open-plan]').forEach(el=>el.onclick=showCatalogPlan);}
-function closeCatalogDrawer(restoreFocus=true){if(options.detailId)return;const id=catalogState.detail;if(!id&&!$('catalogDrawerRoot').firstElementChild)return;catalogState.detail=null;$('catalogDrawerRoot').innerHTML='';document.body.style.overflow=$('modalRoot').firstElementChild?'hidden':'';if(state.module==='catalog')renderCatalog();if(restoreFocus&&id)evaluationRoot.querySelector(`[data-catalog-detail="${id}"]`)?.focus({preventScroll:true});}
+function closeCatalogDrawer(restoreFocus=true){
+ if(!catalogState.detail)return;
+ const opener=drawerOpener;
+ drawerOpener=null;
+ catalogState.detail=null;
+ $('catalogDrawerRoot').innerHTML='';
+ $('evaluation').inert=false;
+ document.body.style.overflow=$('modalRoot').firstElementChild?'hidden':previousOverflow;
+ if(options.detailId&&restoreFocus&&options.onBack){options.onBack();return;}
+ if(state.module==='catalog')renderCatalog();
+ if(restoreFocus){
+  const cardId=opener?.dataset.catalogDetail;
+  const target=opener?.isConnected?opener:cardId?evaluationRoot.querySelector(`[data-catalog-detail="${CSS.escape(cardId)}"]`):null;
+  (target||$('catalogTab')).focus({preventScroll:true});
+ }
+}
 const externalDetailInfo={
- math500:{modality:'文本',scope:'test 划分 · 500 题',conditions:'固定提示词、答案抽取与等价判定规则；比较成绩时注明推理设置。',size:'500 题',data:'https://huggingface.co/datasets/HuggingFaceH4/MATH-500'},
+ math500:{modality:'文本',scope:'test 划分 · 500 题',conditions:'固定提示词、答案抽取与等价判定规则；比较成绩时注明推理设置。',size:'500 题',data:'https://huggingface.co/datasets/HuggingFaceH4/MATH-500',download:'https://huggingface.co/datasets/HuggingFaceH4/MATH-500/resolve/main/test.jsonl?download=true'},
  gsm8k:{modality:'文本',scope:'test 划分 · 1,319 题',size:'训练 7,473 题；测试 1,319 题',data:'https://huggingface.co/datasets/openai/gsm8k'},
- scicode:{leaderboard:'https://scicode-bench.github.io/',authors:'Minyang Tian、Luyu Gao 等',paper:'https://arxiv.org/abs/2407.13168',data:'https://huggingface.co/datasets/SciCode1/SciCode',modality:'文本、代码',size:'80 个主问题、338 个子问题',metric:'主问题 / 子问题解决率',unit:'比例或百分比 · 越高越好',scope:'区分主问题、子问题及是否提供背景知识的设置。',conditions:'Python 环境、测试数据与依赖；原项目推荐 Inspect。'},
+ scicode:{project:'https://scicode-bench.github.io/',authors:'Minyang Tian、Luyu Gao 等',paper:'https://arxiv.org/abs/2407.13168',data:'https://huggingface.co/datasets/SciCode1/SciCode',modality:'文本、代码',size:'80 个主问题、338 个子问题',metric:'主问题 / 子问题解决率',unit:'比例或百分比 · 越高越好',scope:'区分主问题、子问题及是否提供背景知识的设置。',conditions:'Python 环境、测试数据与依赖；原项目推荐 Inspect。'},
  sab:{modality:'文本、数据文件、代码',scope:'Verified split，具体任务范围以当前项目文档为准。',conditions:'配套科研数据、Python 依赖与任务评测脚本。'},
- gpqa:{modality:'文本',scope:'Diamond 子集',code:'https://github.com/idavidrein/gpqa'},
+ gpqa:{modality:'文本',code:'https://github.com/idavidrein/gpqa'},
+ bixbench:{project:'https://advances.edisonscientific.com/benchmarks/bixbench3/'},
+ geo:{project:'https://www.axisspatial.com/arena/evaluations/geobenchx'},
+ sciknow:{project:'https://github.com/hicai-zju/sciknoweval'},
  astro:{modality:'文本、图像'},olympiad:{modality:'文本、图像'},astrovis:{modality:'文本、代码、图像'},
  mmlu:{modality:'文本'},aime:{modality:'文本'},phybench:{authors:'Shi Qiu、Shaoyang Guo 等',paper:'https://arxiv.org/abs/2504.16074v2',modality:'文本'}
 };
@@ -238,62 +607,209 @@ function sourceBrand(url,size=18){
  if(host==='arxiv.org')return `<span class="source-brand arxiv-brand" title="arXiv" aria-label="arXiv"><svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 3 12 18M18 3 6 21" stroke="#b5393a" stroke-width="2.4" stroke-linecap="round"/><path d="m8 3 10 18" stroke="#7e282b" stroke-width="1.2"/></svg></span>`;
  return `<span class="source-brand">${icon('external',size-3)}</span>`;
 }
-function institutionValue(name){if(!name)return '暂未收录';return `<span class="institution-value">${name.includes('Hugging Face')?sourceBrand('https://huggingface.co'):icon('institution',17)}<span>${esc(name)}</span></span>`;}
+function institutionValue(name){if(!name)return '暂未提供';return `<span class="institution-value">${name.includes('Hugging Face')?sourceBrand('https://huggingface.co'):icon('institution',17)}<span>${esc(name)}</span></span>`;}
+function safeResourceUrl(value){
+ if(typeof value!=='string'||!/^https?:\/\/|^\/(?!\/)/i.test(value.trim()))return '';
+ try {
+  const url=new URL(value,location.origin);
+  return /^https?:$/.test(url.protocol)?url.href:'';
+ }catch{return '';}
+}
+function isPaperUrl(value){
+ return /^https?:\/\/(?:arxiv\.org|doi\.org|openreview\.net|aclanthology\.org)\//i.test(value);
+}
+function officialSource(b,v=externalDetailInfo[b.id]||{}){
+ return [b.officialUrl,b.projectUrl,v.project,b.paper,v.data].find(url=>safeResourceUrl(url)&&!isPaperUrl(url))||'';
+}
 function catalogDetailContent(b){
  const uploaded=b.origin==='platform',demo=b.id==='platform-physics-demo',v=externalDetailInfo[b.id]||{};
- const row=(label,value)=>`<span class="label">${esc(label)}</span><span>${label==='机构'?institutionValue(value):esc(value||'暂未收录')}</span>`;
- const link=(label,url)=>url?`<a class="detail-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><span class="source-link-label">${sourceBrand(url)}${esc(label)}</span>${icon('external',13)}</a>`:`<div class="detail-source-empty"><span>${esc(label)}</span><span>暂未收录</span></div>`;
+ const display=value=>Array.isArray(value)?value.join('、'):value;
+ const row=(label,value)=>`<dt>${esc(label)}</dt><dd>${label==='机构'?institutionValue(display(value)):esc(display(value)||'暂未提供')}</dd>`;
  const section=(title,body)=>`<section class="detail-module"><h3>${title}</h3>${body}</section>`;
- const known=Boolean(b.metric&&b.metric!=='原项目任务指标');
- let html=section('基本信息',`<div class="detail-meta-grid">${row('更新时间',b.updatedAt||'暂未提供')}${row('作者',b.authors||v.authors)}${row('机构',uploaded?b.team:({'gsm8k':'OpenAI','math500':'Hugging Face H4','mmlu':'TIGER-AI-Lab','sciknow':'浙江大学 HICAI','scicueval':'浙江大学 HICAI'}[b.id]||null))}${row('学科领域',b.subjects.join('、'))}${row('任务类型',b.tasks.join('、'))}${row('发布年份',b.year?b.year+' 年':null)}${row('模态',demo?'文本':b.modality||v.modality)}${row('语言',b.language)}${row('规模',v.size||b.size)}${row('关键词',b.keywords.join('、'))}</div>`);
- html+=section('评测方式',`<div class="detail-grid">${row('评测指标',demo?'准确率（Accuracy）':v.metric||(known?b.metric:'暂未收录，详见官方文档'))}${row('单位与方向',demo?'% · 越高越好':v.unit||(known?b.unit+' · '+(b.direction||'越高越好'):'以官方评分协议为准'))}${row('测试范围',demo?'test 划分全部 3 道演示题；不含训练集。':v.scope||b.version+'；完整范围以官方文档为准。')}${row('运行条件',demo?'Python 3.9+，仅使用标准库；模型生成结果后离线评分。':v.conditions||'暂未收录，详见官方运行说明。')}</div>${demo?'<p class="detail-caveat">答案为有限数值、单位一致且绝对误差 ≤ 10⁻⁶ 时计为正确；缺失或格式错误计为错误。</p>':''}`);
- if(demo){
- html+=section('任务与样例',`<h4>任务说明</h4><p>阅读基础力学题，提取已知条件并计算结果。仅输出 JSON 对象，包含 answer（数值）和 unit（单位），不附加推导文本。</p><h4>输入 → 预期输出</h4><div class="io-example"><div class="io-panel"><div class="io-panel-title">INPUT <span>题目与输出要求</span></div><p>物体从静止开始做匀加速直线运动，加速度为 2 m/s²，运动 3 s。求末速度。</p><p class="io-format">输出字段：answer、unit</p></div><span class="io-arrow">→</span><div class="io-panel"><div class="io-panel-title">OUTPUT <span>参考答案</span></div><pre>{
-  "answer": 6,
-  "unit": "m/s"
-}</pre><p class="io-format">数值与单位共同参与评分</p></div></div><details class="detail-code"><summary>查看评测集样例 · JSON</summary><pre>${esc(JSON.stringify({id:'mechanics-001',split:'test',input:'物体从静止开始做匀加速直线运动，加速度为 2 m/s²，运动 3 s。求末速度。',expected_output:{answer:6,unit:'m/s'}},null,2))}</pre></details>`);
- html+=section('下载和使用',`<h4>下载方式</h4><div class="detail-downloads"><a class="btn btn-primary" href="${assetBase}evaluation/sample-upload/physics-demo-v1.0.0.zip" download>${icon('download',13)}下载评测集 · ZIP</a></div><details class="detail-code"><summary>下载代码示例</summary><pre>${esc('from urllib.request import urlopen\nimport json\nfrom urllib.parse import urljoin\n\n# 替换为页面实际部署地址\nbase_url = "'+new URL(assetBase + 'evaluation/', location.origin).href+'"\nurl = urljoin(base_url, "sample-upload/dataset.json")\nwith urlopen(url) as response:\n    data = json.load(response)\nprint(len(data["samples"]))')}</pre></details><h4>使用教程</h4><ol class="detail-steps"><li>下载并解压资源包，读取 dataset.json 中的 input。</li><li>调用待测模型，将结果保存为 predictions.json。</li><li>运行评测脚本，获取正确题数与准确率。</li></ol><details class="detail-code"><summary>评测代码示例</summary><pre>${esc('python evaluate.py --data dataset.json --predictions predictions-example.json\n\n# 结果格式：{ "题目 ID": { "answer": 数值, "unit": "单位" } }\n# 对自有模型评分时，替换为模型生成的 predictions.json。')}</pre></details>`);
- html+=section('相关来源',`<div class="detail-source-empty"><span>论文链接</span><span>暂未提供</span></div><div class="detail-source-empty"><span>项目链接</span><span>暂未提供</span></div>`);
- html+=section('许可协议',`<p>CC0 1.0 · 仅适用于本条目的原创演示题、说明与代码。</p>`);
- }else{
- const code=v.code||(b.paper.includes('github.com/')?b.paper:null),data=v.data||(b.paper.includes('huggingface.co/datasets/')?b.paper:null);
- html+=section('相关来源',link('论文链接',v.paper||(b.resultUrl?.includes('arxiv.org/')?b.resultUrl.split('#')[0].replace('/html/','/abs/'):null))+link('官方数据',data)+link('项目链接',code)+(!code&&!data?link('项目主页',b.paper):'')+(b.hasLeaderboard||v.leaderboard?link('相关榜单',v.leaderboard||b.resultUrl||b.url):'')+(b.hasLeaderboard?'<button class="btn" id="catalogToLeaderboard">查看站内模型榜单 '+icon('arrow-right',12)+'</button>':''));
+ const source=(label,value)=>{
+  const url=safeResourceUrl(value);
+  return url?`<a class="detail-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><span class="source-link-label">${sourceBrand(url)}${esc(label)}</span>${icon('external',13)}</a>`:`<div class="detail-source-empty"><span>${esc(label)}</span><span>暂未提供</span></div>`;
+ };
+ const downloadLink=(label,url,primary=false)=>`<a class="btn${primary?' btn-primary':''}" href="${esc(url)}" target="_blank" rel="noopener noreferrer" download data-evaluation-download-link>${icon('download',13)}${label}</a>`;
+ const tags=(values,others)=>[...new Set([...values.filter(value=>value!=='其他'||!others.length),...others])];
+ const sample=value=>value&&typeof value==='object'?JSON.stringify(value,null,2):value;
+ const code=(label,value)=>`<details class="detail-code"><summary>${esc(label)}</summary><pre>${esc(sample(value)||'暂未提供')}</pre></details>`;
+ const note=(label,value)=>`<h4>${esc(label)}</h4><p class="detail-text">${esc(value||'暂未提供')}</p>`;
+ const paper=b.paperUrl||v.paper||[b.paper,b.resultUrl].find(isPaperUrl);
+ const official=officialSource(b,v);
+ const repository=[b.sourceCodeUrl,b.codeUrl,v.code, /^https?:\/\/github\.com\/[^/]+\/[^/#?]+\/?$/i.test(official)?official:''].find(safeResourceUrl);
+ const metric=demo?'准确率（Accuracy）':v.metric||(b.metric!=='原项目任务指标'&&b.metric)||'';
+ const related=catalogItems().filter(item=>item.id!==b.id).map(item=>({
+  item,
+  relevance:3*item.subjects.filter(value=>b.subjects.includes(value)).length
+   +2*item.tasks.filter(value=>value!=='其他'&&b.tasks.includes(value)).length
+   +item.paradigms.filter(value=>value!=='其他'&&b.paradigms.includes(value)).length,
+ })).filter(({relevance})=>relevance>0).sort((a,c)=>c.relevance-a.relevance).slice(0,3);
+ const relatedSection=related.length?section('相关评测集',related.map(({item})=>`<button type="button" class="detail-related" data-related-detail="${esc(item.id)}"><span>${esc(item.name)}</span>${icon('arrow-right',13)}</button>`).join('')):'';
+ let html=section('基本信息',`<dl class="evaluation-detail-meta">
+  ${uploaded?row('更新时间',b.updatedAt):''}
+  ${row('作者',b.authors||v.authors)}
+  ${row('机构',b.institution||b.team)}
+  ${row('学科领域',b.subjects)}
+  ${row('任务类型',tags(b.tasks,b.taskOthers))}
+  ${row('评测范式',tags(b.paradigms,b.paradigmOthers))}
+  ${uploaded?'':row('发布年份',b.year?`${b.year} 年`:'')}
+  ${row('模态',demo?'文本':b.modality||v.modality)}
+  ${row('语言',b.language)}
+  ${row('规模',v.size||b.size)}
+  ${row('关键词',b.keywords)}
+ </dl>`);
+ html+=section('评测指标',`<p>${esc(metric||(uploaded?'暂未提供':'详见官方评测说明'))}</p>${b.method&&metric?`<p class="detail-text">${esc(b.method)}</p>`:''}`);
+ if(!uploaded){
+  const datasetFile=safeResourceUrl(v.download||b.downloadUrl);
+  html+=section('相关来源',source('论文链接',paper)+source('官方链接',official)+source('官方源代码',repository)
+   +(datasetFile?downloadLink('下载评测集',datasetFile):'')
+   +(benchmarks.some(item=>item.id===b.id)?`<button type="button" class="btn btn-primary" id="catalogToLeaderboard">查看站内榜单 ${icon('arrow-right',13)}</button>`:''));
+  return html+relatedSection;
  }
- const related=demo?['phybench','ugphysics']:({math500:['gsm8k','aime'],gsm8k:['math500'],scicode:['sab','scibench'],gpqa:['mmlu','sciknow']}[b.id]||[]);
- if(related.length)html+=section('相关评测集',related.map(id=>{const r=catalogItems().find(x=>x.id===id);return r?`<button class="detail-related" data-related-detail="${id}"><span>${esc(r.name)}</span>${icon('arrow-right',13)}</button>`:''}).join(''));
- if(demo)html+=section('关联语料',`<button class="detail-related" id="demoCorpusLink"><span>基础力学教学语料（模拟）</span>${icon('arrow-right',13)}</button>`);
+
+ const sampleRoot=assetBase+'evaluation/sample-upload/';
+ const exampleInput='物体从静止开始做匀加速直线运动，加速度为 2 m/s²，运动 3 s。求末速度。';
+ const exampleOutput={answer:6,unit:'m/s'};
+ html+=section('任务与样例',
+  note('任务说明',demo?'阅读基础力学题，提取已知条件并计算结果。输出包含 answer 和 unit 的 JSON 对象。':b.taskDescription)
+  +`<div class="io-example"><div class="io-panel"><div class="io-panel-title">输入示例</div><pre>${esc(sample(demo?exampleInput:b.inputExample)||'暂未提供')}</pre></div><span class="io-arrow" aria-hidden="true">→</span><div class="io-panel"><div class="io-panel-title">预期输出</div><pre>${esc(sample(demo?exampleOutput:b.expectedOutput)||'暂未提供')}</pre></div></div>`
+  +(b.sampleUrl?source('查看评测集样例',b.sampleUrl):code('评测集样例',demo?{id:'mechanics-001',split:'test',input:exampleInput,expected_output:exampleOutput}:b.sample))
+  +(b.hasLocalSample?`<button type="button" class="btn" data-evaluation-files="sample">${icon('download',13)}下载评测集样例</button>`:''));
+
+ const download=safeResourceUrl(demo?sampleRoot+'physics-demo-v1.0.0.zip':b.downloadUrl);
+ const api=safeResourceUrl(demo?sampleRoot+'dataset.json':b.apiUrl);
+ const repositoryDownload=download&&new URL(download).hostname==='github.com'&&!/\/(?:archive|releases\/download)\//.test(new URL(download).pathname);
+ const downloadCode=b.downloadCode||(api?`from urllib.request import urlretrieve
+
+urlretrieve(${JSON.stringify(api)}, ${JSON.stringify(new URL(api).pathname.split('/').pop()||'evaluation-data')})`:'');
+ const direct=download
+  ? repositoryDownload?source('查看数据仓库',download):downloadLink('直接下载',download,true)
+  : b.hasLocalDownload?`<button type="button" class="btn btn-primary" data-evaluation-files="complete">${icon('download',13)}直接下载</button>`:'<p>暂未提供完整评测集文件。</p>';
+ html+=section('评测集下载和使用',
+  '<h4>下载方式</h4>'
+  +(b.permission==='公开'
+   ?`<div class="evaluation-download-methods"><div><h5>直接下载</h5>${direct}</div><div><h5>接口</h5>${api?downloadLink('下载接口数据',api):'<p>暂未提供下载接口。</p>'}${code('下载代码示例',downloadCode)}</div></div>`
+   :`<p>当前资源${esc(b.permission)}，详情页暂不提供数据下载。</p>`)
+  +note('使用教程',demo?'下载并解压资源包，读取 dataset.json 中的题目，将模型输出保存为 predictions.json，再运行评分脚本获取准确率。':b.usageGuide)
+  +code('评测代码示例',demo?'python evaluate.py --data dataset.json --predictions predictions-example.json':b.evaluationCode));
+ html+=section('相关来源',source('论文链接',paper)+source('项目链接',b.projectUrl||official));
+ html+=section('许可协议',`<p class="detail-text">${esc(demo?'CC0 1.0 · 适用于本条目的原创演示题、说明与代码。':b.license||'暂未提供')}</p>`);
+
+ html+=relatedSection;
+ const corpora=Array.isArray(b.relatedCorpora)?b.relatedCorpora.filter(c=>typeof c?.id==='string'&&c.id&&typeof c.name==='string'&&c.name):[];
+ if(corpora.length)html+=section('关联语料库',corpora.map(c=>`<a class="detail-related" href="${esc(assetBase)}search/datasets/${encodeURIComponent(c.id)}"><span>${esc(c.name)}</span>${icon('arrow-right',13)}</a>`).join(''));
  return html;
 }
-function renderStandaloneDetail(){
- const b=catalogItems().find(item=>item.id===catalogState.detail);
- evaluationRoot.querySelector('.hero').classList.add('hidden');$('evaluation').classList.add('hidden');
- const root=$('catalogStandaloneDetail');root.classList.remove('hidden');
- if(!b){root.innerHTML=`<div class="panel detail-not-found"><h1>未找到该评测集</h1><p>该资源可能尚未审核通过或已移除。</p><button class="btn" id="detailBack">返回评测集</button></div>`;$('detailBack').onclick=()=>options.onBack?.();return;}
- root.innerHTML=`<div class="standalone-detail-top"><button class="btn" id="detailBack">${icon('chevron-left',15)}返回评测集</button><div id="catalogDetailPlanTop"></div></div><article class="panel standalone-detail-content"><header class="standalone-detail-heading"><div class="benchmark-icon">${icon(b.icon,30)}</div><div><h1>${esc(b.name)}</h1><p>更新时间：${b.updatedAt||'暂未提供'} · ${esc(b.permission)}</p></div><button class="btn btn-primary" id="standalonePlanAdd">${icon(catalogPlan.includes(b.id)?'check':'plus',14)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button></header><h2 class="detail-intro-label">简介</h2><p class="catalog-detail-intro">${esc(b.desc)}</p>${catalogDetailContent(b)}</article>`;
- $('detailBack').onclick=()=>options.onBack?.();$('standalonePlanAdd').onclick=()=>toggleCatalogPlan(b.id);renderCatalogPlan();
- if($('catalogToLeaderboard'))$('catalogToLeaderboard').onclick=()=>options.onLeaderboard?.(b.id);
- evaluationRoot.querySelectorAll('[data-related-detail]').forEach(el=>el.onclick=()=>openCatalogDetail(el.dataset.relatedDetail));
- if($('demoCorpusLink'))$('demoCorpusLink').onclick=()=>modal('关联语料','<p>基础力学教学语料为本条模拟评测集的任务背景材料。</p>');
+
+function evaluationActivity(b,className){
+ const metrics=[
+  ['downloads','下载量','download',b.downloadCount,b.baseDownloads],
+  ['views','浏览量','eye',b.viewCount,b.baseViews],
+  ['favorites','收藏量','star',b.favoriteCount,b.baseFavorites],
+ ];
+ return `<dl class="evaluation-activity ${className}" aria-label="评测集使用统计">${metrics.map(([key,label,symbol,count,base])=>`<div><dt>${icon(symbol,14)}${label}</dt><dd data-activity="${key}" data-base-count="${base}">${count.toLocaleString('zh-CN')}</dd></div>`).join('')}</dl>`;
 }
 
-function renderCatalogDetail(){if(options.detailId){renderStandaloneDetail();return;}const b=catalogItems().find(x=>x.id===catalogState.detail);if(!b)return;const previous=$('catalogDrawerBody'),scroll=previous?.scrollTop||0,isNew=!previous,focusedId=evaluationRoot.activeElement?.id;
- $('catalogDrawerRoot').innerHTML=`<div class="catalog-drawer-overlay" id="catalogDrawerOverlay"><section class="catalog-drawer" role="dialog" aria-modal="true" aria-labelledby="catalogDrawerTitle"><header class="catalog-drawer-header"><h2 id="catalogDrawerTitle">评测集详情</h2><div id="catalogDetailPlanTop"></div><button class="modal-close" id="catalogDrawerClose" aria-label="关闭评测集详情">${icon('close',19)}</button></header><div class="catalog-drawer-body" id="catalogDrawerBody"><div class="catalog-detail-heading"><div class="benchmark-icon">${icon(b.icon,26)}</div><div><h2>${esc(b.name)}</h2></div></div><h3 class="detail-intro-label">简介</h3><p class="catalog-detail-intro">${esc(b.desc)}</p>${catalogDetailContent(b)}</div><footer class="catalog-drawer-footer"><button class="btn" id="catalogDrawerDone">关闭</button><button class="btn btn-primary" id="catalogDrawerAdd">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button></footer></section></div>`;
- document.body.style.overflow='hidden';$('catalogDrawerClose').onclick=()=>closeCatalogDrawer();$('catalogDrawerDone').onclick=()=>closeCatalogDrawer();$('catalogDrawerOverlay').onclick=e=>{if(e.target===$('catalogDrawerOverlay'))closeCatalogDrawer();};$('catalogDrawerAdd').onclick=()=>toggleCatalogPlan(b.id);if($('catalogToLeaderboard'))$('catalogToLeaderboard').onclick=()=>{closeCatalogDrawer(false);selectBenchmark(b.id);};evaluationRoot.querySelectorAll('[data-related-detail]').forEach(el=>el.onclick=()=>{catalogState.detail=el.dataset.relatedDetail;$('catalogDrawerBody').scrollTop=0;renderCatalogDetail();});if($('demoCorpusLink'))$('demoCorpusLink').onclick=()=>modal('基础力学教学语料（模拟）','<p>关联语料示例：包含匀加速运动、牛顿第二定律和动能计算的基础公式与教学说明。</p><div class="detail-grid"><span class="label">关联方式</span><span>本模拟评测集的任务背景材料</span><span class="label">资源性质</span><span>演示元信息，无独立语料库文件</span></div>');renderCatalogPlan();$('catalogDrawerBody').scrollTop=scroll;if(isNew)$('catalogDrawerClose').focus({preventScroll:true});else if(focusedId)$(focusedId)?.focus({preventScroll:true});
+async function shareCatalogDetail(id){
+ const url=new URL(assetBase+'evaluation/datasets/'+encodeURIComponent(id),location.origin).href;
+ try{
+  await navigator.clipboard.writeText(url);
+  if($('toastRoot'))toast('已复制评测集链接，可转发');
+ }catch{
+  if($('catalogDrawerBody')?.dataset.resourceId!==id)return;
+  modal('分享评测集',`<label class="form-field">评测集链接<input id="catalogShareUrl" value="${esc(url)}" readonly></label>`);
+  $('catalogShareUrl').focus();
+  $('catalogShareUrl').select();
+ }
 }
-let planConfig={model:'',harness:''};try{Object.assign(planConfig,JSON.parse(localStorage.getItem('science-demo-plan-config')||'{}'));}catch{}
+
+function renderCatalogDetail(){
+ const b=catalogItems().find(item=>item.id===catalogState.detail);
+ const root=$('catalogDrawerRoot'),previous=$('catalogDrawerBody');
+ const changed=previous?.dataset.resourceId!==b?.id;
+ const scroll=changed?0:previous?.scrollTop||0;
+ const focusedId=evaluationRoot.activeElement?.id;
+ const content=b?`<section class="catalog-detail-overview">
+  <div class="catalog-detail-top">
+   <div class="catalog-detail-heading"><div class="benchmark-icon">${icon(b.icon,26)}</div><h2>${esc(b.name)}</h2></div>
+   <div class="catalog-detail-actions">
+    <button type="button" id="catalogDetailFavorite" aria-pressed="${b.favorite}" class="${b.favorite?'is-active':''}">${icon('star',15)}<span>${b.favorite?'已收藏':'收藏'}</span></button>
+    <button type="button" id="catalogDetailShare">${icon('share',15)}分享</button>
+   </div>
+  </div>
+  ${evaluationActivity(b,'evaluation-detail-activity')}
+  <h3 class="detail-intro-label">简介</h3><p class="catalog-detail-intro">${esc(b.desc||'暂未提供')}</p>
+ </section>${catalogDetailContent(b)}`:'<section class="catalog-detail-overview"><h2>未找到该评测集</h2><p>该资源可能尚未审核通过或已移除。</p></section>';
+ root.innerHTML=`<div class="catalog-drawer-overlay${previous?' drawer-open':''}" id="catalogDrawerOverlay">
+  <section class="catalog-drawer" role="dialog" aria-modal="true" aria-labelledby="catalogDrawerTitle">
+   <header class="catalog-drawer-header"><h2 id="catalogDrawerTitle">评测集详情</h2><div id="catalogDetailPlanTop"></div><button type="button" class="modal-close" id="catalogDrawerClose" aria-label="关闭评测集详情">${icon('close',19)}</button></header>
+   <div class="catalog-drawer-body" id="catalogDrawerBody" data-resource-id="${esc(b?.id||'')}">${content}</div>
+   <footer class="catalog-drawer-footer"><button type="button" class="btn" id="catalogDrawerDone">关闭</button>${b?`<button type="button" class="btn btn-primary" id="catalogDrawerAdd" aria-pressed="${catalogPlan.includes(b.id)}">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button>`:''}</footer>
+  </section>
+ </div>`;
+ document.body.style.overflow='hidden';
+ $('evaluation').inert=true;
+ $('catalogDrawerClose').onclick=()=>closeCatalogDrawer();
+ $('catalogDrawerDone').onclick=()=>closeCatalogDrawer();
+ $('catalogDrawerOverlay').onclick=e=>{if(e.target===$('catalogDrawerOverlay'))closeCatalogDrawer();};
+ if(b){
+  $('catalogDrawerAdd').onclick=()=>toggleCatalogPlan(b.id);
+  $('catalogDetailFavorite').onclick=()=>toggleCatalogFavorite(b.id);
+  $('catalogDetailShare').onclick=()=>void shareCatalogDetail(b.id);
+ }
+ root.querySelectorAll('[data-evaluation-download-link]').forEach(link=>link.addEventListener('click',()=>recordCatalogActivity('downloads',b.id)));
+ root.querySelectorAll('[data-evaluation-files]').forEach(button=>button.onclick=async()=>{
+  const key=button.dataset.evaluationFiles;
+  try {
+   const record=await readEvaluationTask(b.account,b.id);
+   if(!button.isConnected)return;
+   const files=record?evaluationFiles(record.data[key]):[];
+   if(!files.length){toast('当前浏览器中没有可下载的文件');return;}
+   let counted=false;
+   const downloadFile=file=>{
+    downloadEvaluationFile(file);
+    if(key==='complete'&&!counted){counted=true;recordCatalogActivity('downloads',b.id);}
+   };
+   if(files.length===1){downloadFile(files[0]);return;}
+   modal(key==='sample'?'下载评测集样例':'下载完整评测集',files.map(({path},index)=>`<button type="button" class="detail-related" data-evaluation-download="${index}"><span>${esc(path)}</span>${icon('download',13)}</button>`).join(''));
+   $('modalRoot').querySelectorAll('[data-evaluation-download]').forEach(el=>el.onclick=()=>downloadFile(files[Number(el.dataset.evaluationDownload)]));
+  }catch{if(button.isConnected)toast('读取文件失败，请重试');}
+ });
+ if($('catalogToLeaderboard'))$('catalogToLeaderboard').onclick=()=>{
+  if(options.detailId&&options.onLeaderboard){options.onLeaderboard(b.id);return;}
+  closeCatalogDrawer(false);
+  selectBenchmark(b.id);
+  evaluationRoot.querySelector('[data-benchmark].active')?.focus();
+ };
+ root.querySelectorAll('[data-related-detail]').forEach(el=>el.onclick=()=>openCatalogDetail(el.dataset.relatedDetail));
+ renderCatalogPlan();
+ $('catalogDrawerBody').scrollTop=scroll;
+ if(!previous||changed)$('catalogDrawerClose').focus({preventScroll:true});
+ else if(focusedId)$(focusedId)?.focus({preventScroll:true});
+}
+const planConfig={model:'',harness:''};
+try{Object.assign(planConfig,JSON.parse(localStorage.getItem('science-demo-plan-config')||'{}'));}catch{}
 function savePlanConfig(){if($('planModel'))planConfig.model=$('planModel').value;if($('planHarness'))planConfig.harness=$('planHarness').value;try{localStorage.setItem('science-demo-plan-config',JSON.stringify(planConfig));}catch{}}
 function showCatalogPlan(){const list=catalogPlan.map(id=>catalogItems().find(b=>b.id===id)).filter(Boolean);modal('我的评测清单',`<div class="plan-modal-intro"><span>已添加 <strong>${list.length}</strong> 个评测集</span>${list.length?'<button class="text-btn" id="planModalClear">清空清单</button>':''}</div><div class="plan-config"><label class="form-field">模型名称<input id="planModel" placeholder="填写待评测模型名称与版本" value="${esc(planConfig.model)}"></label><label class="form-field">Harness<input id="planHarness" placeholder="例如：lm-evaluation-harness、Inspect 或自定义" value="${esc(planConfig.harness)}"></label></div><div class="plan-review-list">${list.length?list.map((b,i)=>`<div><span class="plan-row-index">${i+1}</span><span class="plan-review-icon">${icon(b.icon,19)}</span><span class="plan-row-name"><strong>${esc(b.name)}</strong><small>${esc(b.version)} · ${b.subjects.map(esc).join(' / ')}</small></span><a class="text-btn" href="${esc(b.paper||assetBase+'evaluation/datasets/'+encodeURIComponent(b.id))}" target="_blank" rel="noopener noreferrer">来源 ${icon('external',11)}</a><button class="plan-remove" data-modal-remove="${b.id}" aria-label="从清单移除：${esc(b.name)}">${icon('close',14)}</button></div>`).join(''):'<div class="plan-empty">'+icon('bookmark',28)+'<strong>还没有添加评测集</strong><span>从目录卡片点击“加入清单”，开始整理你的评测计划。</span></div>'}</div><p class="plan-download-note">清单包含所选评测集、来源链接，以及填写的模型和 Harness；不包含原始数据文件。</p>`,`<button class="btn btn-primary" id="planDownloadJson" ${!list.length?'disabled':''}>${icon('download',13)}下载评测清单</button>`,true);$('planModel').oninput=savePlanConfig;$('planHarness').oninput=savePlanConfig;$('planDownloadJson').onclick=()=>{savePlanConfig();downloadCatalogPlan('json')};evaluationRoot.querySelectorAll('[data-modal-remove]').forEach(el=>el.onclick=()=>{savePlanConfig();toggleCatalogPlan(el.dataset.modalRemove);showCatalogPlan();});if($('planModalClear'))$('planModalClear').onclick=()=>{savePlanConfig();catalogPlan=[];persistCatalogPlan();renderCatalog();showCatalogPlan();};}
 function catalogPlanData(){return catalogPlan.map(id=>catalogItems().find(b=>b.id===id)).filter(Boolean).map(b=>({id:b.id,name:b.name,version:b.version,subjects:b.subjects,tasks:b.tasks,taskOthers:b.taskOthers,paradigms:b.paradigms,paradigmOthers:b.paradigmOthers,description:b.desc,team:b.team,year:b.year,updatedAt:b.updatedAt,permission:b.permission,source:b.paper||new URL(assetBase+'evaluation/datasets/'+encodeURIComponent(b.id),location.origin).href,results:b.hasLeaderboard?(b.resultUrl||b.url):'',model:planConfig.model,harness:planConfig.harness}));}
 function downloadCatalogPlan(format){const rows=catalogPlanData();if(!rows.length)return;let content,type;if(format==='json'){content=JSON.stringify({schemaVersion:'1.0',exportedAt:new Date().toISOString(),model:planConfig.model,harness:planConfig.harness,evaluations:rows},null,2);type='application/json;charset=utf-8';}else{const labels=['评测集','版本','学科','任务类型','评测范式','提供团队','发布年份','权限说明','项目地址','成绩来源','待评测模型','运行框架与配置'];const quote=v=>'"'+String(v).replace(/"/g,'""')+'"';content='\uFEFF'+[labels,...rows.map(b=>Object.values(b))].map(r=>r.map(quote).join(',')).join('\r\n');type='text/csv;charset=utf-8';}const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download='科学评测清单.'+format;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('评测清单已导出');}
 
 function showUpload(){modal('共建科学评测集',`<p>登记你的评测资源，后续可补充数据、运行方式和评分规则。</p><form id="uploadForm"><label class="form-field">评测集名称 <span style="color:#af96d9">*</span><input name="name" placeholder="例如：大学物理多步推理评测集" required maxlength="80"></label><label class="form-field">主要学科<select name="subject"><option>物理</option><option>数学</option><option>化学</option><option>天文</option><option>地理</option><option>生物</option><option>跨学科</option></select></label><label class="form-field">简介<textarea name="description" placeholder="简要说明评测的科学任务和适用场景" maxlength="500"></textarea></label><label class="form-field file-upload">${icon('upload',21)}<div style="margin:7px 0">选择评测材料（选填）</div><input type="file" name="material" accept=".json,.jsonl,.csv,.zip,.pdf,.txt"></label><div class="note-box">演示模式：这里只保存草稿信息到当前浏览器，文件不会上传，数据不会发送至服务器。</div></form>`,`<button class="btn" id="modalDone">取消</button><button class="btn btn-primary" id="saveDraft">保存演示草稿</button>`);try{const draft=JSON.parse(localStorage.getItem('science-demo-draft')||'null');if(draft){const form=$('uploadForm');form.elements.name.value=draft.name||'';form.elements.subject.value=draft.subject||'物理';form.elements.description.value=draft.description||'';}}catch{}$('saveDraft').onclick=()=>{const form=$('uploadForm');if(!form.reportValidity())return;const data=Object.fromEntries(new FormData(form));delete data.material;try{localStorage.setItem('science-demo-draft',JSON.stringify(data));closeModal();toast('演示草稿已保存到当前浏览器')}catch{toast('浏览器未允许本地保存，请复制填写内容保留')}};}
-$('modelSearch').oninput=e=>{state.query=e.target.value;state.page=1;renderResults()};$('clearSearch').onclick=()=>{state.query='';$('modelSearch').value='';state.page=1;renderResults();$('modelSearch').focus()};evaluationRoot.querySelectorAll('[data-access]').forEach(el=>el.onclick=()=>{state.access=el.dataset.access;state.page=1;evaluationRoot.querySelectorAll('[data-access]').forEach(b=>{b.classList.toggle('active',b===el);b.setAttribute('aria-pressed',b===el)});renderResults()});$('resetBtn').onclick=resetFilters;$('tableViewBtn').onclick=()=>setView('table');$('chartViewBtn').onclick=()=>setView('chart');$('exportBtn').onclick=exportCsv;$('methodBtn').onclick=showMethod;$('detailBtn').onclick=showDetail;$('catalogTab').onclick=()=>switchModule('catalog');$('leaderboardTab').onclick=()=>switchModule('leaderboard');$('uploadBtn').onclick=()=>options.onUpload?options.onUpload():showUpload();
-$('coBuildBtn').onclick=()=>modal('科学评测共建说明','<p>欢迎贡献自行建设或已获得合法授权的科学评测集，共同丰富科学领域的模型能力评估。</p><h4>什么样的资源适合贡献？</h4><p>数学、物理、化学、天文、地理、生物及跨学科方向的科学问答、推理、计算、文献理解和科研任务。</p><h4>需要准备什么？</h4><p>评测集介绍、题目或任务、评分方法、运行说明，以及来源和许可说明。</p><div class="note-box">上传评测集不等于发布模型榜单。具备可追溯的模型成绩后，才可整理为榜单。</div>');
-const handleKeyDown = e=>{if(e.key==='Escape'&&!$('catalogYearOptions').classList.contains('hidden')){closeCatalogYears();$('catalogYearTrigger').focus();return;}const root=$('modalRoot').firstElementChild?$('modalRoot'):$('catalogDrawerRoot').firstElementChild?$('catalogDrawerRoot'):null;if(e.key==='Escape'){if($('modalRoot').firstElementChild)closeModal();else closeCatalogDrawer();}if(e.key==='Tab'&&root){const f=[...root.querySelectorAll('button:not(:disabled),a[href],input,select,textarea,summary')].filter(el=>el.offsetParent!==null);if(!f.length)return;if(e.shiftKey&&evaluationRoot.activeElement===f[0]){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&evaluationRoot.activeElement===f[f.length-1]){e.preventDefault();f[0].focus()}}};
+$('modelSearch').oninput=e=>{state.query=e.target.value;state.page=1;renderResults()};$('clearSearch').onclick=()=>{state.query='';$('modelSearch').value='';state.page=1;renderResults();$('modelSearch').focus()};evaluationRoot.querySelectorAll('[data-access]').forEach(el=>el.onclick=()=>{state.access=el.dataset.access;state.page=1;evaluationRoot.querySelectorAll('[data-access]').forEach(b=>{b.classList.toggle('active',b===el);b.setAttribute('aria-pressed',b===el)});renderResults()});$('resetBtn').onclick=resetFilters;$('tableViewBtn').onclick=()=>setView('table');$('chartViewBtn').onclick=()=>setView('chart');$('exportBtn').onclick=()=>void exportLeaderboard();$('detailBtn').onclick=showDetail;$('catalogTab').onclick=()=>switchModule('catalog');$('leaderboardTab').onclick=()=>switchModule('leaderboard');$('uploadBtn').onclick=()=>options.onUpload?options.onUpload():showUpload();
+const handleKeyDown = e=>{if(e.key==='Escape'){const open=catalogYearBounds.find(([key])=>yearTrigger(key).getAttribute('aria-expanded')==='true');if(open){closeCatalogYears();yearTrigger(open[0]).focus();return;}}const root=$('modalRoot').firstElementChild?$('modalRoot'):$('catalogDrawerRoot').firstElementChild?$('catalogDrawerRoot'):null;if(e.key==='Escape'){if($('modalRoot').firstElementChild)closeModal();else closeCatalogDrawer();}if(e.key==='Tab'&&root){const f=[...root.querySelectorAll('button:not(:disabled),a[href],input,select,textarea,summary')].filter(el=>el.offsetParent!==null);if(!f.length)return;if(e.shiftKey&&evaluationRoot.activeElement===f[0]){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&evaluationRoot.activeElement===f[f.length-1]){e.preventDefault();f[0].focus()}}};
 evaluationRoot.addEventListener('keydown', handleKeyDown);
-initCatalog();renderBenchmarkTabs();renderSummary();renderResults();switchModule('catalog');if(options.benchmarkId&&benchmarks.some(b=>b.id===options.benchmarkId))selectBenchmark(options.benchmarkId);if(options.detailId){catalogState.detail=options.detailId;renderStandaloneDetail();}
+const benchmarkTabs=$('benchmarkTabs');
+benchmarkTabs.onscroll=syncBenchmarkArrows;
+$('benchmarkPrev').onclick=()=>benchmarkTabs.scrollBy({left:-benchmarkTabs.clientWidth*.75,behavior:'smooth'});
+$('benchmarkNext').onclick=()=>benchmarkTabs.scrollBy({left:benchmarkTabs.clientWidth*.75,behavior:'smooth'});
+const benchmarkResizeObserver=new ResizeObserver(syncBenchmarkArrows);
+benchmarkResizeObserver.observe(benchmarkTabs);
+initCatalog();renderBenchmarkTabs();renderSummary();renderResults();switchModule('catalog');if(options.benchmarkId&&benchmarks.some(b=>b.id===options.benchmarkId))selectBenchmark(options.benchmarkId);if(options.detailId)openCatalogDetail(options.detailId);
   return () => {
     evaluationRoot.removeEventListener('keydown', handleKeyDown);
+    benchmarkResizeObserver.disconnect();
+    window.removeEventListener('storage',syncCatalogFavoritesFromStorage);
     document.removeEventListener('pointerdown', handleYearOutside);
     clearTimeout(toastTimer);
     document.body.style.overflow = previousOverflow;

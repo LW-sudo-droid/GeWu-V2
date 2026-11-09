@@ -25,6 +25,7 @@ import { avatarUrl, communityUsers } from '../data/community-users'
 import { corpusRecords, type CorpusRecord } from './CorpusSearch'
 import { DemandPoster, initialDemandPosts, type DemandPost } from './DemandSquare'
 import { auditWorkStatusOptions, loadAuditItems, removeAuditItemByCorpus, type AuditWorkItem, type AuditWorkStatus } from '../data/audit-work'
+import { readEvaluationSubmissions } from '../data/evaluation-upload'
 import './profile-ui-v2.css'
 
 type MainTab = 'corpora' | 'demands' | 'social' | 'submit' | 'audit' | 'privacy'
@@ -329,6 +330,7 @@ export default function Profile() {
   const [privacyFavorite, setPrivacyFavorite] = useState<FavoritePrivacy>('全部公开')
   const [privacyCommented, setPrivacyCommented] = useState<CommentPrivacy>('全部公开')
   const [privacyFollow, setPrivacyFollow] = useState<FollowPrivacy>('全部公开')
+  const evaluationSubmissions = activeTab === 'submit' && user && !isVisitor ? readEvaluationSubmissions().filter(record => record.account === user.account) : []
   const submitStatusParam = searchParams.get('sstatus')
   const submitStatus: '全部' | SubmitStatus = (['审核中', '待修改', '已通过', '未通过', '发布异常', '已撤回'] as SubmitStatus[]).includes(submitStatusParam as SubmitStatus) ? submitStatusParam as SubmitStatus : '全部'
   const setSubmitStatus = (status: '全部' | SubmitStatus) => {
@@ -791,6 +793,21 @@ export default function Profile() {
             </>
           )}
 
+          {evaluationSubmissions.length > 0 && <section aria-label="评测集上传记录">
+            <h3>评测集上传记录</h3>
+            <div className="submit-table-wrap"><table className="submit-table">
+              <thead><tr><th>评测集名称</th><th>共享范围</th><th>提交时间</th><th>状态</th><th>操作</th></tr></thead>
+              <tbody>{evaluationSubmissions.map(record => {
+                const status = record.status === 'approved' ? '已通过' : record.status === 'rejected' ? '未通过' : '审核中'
+                return <tr key={record.id}>
+                  <td>{record.name}</td><td>{String(record.permission || '—')}</td>
+                  <td>{typeof record.submittedAt === 'string' ? new Date(record.submittedAt).toLocaleString('zh-CN', { hour12: false }) : String(record.updatedAt || '—')}</td>
+                  <td><span className={`submit-status is-${status}`}>{status}</span></td>
+                  <td><div className="submit-actions"><button type="button" onClick={() => navigate('/evaluation/upload?record=' + encodeURIComponent(record.id))}>查看记录</button></div></td>
+                </tr>
+              })}</tbody>
+            </table></div>
+          </section>}
           {activeTab === 'submit' && (() => {
             // Five compact demo pages: reuse the current records while keeping
             // every page independently clickable and all row actions functional.

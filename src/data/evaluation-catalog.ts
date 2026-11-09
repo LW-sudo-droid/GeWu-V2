@@ -38,6 +38,7 @@ export function normalizeEvaluationResource(raw: Record<string, unknown>) {
     permissionNote: text(raw.permissionNote, originalPermission),
     keywords: strings(raw.keywords), year: Number(raw.year) || 0,
     updatedAt: date(raw.updatedAt, date(raw.checkedAt)),
+    downloadCount: count(raw.downloadCount),
     viewCount: count(raw.viewCount ?? raw.views), favoriteCount: count(raw.favoriteCount ?? raw.favorites),
     paper: resourceUrl(raw.paper ?? raw.officialUrl ?? raw.url), url: resourceUrl(raw.url ?? raw.officialUrl ?? raw.paper),
     origin: text(raw.origin, 'external'),
@@ -46,6 +47,6 @@ export function normalizeEvaluationResource(raw: Record<string, unknown>) {
 export function readApprovedEvaluationUploads() {
   try {
     const records: unknown = JSON.parse(localStorage.getItem(EVALUATION_SUBMISSIONS_KEY) || '[]')
-    return Array.isArray(records) ? records.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && entry.status === 'approved' && typeof entry.id === 'string' && typeof entry.name === 'string').map(entry => normalizeEvaluationResource({ ...entry, origin: 'platform' })) : []
+    return Array.isArray(records) ? records.filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && entry.status === 'approved' && typeof entry.id === 'string' && typeof entry.name === 'string').map(entry => normalizeEvaluationResource({ ...entry, origin: 'platform' })).filter(entry => entry.permission !== '不公开') : []
   } catch { return [] }
 }
