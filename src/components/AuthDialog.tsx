@@ -42,6 +42,10 @@ export default function AuthDialog() {
       navigate('/upload')
       return
     }
+    if (location.pathname === '/evaluation/upload') {
+      navigate('/evaluation')
+      return
+    }
     const protectedCorpusPage = location.pathname.startsWith('/search/results')
       || location.pathname.startsWith('/search/datasets/')
     if (protectedCorpusPage) navigate('/search')

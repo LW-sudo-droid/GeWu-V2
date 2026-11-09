@@ -11,6 +11,7 @@ import DatasetAudit from './pages/DatasetAudit'
 import CorpusUpload from './pages/CorpusUpload'
 import CorpusUploadLanding from './pages/CorpusUploadLanding'
 import CorpusEvaluation from './pages/CorpusEvaluation'
+import EvaluationUpload from './pages/EvaluationUpload'
 import Profile from './pages/Profile'
 import DemandSquare from './pages/DemandSquare'
 import DemandDetail from './pages/DemandDetail'
@@ -33,6 +34,8 @@ export default function App() {
         <Route path="/upload" element={<CorpusUploadLanding />} />
         <Route path="/upload/form" element={<CorpusUpload />} />
         <Route path="/evaluation" element={<CorpusEvaluation />} />
+        <Route path="/evaluation/upload" element={<ProtectedRoute><EvaluationUpload /></ProtectedRoute>} />
+        <Route path="/evaluation/datasets/:datasetId" element={<CorpusEvaluation />} />
         <Route path="/demands" element={<DemandSquare />} />
         <Route path="/demands/new" element={<DemandCreate />} />
         <Route path="/demands/new/edit" element={<DemandPostEditor />} />
