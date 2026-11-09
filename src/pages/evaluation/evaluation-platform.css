@@ -574,17 +574,38 @@
 .catalog-card-meta .catalog-resource-link { min-height: 0; margin: 0; flex: none; font-size: 11px; white-space: nowrap; }
 .catalog-card-actions { padding-top: 10px; }
 .catalog-card-actions .btn { height: 32px; }
-.catalog-year-range { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 5px; }
-.catalog-year-picker { min-width: 0; position: relative; }
+#evaluation > .panel:has(.catalog-year-trigger[aria-expanded="true"]) { overflow: visible; }
+.catalog-year-range { position: relative; width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 5px; }
+.catalog-year-picker { min-width: 0; }
 .catalog-year-dash { color: #8791a4; }
 .catalog-year-trigger span { white-space: nowrap; }
 .catalog-year-trigger svg { flex: none; }
 .catalog-year-trigger { width: 100%; height: 36px; padding: 0 6px; display: flex; align-items: center; justify-content: space-between; gap: 3px; border: 1px solid #e0e4ef; border-radius: 7px; background: #fff; color: #7d879b; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
 .catalog-year-trigger[aria-expanded="true"] { border-color: #aaa0fa; box-shadow: 0 0 0 2px #8d7dff0c; }
-.catalog-year-options { position: absolute; z-index: 8; top: calc(100% + 6px); left: 0; width: max(100%, 96px); max-height: 232px; overflow-y: auto; overscroll-behavior: contain; padding: 5px; border: 1px solid #e7e8f0; border-radius: 9px; background: #fff; box-shadow: 0 5px 18px #3041641c; scrollbar-width: thin; scrollbar-color: #d2d7e6 transparent; }
-.catalog-year-picker:last-child .catalog-year-options { right: 0; left: auto; }
-.catalog-year-options button { display: block; width: 100%; height: 32px; padding: 0 10px; border: 0; border-radius: 5px; background: transparent; text-align: left; color: #8791a4; font: inherit; font-size: 12px; cursor: pointer; }
-.catalog-year-options button:hover,.catalog-year-options button:focus { background: #f4f3ff; color: #7362d8; outline: none; }
+.catalog-year-options {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 6px);
+  left: 0;
+  width: clamp(174px, 100%, 240px);
+  max-height: min(222px, 43vh);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: 1px solid #e0e4ef;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 5px 18px #3041641c;
+  scrollbar-width: thin;
+  scrollbar-color: #d2d7e6 transparent;
+}
+.catalog-year-options.opens-above { top: auto; bottom: calc(100% + 6px); }
+.catalog-year-options button { min-width: 0; height: 30px; padding: 0 3px; border: 0; border-radius: 5px; background: #f7f8fc; color: #536077; font: inherit; font-size: 12px; font-variant-numeric: tabular-nums; cursor: pointer; }
+.catalog-year-options button:hover { background: #f4f3ff; color: #7362d8; }
+.catalog-year-options button:focus-visible { outline: 1px solid #8d7dff; outline-offset: -1px; }
 .catalog-year-options [aria-selected="true"] { background: #eeeaff; color: #6b55e5; }
 @media (min-width: 901px) and (max-width: 1150px) {
   .catalog-layout { grid-template-columns: 190px minmax(0,1fr); gap: 18px; }

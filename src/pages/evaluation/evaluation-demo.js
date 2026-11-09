@@ -446,7 +446,7 @@ function initCatalogYears(){
   let min=max+1;
   function addYears(count){
    const next=Math.max(1,min-count);
-   for(let year=min-1;year>=next;year--)list.insertAdjacentHTML('beforeend',`<button type="button" role="option" tabindex="-1" data-catalog-year="${year}">${year} 年</button>`);
+   for(let year=min-1;year>=next;year--)list.insertAdjacentHTML('beforeend',`<button type="button" role="option" tabindex="-1" data-catalog-year="${year}" aria-label="${year} 年">${year}</button>`);
    min=next;
   }
   addYears(25);
@@ -457,6 +457,9 @@ function initCatalogYears(){
    const year=Number(catalogState[key]);
    if(year&&year<min)addYears(min-year);
    syncCatalogYears();
+   const bounds=trigger.getBoundingClientRect();
+   const spaceBelow=window.innerHeight-bounds.bottom;
+   list.classList.toggle('opens-above',spaceBelow<list.offsetHeight+8&&bounds.top>spaceBelow);
    const option=list.querySelector('[aria-selected="true"]')||list.firstElementChild;
    option.focus({preventScroll:true});
    list.scrollTop=option.offsetTop-Math.max(0,(list.clientHeight-option.offsetHeight)/2);
@@ -486,13 +489,18 @@ function initCatalogYears(){
   };
   list.onkeydown=e=>{
    const option=e.target.closest('[data-catalog-year]');
-   if(!option||!['ArrowDown','ArrowUp','Home','End'].includes(e.key))return;
+   const steps={ArrowDown:3,ArrowUp:-3,ArrowRight:1,ArrowLeft:-1};
+   if(!option||!(e.key in steps||e.key==='Home'||e.key==='End'))return;
    e.preventDefault();
-   if(e.key==='ArrowDown'&&!option.nextElementSibling&&min>1){addYears(20);syncCatalogYears();}
-   const target={ArrowDown:option.nextElementSibling,ArrowUp:option.previousElementSibling,Home:list.firstElementChild,End:list.lastElementChild}[e.key];
+   const year=Number(option.dataset.catalogYear)-steps[e.key];
+   if(year<min&&min>1){addYears(20);syncCatalogYears();}
+   const target=e.key==='Home'?list.firstElementChild:e.key==='End'?list.lastElementChild:list.querySelector(`[data-catalog-year="${year}"]`);
    target?.focus();
   };
  }
+ $('catalogYearRange').onfocusout=e=>{
+  if(e.relatedTarget&&!e.currentTarget.contains(e.relatedTarget))closeCatalogYears();
+ };
 }
 const handleYearOutside=e=>{if(!e.composedPath().includes($('catalogYearRange')))closeCatalogYears();};
 document.addEventListener('pointerdown',handleYearOutside);
