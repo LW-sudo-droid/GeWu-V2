@@ -24,6 +24,7 @@ import '../home-v2.css'
 import '../home-design.css'
 import HomeOrbit from '../components/home/HomeOrbit'
 import HomeMetricIcon from '../components/home/HomeMetricIcon'
+import HomeEvaluation from '../components/home/HomeEvaluation'
 import CorpusCommunity, { PartnersSection } from '../components/CorpusCommunity'
 import SubjectShowcase from '../components/SubjectShowcase'
 import QualityCorpusDiscovery from '../components/QualityCorpusDiscovery'
@@ -194,6 +195,7 @@ export default function Home() {
       </section>
 
       <SubjectShowcase />
+      <HomeEvaluation />
       <CorpusCommunity />
       <QualityCorpusDiscovery />
       <PartnersSection />
