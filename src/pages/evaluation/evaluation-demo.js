@@ -742,7 +742,7 @@ function catalogDetailContent(b){
   const url=safeResourceUrl(value);
   return url?`<a class="detail-source-link" href="${esc(url)}" target="_blank" rel="noopener noreferrer"><span class="source-link-label">${sourceBrand(url)}${esc(label)}</span>${icon('external',13)}</a>`:`<div class="detail-source-empty"><span>${esc(label)}</span><span>暂未提供</span></div>`;
  };
- const downloadLink=(label,url,primary=false)=>`<a class="btn${primary?' btn-primary':''}" href="${esc(url)}" target="_blank" rel="noopener noreferrer" download data-evaluation-download-link>${icon('download',13)}${label}</a>`;
+ const downloadLink=(label,url,primary=false,name='')=>`<a class="btn${primary?' btn-primary':''}" href="${esc(url)}" target="_blank" rel="noopener noreferrer" download="${esc(name)}" data-evaluation-download-link>${icon('download',13)}${label}</a>`;
  const tags=(values,others)=>[...new Set([...values.filter(value=>value!=='其他'||!others.length),...others])];
  const sample=value=>value&&typeof value==='object'?JSON.stringify(value,null,2):value;
  const code=(label,value)=>`<details class="detail-code"><summary>${esc(label)}</summary><pre>${esc(sample(value)||'暂未提供')}</pre></details>`;
@@ -790,18 +790,18 @@ function catalogDetailContent(b){
 
  const download=safeResourceUrl(b.downloadUrl);
  const repositoryDownload=download&&new URL(download).hostname==='github.com'&&!/\/(?:archive|releases\/download)\//.test(new URL(download).pathname);
- const localCode=b.localCode||`from pathlib import Path
-
-data_path = Path("path/to/评测文件")  # 替换为下载后的文件路径
-with data_path.open("rb") as file:
-    print(file.read(256))  # 预览文件，后续按实际格式解析`;
+ const downloadName=b.downloadName||(download&&new URL(download).pathname.split('/').pop())||'evaluation-data';
+ const shellArg=value=>`'${value.replaceAll("'", `'"'"'`)}'`;
+ const downloadCommand=download&&!repositoryDownload
+  ?`curl -fL --globoff -o ${shellArg(downloadName)} -- ${shellArg(download)}`
+  :'';
  const direct=download
-  ? repositoryDownload?source('查看数据仓库',download):downloadLink('直接下载',download,true)
+  ? repositoryDownload?source('查看数据仓库',download):downloadLink('直接下载',download,true,b.downloadName)
   : b.hasLocalDownload?`<button type="button" class="btn btn-primary" data-evaluation-files="complete">${icon('download',13)}直接下载</button>`:'<p>暂未提供完整评测集文件。</p>';
  html+=section('评测集下载和使用',
   '<h4>下载方式</h4>'
   +(b.permission==='公开'
-   ?`<div class="evaluation-download-methods"><div><h5>直接下载</h5>${direct}</div><div><h5>本地调用</h5><p>下载文件后，在本地读取数据。若为压缩包，请先解压。</p>${code('本地调用代码示例',localCode)}</div></div>`
+   ?`<div class="evaluation-download-methods"><div><h5>直接下载</h5>${direct}</div><div><h5>命令行下载</h5>${downloadCommand?`<p>在终端运行下方命令，将评测集保存到当前目录。</p>${code('下载命令示例',downloadCommand)}`:'<p>此评测集暂无可用的命令行下载链接。</p>'}</div></div>`
    :`<p>当前资源${esc(b.permission)}，详情页暂不提供数据下载。</p>`)
   +note('使用教程',b.usageGuide)
   +code('评测代码示例',b.evaluationCode));

@@ -5,18 +5,10 @@ import rivers from './evaluation-demo-samples/river-monitoring.json'
 import riversUrl from './evaluation-demo-samples/river-monitoring.json?url&no-inline'
 
 const usageGuide = '下载 JSON 后，用每道题的 input 测试模型。把模型返回的 JSON 对象按题目 id 保存到 predictions.json，再按下方示例评分。'
-const localCode = `import json
+const evaluationCode = filename => `import json
 from pathlib import Path
 
-data_path = Path("dataset.json")  # 替换为下载或解压后的 JSON 文件路径
-data = json.loads(data_path.read_text(encoding="utf-8"))
-for sample in data["samples"]:
-    print(sample["id"], sample["input"])`
-
-const evaluationCode = `import json
-from pathlib import Path
-
-data = json.loads(Path("dataset.json").read_text(encoding="utf-8"))
+data = json.loads(Path(${JSON.stringify(filename)}).read_text(encoding="utf-8"))
 predictions = json.loads(Path("predictions.json").read_text(encoding="utf-8"))
 samples = data["samples"]
 correct = sum(
@@ -59,6 +51,7 @@ export function platformDemoResources(assetBase) {
       keywords: ['一元一次方程', '符号运算', '结构化输出'],
       taskDescription: '求出方程的唯一整数解，输出只包含整数 x 的 JSON 对象。',
       downloadUrl: algebraUrl,
+      downloadName: 'algebra-equations.json',
     },
     {
       id: 'platform-river-demo',
@@ -72,6 +65,7 @@ export function platformDemoResources(assetBase) {
       keywords: ['河网', '流量', '水文数据'],
       taskDescription: '根据虚构监测站的上下游关系计算流量，输出含整数 flow 和单位 unit 的 JSON 对象。',
       downloadUrl: riversUrl,
+      downloadName: 'river-monitoring.json',
     },
   ].map(({ dataset, ...entry }) => {
     const sample = dataset.samples[0]
@@ -93,9 +87,8 @@ export function platformDemoResources(assetBase) {
       sample,
       inputExample: sample.input,
       expectedOutput: sample.expected_output,
-      usageGuide: usageGuide + '将下载的数据文件保存为 dataset.json。',
-      localCode,
-      evaluationCode,
+      usageGuide,
+      evaluationCode: evaluationCode(entry.downloadName),
       ...entry,
     }
   })
