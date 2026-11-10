@@ -28,7 +28,9 @@ export function normalizeEvaluationResource(raw: Record<string, unknown>) {
   if (taskOthers.length && !tasks.includes('其他')) tasks.push('其他')
   if (paradigmOthers.length && !paradigms.includes('其他')) paradigms.push('其他')
   const originalPermission = text(raw.permission)
-  const permission = ['公开','公开共享','开放共享'].includes(originalPermission) ? '公开' : ['不公开','暂不开放'].includes(originalPermission) ? '不公开' : '受限'
+  const permission = originalPermission === '待核实' ? '待核实'
+    : ['公开','公开共享','开放共享'].includes(originalPermission) ? '公开'
+    : ['不公开','暂不开放'].includes(originalPermission) ? '不公开' : '受限'
   return {
     ...raw,
     id: text(raw.id), name: text(raw.name), desc: text(raw.desc ?? raw.description), team: text(raw.team),

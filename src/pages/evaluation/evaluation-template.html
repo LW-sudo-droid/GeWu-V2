@@ -11,12 +11,22 @@
  <div class="module-tabs" role="tablist" aria-label="评测模块"><button class="module-tab active" role="tab" aria-selected="true" id="catalogTab">评测集</button><button class="module-tab" role="tab" aria-selected="false" id="leaderboardTab">评测榜单</button></div>
  <div class="panel-body hidden" id="leaderboardPage">
   <section class="leaderboard-featured" aria-labelledby="featuredTitle">
-   <div class="featured-heading"><h2 id="featuredTitle">精选评测集 <span class="count" id="benchmarkCount"></span></h2>
-    <div class="featured-arrows hidden" id="benchmarkArrows"><button type="button" id="benchmarkPrev" aria-label="向左浏览评测集"><span data-icon="chevron-left"></span></button><button type="button" id="benchmarkNext" aria-label="向右浏览评测集"><span data-icon="chevron-right"></span></button></div>
+   <div class="featured-heading">
+    <h2 id="featuredTitle">榜单评测集 <span class="count" id="benchmarkCount"></span></h2>
+    <label class="benchmark-search"><span data-icon="search"></span><input type="search" id="benchmarkSearch" aria-label="搜索评测集名称" placeholder="搜索评测集名称"></label>
    </div>
-   <div class="benchmark-tabs" id="benchmarkTabs" role="tablist" aria-label="选择评测集"></div>
+   <div class="benchmark-subjects" id="benchmarkSubjects" role="group" aria-label="按学科筛选评测集"></div>
+   <div class="benchmark-grid" id="benchmarkGrid" role="group" aria-label="选择评测集"></div>
+   <div class="benchmark-footer">
+    <span id="benchmarkRange" role="status"></span>
+    <nav class="benchmark-pagination" id="benchmarkPagination" aria-label="评测集分页">
+     <button type="button" id="benchmarkPrev" aria-label="评测集上一页"><span data-icon="chevron-left"></span></button>
+     <span id="benchmarkPage"></span>
+     <button type="button" id="benchmarkNext" aria-label="评测集下一页"><span data-icon="chevron-right"></span></button>
+    </nav>
+   </div>
   </section>
-  <div id="benchmarkPanel" role="tabpanel">
+  <div id="benchmarkPanel" role="region" aria-labelledby="benchmarkTitle">
    <section class="leaderboard-overview" aria-labelledby="benchmarkTitle">
     <div class="benchmark-summary">
      <div class="benchmark-heading"><div class="benchmark-icon" id="benchmarkIcon"></div><div>
@@ -29,6 +39,12 @@
      </div>
     </div>
     <dl class="metadata" id="metadata"></dl>
+    <div class="leaderboard-protocol hidden" id="leaderboardProtocol">
+     <label id="boardSelectorLabel" class="hidden">榜单口径 <select id="boardSelector" aria-label="榜单口径"></select></label>
+     <span id="boardLabel" class="hidden"></span>
+     <a id="boardOriginalLink" target="_blank" rel="noopener noreferrer">查看原始成绩 ↗</a>
+     <details id="boardMethodology"><summary>版本与评测协议</summary><p id="boardMethodText"></p></details>
+    </div>
    </section>
    <section class="leaderboard-models" aria-labelledby="modelPerformanceTitle">
     <div class="table-top"><div class="table-title"><h3 id="modelPerformanceTitle">模型表现</h3></div>

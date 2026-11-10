@@ -1,0 +1,26 @@
+{
+  "name": "河网监测数据判读评测集（模拟上传）",
+  "version": "v1.0.0",
+  "license": "CC0-1.0",
+  "demo": true,
+  "samples": [
+    {
+      "id": "river-001",
+      "split": "test",
+      "input": "虚构河网上游 A 站流量为 42 m³/s，支流 B 站为 18 m³/s。假设汇合前后无其他汇入或损失，求汇合口下游流量。用整数给出数值。",
+      "expected_output": { "flow": 60, "unit": "m³/s" }
+    },
+    {
+      "id": "river-002",
+      "split": "test",
+      "input": "虚构河网下游 C 站流量为 77 m³/s，上游 A 站为 52 m³/s。假设支流 B 是唯一新增来水，求 B 站流量。用整数给出数值。",
+      "expected_output": { "flow": 25, "unit": "m³/s" }
+    },
+    {
+      "id": "river-003",
+      "split": "test",
+      "input": "一条虚构河流的三个连续站点 D、E、F 的流量分别是 15、28、34 m³/s。忽略沿途损失，求从 D 到 F 的总新增流量。用整数给出数值。",
+      "expected_output": { "flow": 19, "unit": "m³/s" }
+    }
+  ]
+}

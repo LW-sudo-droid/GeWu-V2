@@ -1,0 +1,26 @@
+{
+  "name": "代数方程求解评测集（模拟上传）",
+  "version": "v1.0.0",
+  "license": "CC0-1.0",
+  "demo": true,
+  "samples": [
+    {
+      "id": "algebra-001",
+      "split": "test",
+      "input": "解方程 3(x − 2) = 2x + 5。用整数给出 x。",
+      "expected_output": { "x": 11 }
+    },
+    {
+      "id": "algebra-002",
+      "split": "test",
+      "input": "解方程 2(x + 4) = 5x − 1。用整数给出 x。",
+      "expected_output": { "x": 3 }
+    },
+    {
+      "id": "algebra-003",
+      "split": "test",
+      "input": "解方程 4x + 7 = 2x − 3。用整数给出 x。",
+      "expected_output": { "x": -5 }
+    }
+  ]
+}

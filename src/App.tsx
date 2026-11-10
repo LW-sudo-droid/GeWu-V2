@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
 import Layout from './components/Layout'
 import Home from './pages/Home'
@@ -10,7 +11,6 @@ import DatasetEdit from './pages/DatasetEdit'
 import DatasetAudit from './pages/DatasetAudit'
 import CorpusUpload from './pages/CorpusUpload'
 import CorpusUploadLanding from './pages/CorpusUploadLanding'
-import CorpusEvaluation from './pages/CorpusEvaluation'
 import EvaluationUpload from './pages/EvaluationUpload'
 import Profile from './pages/Profile'
 import DemandSquare from './pages/DemandSquare'
@@ -19,6 +19,12 @@ import DemandCreate from './pages/DemandCreate'
 import DemandPosterMaker from './pages/DemandPosterMaker'
 import DemandPostEditor from './pages/DemandPostEditor'
 import ProtectedRoute from './components/ProtectedRoute'
+
+const CorpusEvaluation = lazy(() => import('./pages/CorpusEvaluation'))
+
+function EvaluationPage() {
+  return <Suspense fallback={<p role="status">正在加载语料评测…</p>}><CorpusEvaluation /></Suspense>
+}
 
 export default function App() {
   return (
@@ -33,9 +39,9 @@ export default function App() {
         <Route path="/search/datasets/:id/audit" element={<ProtectedRoute><DatasetAudit /></ProtectedRoute>} />
         <Route path="/upload" element={<CorpusUploadLanding />} />
         <Route path="/upload/form" element={<CorpusUpload />} />
-        <Route path="/evaluation" element={<CorpusEvaluation />} />
+        <Route path="/evaluation" element={<EvaluationPage />} />
         <Route path="/evaluation/upload" element={<ProtectedRoute><EvaluationUpload /></ProtectedRoute>} />
-        <Route path="/evaluation/datasets/:datasetId" element={<CorpusEvaluation />} />
+        <Route path="/evaluation/datasets/:datasetId" element={<EvaluationPage />} />
         <Route path="/demands" element={<DemandSquare />} />
         <Route path="/demands/new" element={<DemandCreate />} />
         <Route path="/demands/new/edit" element={<DemandPostEditor />} />

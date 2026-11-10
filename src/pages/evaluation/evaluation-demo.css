@@ -62,12 +62,6 @@ input{min-width:0}
 .section-overline{display:flex;align-items:center;gap:9px;margin-bottom:12px;font-size:12px;font-weight:600}
 .section-overline .count{background:#f2f3f8;color:#8c90a2;border-radius:4px;font-size:10px;padding:0 5px;line-height:18px;font-weight:500}
 .section-overline .hint{margin-left:auto;color:#9a9daf;font-weight:400;font-size:11px}
-.benchmark-tabs{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:20px;border-bottom:1px solid var(--line)}
-.benchmark-chip{display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid #e9eaf2;border-radius:7px;background:#fafbfe;color:#63697d;font-size:11px;line-height:18px;white-space:nowrap}
-.benchmark-chip svg{opacity:.7}
-.benchmark-chip:hover{border-color:#c5b8fa;background:#f8f6ff}
-.benchmark-chip.active{border-color:#bbaaf8;background:#f1edff;color:#6240d9;box-shadow:0 1px 4px #6544ed0a;font-weight:600}
-.benchmark-chip.active svg{opacity:1}
 .benchmark-summary{padding:24px 0 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:20px}
 .benchmark-heading{display:flex;gap:13px;min-width:0}
 .benchmark-icon{height:45px;width:45px;border-radius:11px;background:linear-gradient(145deg,#ece5ff,#f3f3ff);border:1px solid #e9e1ff;display:grid;place-items:center;color:#7652e5}
@@ -237,8 +231,6 @@ to{opacity:1;transform:translate(-50%,0)}
 .main-wrap{padding-top:19px}
 .module-tabs{height:52px}
 .panel-body{padding-top:18px}
-.benchmark-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#d9d1ef transparent;gap:7px;padding-bottom:15px}
-.benchmark-chip{padding:7px 8px;font-size:10.5px;flex-shrink:0}
 .benchmark-summary{padding-top:18px;padding-bottom:16px}
 .metadata{padding:9px 12px;margin-bottom:17px}
 .filter-bar{min-height:52px;padding-top:9px;padding-bottom:9px}
@@ -256,7 +248,6 @@ to{opacity:1;transform:translate(-50%,0)}
 .hero h1{font-size:29px}
 .summary-actions{gap:12px}
 .score-cell{padding-right:20px}
-.benchmark-chip{font-size:10px}
 .model-name{font-size:11px}
 .model-meta{font-size:9px}
 }
@@ -309,9 +300,6 @@ to{opacity:1;transform:translate(-50%,0)}
 .module-tabs{padding:0 17px;height:52px}
 .module-tabs .right{font-size:9px}
 .panel-body{padding:17px 13px 0}
-.benchmark-tabs{gap:6px;padding-bottom:15px}
-.benchmark-chip{padding:7px 8px;font-size:10px;gap:4px}
-.benchmark-chip svg{width:12px}
 .benchmark-summary{padding:20px 0 16px}
 .benchmark-title-row h2{font-size:19px}
 .benchmark-heading{gap:10px}
