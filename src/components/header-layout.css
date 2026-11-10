@@ -1,0 +1,44 @@
+.site-header .header-inner {
+  width: 100%;
+  box-sizing: border-box;
+  gap: clamp(14px, 2vw, 28px);
+  padding-inline: clamp(18px, 2.4vw, 36px);
+}
+
+.site-header .header-inner .desktop-nav {
+  flex: 1 0 auto;
+  gap: clamp(9px, 1.25vw, 18px);
+  margin: 0;
+}
+
+.site-header .header-inner .nav-link {
+  padding-inline: 4px;
+  white-space: nowrap;
+}
+
+.site-header .header-inner .header-actions { min-width: 0; margin: 0; }
+.site-header .user-menu { min-width: 0; max-width: 100%; }
+.site-header .user-trigger { width: 100%; max-width: 176px; padding-inline: 12px; }
+.site-header .user-trigger > :is(svg, .user-avatar) { flex: none; }
+.site-header .user-trigger-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .site-header .header-inner .desktop-nav { display: none; }
+  .site-header .header-inner .header-actions { margin-left: auto; flex: none; gap: 5px; }
+  .site-header .header-inner .mobile-toggle { display: grid; place-items: center; flex: none; }
+  .site-header .mobile-nav { display: grid; }
+}
+
+@media (max-width: 540px) {
+  .site-header .header-inner { gap: 8px; padding-inline: 12px; }
+  .site-header .header-inner .brand { flex: 1; width: auto; min-width: 0; gap: 6px; }
+  .site-header .brand-copy { min-width: 0; }
+  .site-header .brand-copy strong { overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+  .site-header .home-brand-image { max-width: 100%; }
+  .site-header .user-trigger { max-width: 112px; padding-inline: 8px; gap: 5px; }
+}

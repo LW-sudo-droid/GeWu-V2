@@ -30,12 +30,11 @@
 .home-page :is(a,button):focus-visible { outline: 3px solid #5c8bff; outline-offset: 4px; }
 /* Header and footer adjustments apply only while the home route is present. */
 .app-shell:has(.home-page) .site-header { height: 76px; min-height: 76px; background: #fbfdff; border: 0; box-shadow: none; position: relative; }
-.app-shell:has(.home-page) .header-inner { max-width: 1440px; height: 76px; min-height: 76px; padding: 0 40px; gap: 32px; }
+.app-shell:has(.home-page) .header-inner { max-width: 1440px; height: 76px; min-height: 76px; }
 .app-shell:has(.home-page) .brand { min-width: 210px; width: 210px; gap: 0; }
 .app-shell:has(.home-page) .home-brand-image { display: block; width: 190px; height: 48px; object-fit: contain; }
 .app-shell:has(.home-page) .brand-copy[hidden] { display: none; }
-.app-shell:has(.home-page) .desktop-nav { justify-content: center; flex: 1; gap: clamp(20px,2.9vw,42px); }
-.app-shell:has(.home-page) .nav-link { font-size: 16px; font-weight: 400; color: #687181; padding: 24px 0; }
+.app-shell:has(.home-page) .nav-link { font-size: 14px; font-weight: 400; color: #687181; }
 .app-shell:has(.home-page) .nav-link.active { color: #1d2129; font-weight: 600; }
 .app-shell:has(.home-page) .nav-link.active::after { width: 14px; height: 3px; background: var(--brand-gradient,linear-gradient(90deg,#8b4dff,#02d3e9)); bottom: 13px; }
 .app-shell:has(.home-page) .login-trigger { height: 36px; border-radius: 7px; padding: 0 17px; font-size: 16px; font-weight: 400; }
@@ -231,10 +230,8 @@
 .app-shell:has(.home-page) .footer-v2-col dt { color: #a1a6b0; }
 .app-shell:has(.home-page) .footer-v2-bottom { padding: 26px 24px 32px; border-top-color: #262626; }
 @media (max-width: 1279px) and (min-width: 901px) {
-  .app-shell:has(.home-page) .header-inner { padding-inline: 24px; gap: 20px; }
   .app-shell:has(.home-page) .brand { min-width: 170px; width: 170px; }
   .app-shell:has(.home-page) .home-brand-image { width: 170px; }
-  .app-shell:has(.home-page) .desktop-nav { gap: 22px; }
   .app-shell:has(.home-page) .nav-link { font-size: 14px; }
   .home-page .home-hero-inner { grid-template-columns: 1fr 1fr; }
   .home-page .home-hero-orbit { transform: scale(.85); transform-origin: center; }
@@ -266,7 +263,6 @@
   .app-shell:has(.home-page) .footer-v2-main { padding-inline: 24px; }
 }
 @media (max-width: 900px) {
-  .app-shell:has(.home-page) .header-inner { padding-inline: 20px; }
   .app-shell:has(.home-page) .desktop-nav { display: none; }
   .app-shell:has(.home-page) .mobile-toggle { display: inline-flex; }
   .app-shell:has(.home-page) .header-actions { margin-left: auto; }
@@ -305,7 +301,6 @@
   .app-shell:has(.home-page) .footer-v2-main { padding-inline: 24px; }
 }
 @media (max-width: 600px) {
-  .app-shell:has(.home-page) .header-inner { gap: 8px; padding-inline: 16px; }
   .app-shell:has(.home-page) .brand { width: 165px; min-width: 0; }
   .app-shell:has(.home-page) .home-brand-image { width: 165px; }
   .app-shell:has(.home-page) .login-trigger { padding-inline: 12px; font-size: 13px; }

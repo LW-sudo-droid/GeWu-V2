@@ -14,7 +14,7 @@ const flowSteps = [
 ]
 
 const responsibilities = [
-  { title: '内容与权属', icon: FileCheck2, paragraphs: ['提交人应如实填写作者、联系方式、所在单位、发布机构和语料基本信息，保证提交信息与实际语料内容一致，并确认对所提交语料拥有合法权利或已经取得必要授权。涉及合作单位、第三方数据库、出版物、图片、音视频、代码等内容时，应确保汇交、加工、存储和共享行为符合相应授权范围，不得提交来源不明或侵犯他人合法权益的内容。'] },
+  { title: '内容与权属', icon: FileCheck2, paragraphs: ['提交人应如实填写作者、联系方式、所在单位、发布机构和语料基本信息，保证提交信息与实际语料内容一致，并确认对所提交语料拥有合法权利或已经取得必要授权。涉及合作单位、第三方数据库、出版物、图片、音视频、代码等内容时，应确保上传、加工、存储和共享行为符合相应授权范围，不得提交来源不明或侵犯他人合法权益的内容。'] },
   { title: '安全与合规', icon: ShieldCheck, paragraphs: ['不得上传、处理或传播涉及国家秘密、工作秘密以及法律法规禁止公开的内容。涉及个人信息、医疗健康、人类遗传资源、敏感地理位置、未公开科研成果或其他受限制数据时，应提前完成必要的脱敏、匿名化、授权或伦理审查，并根据实际情况设置合适的开放范围。'] },
   { title: '文件质量与开放使用', icon: Server, paragraphs: ['提交的语料应真实、完整并能够正常读取，文件结构和命名应保持清晰，语料介绍应与实际内容一致。建议同时提供README、数据来源等辅助材料。提交人应根据语料权属和共享条件选择许可协议及公开或不公开的开放程度。所有开放程度均需提供不含敏感信息的示例数据。'] },
   { title: '审核与持续维护', icon: FileCheck2, paragraphs: ['平台管理员可以对申请信息、文件完整性、权属说明、安全要求和开放范围进行审核，并要求提交人补充或修改材料。', '语料库管理员可以对上传的语料进行审核，并要求提交人补充或修改材料。', '审核通过后的语料可以继续补充和更新，基本信息变更、文件替换等调整应重新进入审核流程。发现语料存在权属争议、安全风险或严重质量问题时，平台可以暂停展示、限制访问或启动下架处理。'] },
@@ -47,9 +47,9 @@ export default function CorpusUploadLanding() {
     <section className="ul-hero" aria-labelledby="ul-title">
       <div className="ul-container ul-hero-content">
         <h1 id="ul-title">汇聚高质量科学语料<br /><span>共建共享科学语料资源</span></h1>
-        <p>汇交您的科学语料，凝聚共建力量，共同推动科学智能发展</p>
+        <p>上传您的科学语料，凝聚共建力量，共同推动科学智能发展</p>
         <div className="ul-hero-actions">
-          <button type="button" className="ul-start" onClick={startSubmission}><Upload size={17} />开始汇交</button>
+          <button type="button" className="ul-start" onClick={startSubmission}><Upload size={17} />开始上传</button>
           <button type="button" className="ul-agreement" onClick={() => setAgreementOpen(true)}>服务协议<ArrowRight size={17} /></button>
         </div>
       </div>
@@ -57,7 +57,7 @@ export default function CorpusUploadLanding() {
 
     <section className="ul-flow" aria-labelledby="ul-flow-title">
       <div className="ul-container">
-        <h2 id="ul-flow-title">语料汇交<span>流程</span></h2>
+        <h2 id="ul-flow-title">语料上传<span>流程</span></h2>
         <ol className="ul-steps">
           {flowSteps.map(({ title, description, icon: Icon }, index) => <li key={title}>
             <div className="ul-step-icon"><Icon size={42} strokeWidth={1.6} aria-hidden="true" /></div>
@@ -71,7 +71,7 @@ export default function CorpusUploadLanding() {
 
     <section className="ul-responsibilities" aria-labelledby="ul-responsibility-title">
       <div className="ul-container">
-        <h2 id="ul-responsibility-title">汇交规范与<span>责任说明</span></h2>
+        <h2 id="ul-responsibility-title">上传规范与<span>责任说明</span></h2>
         <div className="ul-responsibility-grid">
           {responsibilities.map(({ title, paragraphs, icon: Icon }) => <article key={title}>
             <header><span className="ul-responsibility-icon"><Icon size={27} strokeWidth={1.8} aria-hidden="true" /></span><h3>{title}</h3></header>

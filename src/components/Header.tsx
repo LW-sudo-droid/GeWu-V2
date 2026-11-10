@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useNavigate, useLocation } from 'react-router'
 import { ChevronDown, LogOut, Menu, UserRound, X } from 'lucide-react'
 import LogoMark from './LogoMark'
+import './header-layout.css'
 import { useApp } from '../context/app-context'
 
 const navItems = [
@@ -66,7 +67,7 @@ export default function Header() {
                 aria-expanded={userMenuOpen}
               >
                 <span className="user-avatar">{user.name.slice(0, 1)}</span>
-                <span>{user.name}</span>
+                <span className="user-trigger-name" title={user.name}>{user.name}</span>
                 <ChevronDown size={15} />
               </button>
               {userMenuOpen && (
@@ -89,7 +90,8 @@ export default function Header() {
             type="button"
             className="mobile-toggle"
             onClick={() => setMobileOpen((value) => !value)}
-            aria-label="展开导航"
+            aria-label={mobileOpen ? '收起导航' : '展开导航'}
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X /> : <Menu />}
           </button>

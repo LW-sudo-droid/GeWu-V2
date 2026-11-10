@@ -24,6 +24,8 @@ export const ecosystemGroups: Record<EcosystemKey, { summary: string; members: E
     summary: '汇聚科研数据、实验资源与前沿科学成果',
     members: [
       { name: '鹏城实验室', logo: logo('pengcheng.jpeg') },
+      { name: '北京石墨烯研究院', logo: logo('bgi-graphene.png') },
+      { name: '昌平实验室', logo: logo('changping-lab.png') },
     ],
   },
   企业: {

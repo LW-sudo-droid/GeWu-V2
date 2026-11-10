@@ -1,4 +1,6 @@
 export type EvaluationMountOptions = {
+  account?: string
+  profile?: { collection: 'uploaded' | 'favorite'; onDetail: (id: string) => void }
   detailId?: string
   benchmarkId?: string
   onUpload?: () => void

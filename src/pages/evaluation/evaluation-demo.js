@@ -1,8 +1,8 @@
-import { EVALUATION_SUBJECTS, EVALUATION_TASKS, EVALUATION_PARADIGMS, EVALUATION_PERMISSIONS, normalizeEvaluationResource, readApprovedEvaluationUploads } from '../../data/evaluation-catalog'
+import { EVALUATION_SUBJECTS, EVALUATION_TASKS, EVALUATION_PARADIGMS, EVALUATION_PERMISSIONS, EVALUATION_SUBMISSIONS_KEY, normalizeEvaluationResource, readApprovedEvaluationUploads } from '../../data/evaluation-catalog'
 import atlasCatalog from '../../data/evaluation-atlas.json'
 import leaderboardCatalog from '../../data/evaluation-leaderboards.json'
 import { platformDemoResources } from '../../data/evaluation-platform-demo'
-import { downloadEvaluationFile, evaluationFiles, readEvaluationTask } from '../../data/evaluation-upload'
+import { downloadEvaluationFile, evaluationFiles, readEvaluationSubmissions, readEvaluationTask } from '../../data/evaluation-upload'
 // Adapted from the supplied standalone evaluation demo.
 // All UI queries are scoped to the page shadow root.
 export function mountEvaluation(evaluationRoot, assetBase, options = {}) {
@@ -382,7 +382,7 @@ const platformDemos=platformDemoResources(assetBase);
 extraCatalogResources.push(...platformDemos);
 const catalogDefaults = () => ({query:'',subjects:[],tasks:[],paradigms:[],permissions:[],taskOthers:[],paradigmOthers:[],yearFrom:'',yearTo:'',sort:'year',page:1,detail:null});
 let catalogState=catalogDefaults();
-try { const saved=JSON.parse(sessionStorage.getItem('science-evaluation-catalog-state')||'null'); if(saved && typeof saved==='object') { if(typeof saved.query==='string')catalogState.query=saved.query;
+try { const saved=JSON.parse(sessionStorage.getItem('science-evaluation-catalog-state')||'null'); if(!options.profile && saved && typeof saved==='object') { if(typeof saved.query==='string')catalogState.query=saved.query;
  for(const key of ['yearFrom','yearTo']){
   const year=saved[key]??saved.year;
   if(typeof year==='string'&&/^\d{1,4}$/.test(year)&&Number(year)>0)catalogState[key]=year;
@@ -429,14 +429,25 @@ const catalogActivity = {
  views: { key: 'science-evaluation-views', fallback: {} },
  downloads: { key: 'science-evaluation-downloads', fallback: {} },
 };
-const catalogFavoritesKey='science-evaluation-favorites';
+const legacyFavoritesKey='science-evaluation-favorites';
+const catalogFavoritesKey=options.account?legacyFavoritesKey+':'+options.account:legacyFavoritesKey;
 let temporaryFavorites;
+function storedFavorites(key){
+ const saved=JSON.parse(localStorage.getItem(key)||'[]');
+ return Array.isArray(saved)?saved.filter(id=>typeof id==='string'):[];
+}
+if(options.account){
+ try{
+  const legacy=storedFavorites(legacyFavoritesKey);
+  if(legacy.length){
+   localStorage.setItem(catalogFavoritesKey,JSON.stringify([...new Set([...storedFavorites(catalogFavoritesKey),...legacy])]));
+   localStorage.removeItem(legacyFavoritesKey);
+  }
+ }catch{}
+}
 function readCatalogFavorites(){
  if(temporaryFavorites)return new Set(temporaryFavorites);
- try{
-  const saved=JSON.parse(localStorage.getItem(catalogFavoritesKey)||'[]');
-  return new Set(Array.isArray(saved)?saved.filter(id=>typeof id==='string'):[]);
- }catch{return new Set();}
+ try{return new Set(storedFavorites(catalogFavoritesKey));}catch{return new Set();}
 }
 function updateActivityDisplay(type,id,total){
  evaluationRoot.querySelectorAll(`[data-resource-id="${CSS.escape(id)}"] [data-activity="${type}"]`).forEach(value=>{
@@ -455,9 +466,9 @@ function syncCatalogFavorite(id,saved){
  button.classList.toggle('is-active',saved);
  button.querySelector('span').textContent=saved?'已收藏':'收藏';
 }
-function toggleCatalogFavorite(id){
+function toggleCatalogFavorite(id,forceSaved,afterChange){
  const toggle=()=>{
-  const favorites=readCatalogFavorites(),saved=!favorites.has(id);
+  const favorites=readCatalogFavorites(),saved=forceSaved??!favorites.has(id);
   if(saved)favorites.add(id);
   else favorites.delete(id);
   try{
@@ -466,6 +477,7 @@ function toggleCatalogFavorite(id){
   }catch{temporaryFavorites=favorites;}
   syncCatalogFavorite(id,saved);
   if($('toastRoot'))toast(saved?'已收藏评测集':'已取消收藏');
+  afterChange?.();
  };
  if(navigator.locks)void navigator.locks.request(catalogFavoritesKey,toggle).catch(toggle);
  else toggle();
@@ -477,7 +489,6 @@ function syncCatalogFavoritesFromStorage(event){
   if(dataset.resourceId)syncCatalogFavorite(dataset.resourceId,favorites.has(dataset.resourceId));
  });
 }
-window.addEventListener('storage',syncCatalogFavoritesFromStorage);
 
 function readCatalogActivity(type){
  const {key,fallback}=catalogActivity[type];
@@ -501,15 +512,14 @@ function recordCatalogActivity(type,id){
  if(navigator.locks)void navigator.locks.request(key,increment).catch(increment);
  else increment();
 }
-const catalogItems=()=>{
+function catalogItems(items=[...catalogSources.values(),...readApprovedEvaluationUploads()]){
  const views=readCatalogActivity('views'),downloads=readCatalogActivity('downloads');
  const favorites=readCatalogFavorites();
- const items=[...catalogSources.values(),...readApprovedEvaluationUploads()];
  return [...new Map(items.map(b=>[b.id,b])).values()].map((b,i)=>{
   const favorite=favorites.has(b.id);
   return {...b,favorite,baseFavorites:b.favoriteCount,baseViews:b.viewCount,baseDownloads:b.downloadCount,favoriteCount:b.favoriteCount+Number(favorite),viewCount:b.viewCount+catalogActivityCount(views,b.id),downloadCount:b.downloadCount+catalogActivityCount(downloads,b.id),order:featuredCatalog.includes(b.id)?featuredCatalog.indexOf(b.id):featuredCatalog.length+i};
  });
-};
+}
 function catalogMatches(){
  const q=catalogState.query.toLocaleLowerCase();
  const rows=catalogItems().filter(b=>(!q||[b.name,b.desc,b.team,b.paper,b.paperTitle||'',b.method||'',...b.keywords,...b.tasks,...b.paradigms,...b.taskOthers,...b.paradigmOthers].join(' ').toLocaleLowerCase().includes(q))
@@ -604,7 +614,6 @@ function initCatalogYears(){
  };
 }
 const handleYearOutside=e=>{if(!e.composedPath().includes($('catalogYearRange')))closeCatalogYears();};
-document.addEventListener('pointerdown',handleYearOutside);
 
 function initCatalog(){
  const groups=[['subjects','学科领域',EVALUATION_SUBJECTS],['tasks','任务类型',EVALUATION_TASKS],['paradigms','评测范式',EVALUATION_PARADIGMS],['permissions','权限范围',EVALUATION_PERMISSIONS]];
@@ -663,16 +672,7 @@ function renderCatalog(){
  $('catalogActiveRow').classList.toggle('hidden',!active.length);
  $('catalogActiveTags').innerHTML=active.map(([key,v,label],i)=>`<button class="applied-tag" data-remove-filter="${i}" aria-label="移除筛选：${esc(label)}">${esc(label)} ${icon('close',12)}</button>`).join('');
  evaluationRoot.querySelectorAll('[data-remove-filter]').forEach(el=>el.onclick=()=>{const[key,v]=active[Number(el.dataset.removeFilter)];removeCatalogFilter(key,v);});
- $('catalog').innerHTML=paged.map(b=>{
-  const official=b.origin==='platform'?'':safeResourceUrl(officialSource(b));
-  const paper=b.atlasId&&!official?safeResourceUrl(b.paperUrl):'';
-  return `<article class="catalog-card ${catalogPlan.includes(b.id)?'in-plan':''}" data-resource-id="${esc(b.id)}" data-view-count="${b.viewCount}" data-favorite-count="${b.favoriteCount}">
-  <div class="card-top"><div class="benchmark-icon">${icon(b.icon,21)}</div><h3 title="${esc(b.name)}">${catalogHighlight(b.name)}</h3><span class="catalog-permission permission-${b.permission==='公开'?'public':b.permission==='受限'?'restricted':'private'}" title="${esc(b.permissionNote||b.permission)}">${b.permission}</span></div>
-  <div class="catalog-tags">${b.subjects.map(t=>`<span class="catalog-tag tag-subject" aria-label="学科领域：${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.tasks.filter(t=>t!=='其他'||!b.taskOthers.length),...b.taskOthers])].map(t=>`<span class="catalog-tag tag-task" aria-label="任务类型：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.paradigms.filter(t=>t!=='其他'||!b.paradigmOthers.length),...b.paradigmOthers])].map(t=>`<span class="catalog-tag tag-paradigm" aria-label="评测范式：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}</div>
-  <p class="catalog-summary" title="${esc(b.desc)}">${catalogExcerpt(b.desc)}</p>${catalogState.query&&b.team.toLocaleLowerCase().includes(catalogState.query.toLocaleLowerCase())?`<div class="catalog-team" title="${esc(b.team)}">提供团队：${catalogHighlight(b.team)}</div>`:''}
-  <div class="catalog-card-meta"><time class="catalog-updated" ${b.updatedAt?`datetime="${b.updatedAt}"`:''}>${b.updatedAt?b.updatedAt+' 更新':b.atlasId&&b.year?`${b.year} 年发布`:'更新时间暂未提供'}</time>${official||paper?`<a class="catalog-resource-link" href="${esc(official||paper)}" target="_blank" rel="noopener noreferrer">${official?'官方链接':'论文链接'} ${icon('external',11)}</a>`:''}</div>
-  ${evaluationActivity(b,'catalog-card-activity')}
-  <div class="catalog-card-actions"><button type="button" class="btn" data-catalog-detail="${esc(b.id)}">${icon('book',13)}查看详情</button><button class="btn ${catalogPlan.includes(b.id)?'is-saved':''}" data-plan-toggle="${esc(b.id)}" aria-pressed="${catalogPlan.includes(b.id)}" aria-label="${catalogPlan.includes(b.id)?'移出清单':'加入清单'}：${esc(b.name)}">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button></div></article>`;}).join('')||`<div class="catalog-empty" role="status">${icon('search',40)}<h3>暂无匹配的评测集</h3><p>试试其他搜索词，或调整筛选条件。</p><button class="btn" id="catalogEmptyReset">重置</button></div>`;
+ $('catalog').innerHTML=paged.map(b=>renderCatalogCard(b,`<button type="button" class="btn" data-catalog-detail="${esc(b.id)}">${icon('book',13)}查看详情</button><button class="btn ${catalogPlan.includes(b.id)?'is-saved':''}" data-plan-toggle="${esc(b.id)}" aria-pressed="${catalogPlan.includes(b.id)}" aria-label="${catalogPlan.includes(b.id)?'移出清单':'加入清单'}：${esc(b.name)}">${icon(catalogPlan.includes(b.id)?'check':'plus',13)}${catalogPlan.includes(b.id)?'已加入清单':'加入清单'}</button>`)).join('')||`<div class="catalog-empty" role="status">${icon('search',40)}<h3>暂无匹配的评测集</h3><p>试试其他搜索词，或调整筛选条件。</p><button class="btn" id="catalogEmptyReset">重置</button></div>`;
  if($('catalogEmptyReset'))$('catalogEmptyReset').onclick=clearCatalogFilters;
  evaluationRoot.querySelectorAll('[data-catalog-detail]').forEach(el=>el.onclick=()=>openCatalogDetail(el.dataset.catalogDetail,el));bindCatalogPlanButtons();
  const first=Math.max(1,catalogState.page-5),last=Math.min(totalPages,catalogState.page+5);
@@ -682,6 +682,17 @@ function renderCatalog(){
 
 function persistCatalogPlan(){try{localStorage.setItem('science-demo-plan',JSON.stringify(catalogPlan));}catch{toast('当前浏览器无法保存清单，仍可下载本次选择');}}
 function toggleCatalogPlan(id){catalogPlan=catalogPlan.includes(id)?catalogPlan.filter(v=>v!==id):[...catalogPlan,id];persistCatalogPlan();renderCatalog();}
+function renderCatalogCard(b,actions,status=''){
+  const official=b.origin==='platform'?'':safeResourceUrl(officialSource(b));
+  const paper=b.atlasId&&!official?safeResourceUrl(b.paperUrl):'';
+  return `<article class="catalog-card ${catalogPlan.includes(b.id)?'in-plan':''}" data-resource-id="${esc(b.id)}" data-view-count="${b.viewCount}" data-favorite-count="${b.favoriteCount}">
+  <div class="card-top"><div class="benchmark-icon">${icon(b.icon,21)}</div><h3 title="${esc(b.name)}">${catalogHighlight(b.name)}</h3><span class="catalog-permission permission-${b.permission==='公开'?'public':b.permission==='受限'?'restricted':'private'}" title="${esc(b.permissionNote||b.permission)}">${b.permission}</span></div>
+  <div class="catalog-tags">${b.subjects.map(t=>`<span class="catalog-tag tag-subject" aria-label="学科领域：${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.tasks.filter(t=>t!=='其他'||!b.taskOthers.length),...b.taskOthers])].map(t=>`<span class="catalog-tag tag-task" aria-label="任务类型：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}${[...new Set([...b.paradigms.filter(t=>t!=='其他'||!b.paradigmOthers.length),...b.paradigmOthers])].map(t=>`<span class="catalog-tag tag-paradigm" aria-label="评测范式：${esc(t)}" title="${esc(t)}">${esc(t)}</span>`).join('')}</div>
+  <p class="catalog-summary" title="${esc(b.desc)}">${catalogExcerpt(b.desc)}</p>${catalogState.query&&b.team.toLocaleLowerCase().includes(catalogState.query.toLocaleLowerCase())?`<div class="catalog-team" title="${esc(b.team)}">提供团队：${catalogHighlight(b.team)}</div>`:''}
+  <div class="catalog-card-meta"><time class="catalog-updated" ${b.updatedAt?`datetime="${b.updatedAt}"`:''}>${b.updatedAt?b.updatedAt+' 更新':b.atlasId&&b.year?`${b.year} 年发布`:'更新时间暂未提供'}</time>${status?`<span class="catalog-upload-status">${esc(status)}</span>`:official||paper?`<a class="catalog-resource-link" href="${esc(official||paper)}" target="_blank" rel="noopener noreferrer">${official?'官方链接':'论文链接'} ${icon('external',11)}</a>`:''}</div>
+  ${evaluationActivity(b,'catalog-card-activity')}
+  <div class="catalog-card-actions">${actions}</div></article>`;
+}
 function bindCatalogPlanButtons(){evaluationRoot.querySelectorAll('[data-plan-toggle]').forEach(el=>el.onclick=()=>toggleCatalogPlan(el.dataset.planToggle));}
 function renderCatalogPlan(){const n=catalogPlan.length;const markup=`<button class="btn ${n?'btn-primary':''} catalog-plan-entry" data-open-plan aria-label="我的评测清单（${n}）">${icon('bookmark',14)}我的评测清单 <span class="plan-count">${n}</span></button>`;$('catalogPlanTop').innerHTML=markup;if($('catalogDetailPlanTop'))$('catalogDetailPlanTop').innerHTML=markup;evaluationRoot.querySelectorAll('[data-open-plan]').forEach(el=>el.onclick=showCatalogPlan);}
 function closeCatalogDrawer(restoreFocus=true){
@@ -912,6 +923,35 @@ function catalogPlanData(){return catalogPlanItems().map(b=>({id:b.id,name:b.nam
 function downloadCatalogPlan(format){const rows=catalogPlanData();if(!rows.length)return;let content,type;if(format==='json'){content=JSON.stringify({schemaVersion:'1.0',exportedAt:new Date().toISOString(),model:planConfig.model,harness:planConfig.harness,evaluations:rows},null,2);type='application/json;charset=utf-8';}else{const labels=['评测集','版本','学科','任务类型','评测范式','提供团队','发布年份','权限说明','项目地址','成绩来源','待评测模型','运行框架与配置'];const quote=v=>'"'+String(v).replace(/"/g,'""')+'"';content='\uFEFF'+[labels,...rows.map(b=>Object.values(b))].map(r=>r.map(quote).join(',')).join('\r\n');type='text/csv;charset=utf-8';}const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download='科学评测清单.'+format;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('评测清单已导出');}
 
 function showUpload(){modal('共建科学评测集',`<p>登记你的评测资源，后续可补充数据、运行方式和评分规则。</p><form id="uploadForm"><label class="form-field">评测集名称 <span style="color:#af96d9">*</span><input name="name" placeholder="例如：大学物理多步推理评测集" required maxlength="80"></label><label class="form-field">主要学科<select name="subject"><option>物理</option><option>数学</option><option>化学</option><option>天文</option><option>地理</option><option>生物</option><option>跨学科</option></select></label><label class="form-field">简介<textarea name="description" placeholder="简要说明评测的科学任务和适用场景" maxlength="500"></textarea></label><label class="form-field file-upload">${icon('upload',21)}<div style="margin:7px 0">选择评测材料（选填）</div><input type="file" name="material" accept=".json,.jsonl,.csv,.zip,.pdf,.txt"></label><div class="note-box">演示模式：这里只保存草稿信息到当前浏览器，文件不会上传，数据不会发送至服务器。</div></form>`,`<button class="btn" id="modalDone">取消</button><button class="btn btn-primary" id="saveDraft">保存演示草稿</button>`);try{const draft=JSON.parse(localStorage.getItem('science-demo-draft')||'null');if(draft){const form=$('uploadForm');form.elements.name.value=draft.name||'';form.elements.subject.value=draft.subject||'物理';form.elements.description.value=draft.description||'';}}catch{}$('saveDraft').onclick=()=>{const form=$('uploadForm');if(!form.reportValidity())return;const data=Object.fromEntries(new FormData(form));delete data.material;try{localStorage.setItem('science-demo-draft',JSON.stringify(data));closeModal();toast('演示草稿已保存到当前浏览器')}catch{toast('浏览器未允许本地保存，请复制填写内容保留')}};}
+if(options.profile){
+ const {collection,onDetail}=options.profile;
+ const uploaded=collection==='uploaded';
+ const grid=$('profileEvaluationCards');
+ let mounted=true;
+ function render(){
+  if(!mounted)return;
+  const records=uploaded
+   ?catalogItems(readEvaluationSubmissions().filter(b=>b.account===options.account).map(normalizeEvaluationResource))
+   :catalogItems().filter(b=>b.favorite).reverse();
+  grid.innerHTML=records.map(b=>{
+   const status=uploaded?(b.status==='approved'?'已通过':b.status==='rejected'?'未通过':'审核中'):'';
+   return renderCatalogCard(b,`<button type="button" class="btn" data-profile-evaluation-detail="${esc(b.id)}">${icon('book',13)}${uploaded?'查看记录':'查看详情'}</button>`
+    +(uploaded?'':`<button type="button" class="btn" data-profile-evaluation-remove="${esc(b.id)}">${icon('star',13)}取消收藏</button>`),status);
+  }).join('')||`<div class="catalog-empty" role="status">${icon(uploaded?'upload':'star',30)}<h3>${uploaded?'暂无上传的评测集':'暂无收藏的评测集'}</h3><p>${uploaded?'提交评测集后，可在这里查看上传记录和审核状态。':'在评测集详情中点击收藏，即可在这里查看。'}</p><a class="btn" href="${esc(assetBase)}evaluation${uploaded?'/upload':''}">${uploaded?'上传评测集':'浏览评测集'}</a></div>`;
+ }
+ grid.onclick=event=>{
+  const detail=event.target.closest('[data-profile-evaluation-detail]');
+  const remove=event.target.closest('[data-profile-evaluation-remove]');
+  if(detail)onDetail(detail.dataset.profileEvaluationDetail);
+  if(remove)toggleCatalogFavorite(remove.dataset.profileEvaluationRemove,false,render);
+ };
+ const sync=event=>{if(event.key===null||event.key===catalogFavoritesKey||event.key===EVALUATION_SUBMISSIONS_KEY)render();};
+ window.addEventListener('storage',sync);
+ render();
+ return ()=>{mounted=false;window.removeEventListener('storage',sync);};
+}
+window.addEventListener('storage',syncCatalogFavoritesFromStorage);
+document.addEventListener('pointerdown',handleYearOutside);
 $('modelSearch').oninput=e=>{state.query=e.target.value;state.page=1;renderResults()};$('clearSearch').onclick=()=>{state.query='';$('modelSearch').value='';state.page=1;renderResults();$('modelSearch').focus()};evaluationRoot.querySelectorAll('[data-access]').forEach(el=>el.onclick=()=>{state.access=el.dataset.access;state.page=1;evaluationRoot.querySelectorAll('[data-access]').forEach(b=>{b.classList.toggle('active',b===el);b.setAttribute('aria-pressed',b===el)});renderResults()});$('resetBtn').onclick=resetFilters;$('tableViewBtn').onclick=()=>setView('table');$('chartViewBtn').onclick=()=>setView('chart');$('exportBtn').onclick=()=>void exportLeaderboard();$('detailBtn').onclick=showDetail;$('catalogTab').onclick=()=>switchModule('catalog');$('leaderboardTab').onclick=()=>switchModule('leaderboard');$('uploadBtn').onclick=()=>options.onUpload?options.onUpload():showUpload();
 const handleKeyDown = e=>{if(e.key==='Escape'){const open=catalogYearBounds.find(([key])=>yearTrigger(key).getAttribute('aria-expanded')==='true');if(open){closeCatalogYears();yearTrigger(open[0]).focus();return;}}const root=$('modalRoot').firstElementChild?$('modalRoot'):$('catalogDrawerRoot').firstElementChild?$('catalogDrawerRoot'):null;if(e.key==='Escape'){if($('modalRoot').firstElementChild)closeModal();else closeCatalogDrawer();}if(e.key==='Tab'&&root){const f=[...root.querySelectorAll('button:not(:disabled),a[href],input,select,textarea,summary')].filter(el=>el.offsetParent!==null);if(!f.length)return;if(e.shiftKey&&evaluationRoot.activeElement===f[0]){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&evaluationRoot.activeElement===f[f.length-1]){e.preventDefault();f[0].focus()}}};
 evaluationRoot.addEventListener('keydown', handleKeyDown);

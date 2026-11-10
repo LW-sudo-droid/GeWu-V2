@@ -33,7 +33,7 @@ const instructions = [
 ] as const
 const uploads = [['sample', '评测集样例'], ['complete', '完整评测集'], ['attachments', '评测集说明附件']] as const
 const backToEvaluation = '/evaluation'
-const uploadHistory = '/profile?tab=submit'
+const uploadHistory = '/profile?tab=evaluations'
 const saveError = '保存失败，请检查浏览器存储空间后重试'
 const newTaskId = () => 'upload-' + crypto.randomUUID()
 const top = () => window.scrollTo({ top: 0, behavior: 'instant' })
@@ -328,7 +328,7 @@ function EvaluationRecord({ account, id }: { account: string; id: string }) {
     return () => { active = false }
   }, [account, id, record])
   return <main className="uf-page evaluation-upload-page">
-    <div className="uf-heading"><div><Link className="uf-back" to={uploadHistory} aria-label="返回汇交记录"><ArrowLeft size={19} /></Link>
+    <div className="uf-heading"><div><Link className="uf-back" to={uploadHistory} aria-label="返回我的评测集"><ArrowLeft size={19} /></Link>
       <div><h1>评测集上传记录</h1><p>{record ? record.name : '暂无记录'}</p></div></div></div>
     <div className="uf-card"><div className="uf-confirm">
       {record && data ? <EvaluationReview task={data} /> : <p role="status">{record && data === undefined ? '正在读取上传记录…' : '未找到可查看的上传记录'}</p>}

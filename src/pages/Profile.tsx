@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import {
   ArrowDown,
   Bell,
@@ -28,7 +28,9 @@ import { auditWorkStatusOptions, loadAuditItems, removeAuditItemByCorpus, type A
 import { readEvaluationSubmissions } from '../data/evaluation-upload'
 import './profile-ui-v2.css'
 
-type MainTab = 'corpora' | 'demands' | 'social' | 'submit' | 'audit' | 'privacy'
+const ProfileEvaluations = lazy(() => import('./ProfileEvaluations'))
+
+type MainTab = 'corpora' | 'evaluations' | 'demands' | 'social' | 'submit' | 'audit' | 'privacy'
 type CorpusTab = 'managed' | 'joined' | 'favorite' | 'commented'
 type DemandTab = 'published' | 'favorited' | 'commented'
 type SocialTab = '关注' | '粉丝'
@@ -307,9 +309,10 @@ export default function Profile() {
     setSearchParams(next, { replace: true })
   }
   const tabParam = searchParams.get('tab')
-  const activeTab: MainTab = tabParam === 'demands' || tabParam === 'social' || tabParam === 'submit' || tabParam === 'audit' || tabParam === 'privacy' ? tabParam : 'corpora'
-  const setActiveTab = (tab: MainTab) => updateParams({ tab: tab === 'corpora' ? null : tab })
+  const activeTab: MainTab = tabParam === 'demands' || tabParam === 'social' || tabParam === 'submit' || tabParam === 'audit' || tabParam === 'privacy' || (tabParam === 'evaluations' && !isVisitor) ? tabParam : 'corpora'
+  const setActiveTab = (tab: MainTab) => updateParams({ tab: tab === 'corpora' ? null : tab, ...(tab === 'evaluations' ? {} : { collection: null }) })
   const [corpusTab, setCorpusTab] = useState<CorpusTab>('managed')
+  const evaluationTab = searchParams.get('collection') === 'favorite' ? 'favorite' : 'uploaded'
   const [demandTab, setDemandTab] = useState<DemandTab>('published')
   const [noticeTab, setNoticeTab] = useState<NoticeTab>('audit')
   const [socialTab, setSocialTab] = useState<SocialTab>('关注')
@@ -653,6 +656,7 @@ export default function Profile() {
         <section className="profile-main">
           <nav className="profile-main-tabs">
             <button type="button" className={activeTab === 'corpora' ? 'is-active' : ''} onClick={() => { setActiveTab('corpora'); setCorpusPage(1) }}>{isVisitor ? '语料库' : '我的语料库'}</button>
+            {!isVisitor && <button type="button" className={activeTab === 'evaluations' ? 'is-active' : ''} onClick={() => setActiveTab('evaluations')}>我的评测集</button>}
             <button type="button" className={activeTab === 'demands' ? 'is-active' : ''} onClick={() => { setActiveTab('demands'); setDemandPage(1) }}>需求动态</button>
             <button type="button" className={activeTab === 'social' ? 'is-active' : ''} onClick={() => setActiveTab('social')}>关注与粉丝</button>
             {!isVisitor && (
@@ -714,6 +718,20 @@ export default function Profile() {
               </div>
               <Pager total={corpusList.length} pageSize={4} current={corpusPage} onChange={setCorpusPage} />
             </>
+          )}
+
+          {activeTab === 'evaluations' && user && (
+            <section aria-label="我的评测集">
+              <header className="profile-section-header">
+                <div className="profile-sub-tabs" role="group" aria-label="评测集分类">
+                  <button type="button" className={evaluationTab === 'uploaded' ? 'is-active' : ''} aria-pressed={evaluationTab === 'uploaded'} onClick={() => updateParams({ collection: null })}>我上传的</button>
+                  <button type="button" className={evaluationTab === 'favorite' ? 'is-active' : ''} aria-pressed={evaluationTab === 'favorite'} onClick={() => updateParams({ collection: 'favorite' })}>我收藏的</button>
+                </div>
+              </header>
+              <Suspense fallback={<p role="status">正在加载评测集…</p>}>
+                <ProfileEvaluations account={user.account} collection={evaluationTab} />
+              </Suspense>
+            </section>
           )}
 
           {activeTab === 'demands' && (
