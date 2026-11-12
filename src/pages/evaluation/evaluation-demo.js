@@ -212,17 +212,10 @@ function renderSummary(){
  ];
  $('metadata').innerHTML=fields.map(([label,value,symbol])=>`<div class="meta-item"><div class="meta-symbol">${icon(symbol,17)}</div><div><dt>${label}</dt><dd>${esc(value)}</dd></div></div>`).join('');
  const boards=boardsByDataset.get(b.id),selector=$('boardSelector');
- $('leaderboardProtocol').classList.toggle('hidden',!board.label);
  $('boardSelectorLabel').classList.toggle('hidden',boards.length<2);
- $('boardLabel').classList.toggle('hidden',boards.length>1);
- $('boardLabel').textContent=board.label||'';
  selector.innerHTML=boards.map(item=>`<option value="${esc(item.id)}">${esc(item.label||item.source)}</option>`).join('');
  selector.value=board.id;
  selector.onchange=()=>{state.board=selector.value;resetBoardView();};
- $('boardOriginalLink').href=board.resultUrl||board.url;
- $('boardOriginalLink').textContent='原始成绩 · '+board.source+' ↗';
- $('boardMethodology').open=false;
- $('boardMethodText').textContent=[board.version,board.method,board.checkedAt&&'核对日期 '+board.checkedAt].filter(Boolean).join(' · ');
 }
 function renderModelTable(rows){
  const selected=new Set(state.selected);

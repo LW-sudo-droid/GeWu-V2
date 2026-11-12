@@ -39,12 +39,6 @@
      </div>
     </div>
     <dl class="metadata" id="metadata"></dl>
-    <div class="leaderboard-protocol hidden" id="leaderboardProtocol">
-     <label id="boardSelectorLabel" class="hidden">榜单口径 <select id="boardSelector" aria-label="榜单口径"></select></label>
-     <span id="boardLabel" class="hidden"></span>
-     <a id="boardOriginalLink" target="_blank" rel="noopener noreferrer">查看原始成绩 ↗</a>
-     <details id="boardMethodology"><summary>版本与评测协议</summary><p id="boardMethodText"></p></details>
-    </div>
    </section>
    <section class="leaderboard-models" aria-labelledby="modelPerformanceTitle">
     <div class="table-top"><div class="table-title"><h3 id="modelPerformanceTitle">模型表现</h3></div>
@@ -56,7 +50,10 @@
     <div class="filter-bar">
      <div class="search-box" role="search"><span data-icon="search"></span><input type="search" id="modelSearch" placeholder="搜索模型名称或机构" aria-label="搜索模型名称或机构"><button type="button" class="clear-search hidden" id="clearSearch" aria-label="清空模型搜索"><span data-icon="close"></span></button></div>
      <div class="filter-buttons" role="group" aria-label="模型开放类型"><button type="button" class="active" data-access="all" aria-pressed="true">全部</button><button type="button" data-access="open" aria-pressed="false">开源模型</button><button type="button" data-access="closed" aria-pressed="false">闭源模型</button></div>
-     <div class="filter-result"><button type="button" id="resetBtn" class="hidden">重置</button></div>
+     <div class="filter-result">
+      <button type="button" id="resetBtn" class="hidden">重置</button>
+      <label for="boardSelector" id="boardSelectorLabel" class="board-scope-filter hidden">榜单口径 <select id="boardSelector"></select></label>
+     </div>
     </div>
     <div class="table-container"><div id="results"></div><div class="table-footer"><span id="resultSummary" role="status"></span><div class="pagination" id="pagination" aria-label="榜单分页"></div></div></div>
    </section>
