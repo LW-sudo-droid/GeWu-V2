@@ -122,7 +122,7 @@ export default function QualityCorpusDiscovery() {
   const visibleCorpus = useMemo(() => sortCorpus(corpusItems, activeTab).slice(0, 6), [activeTab])
 
   return (
-    <section className="home-quality" aria-labelledby="home-quality-title">
+    <section id="home-quality" className="home-quality" aria-labelledby="home-quality-title">
       <div className="home-quality-inner">
         <h2 id="home-quality-title">发现<span className="text-gradient-alt">优质语料</span></h2>
 

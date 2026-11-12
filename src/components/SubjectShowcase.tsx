@@ -318,7 +318,7 @@ export default function SubjectShowcase() {
   }, [featureSlides])
 
   return (
-    <section className="home-subjects" aria-labelledby="home-subjects-title">
+    <section id="home-subjects" className="home-subjects" aria-labelledby="home-subjects-title">
       <div className="home-subjects-inner">
         <h2 id="home-subjects-title"><span className="text-gradient">六大学科</span>领域建设特色</h2>
 

@@ -1,5 +1,6 @@
 /* Homepage reference: 1440 px canvas / 1200 px content. All rules are home-scoped. */
 .home-page {
+  --home-section-nav-height: 68px;
   --hv-text: #1d2129;
   --hv-text-2: #6b7688;
   --hv-text-3: #929cad;
@@ -29,8 +30,9 @@
 .home-page .home-btn-gradient { background: var(--hv-grad); }
 .home-page :is(a,button):focus-visible { outline: 3px solid #5c8bff; outline-offset: 4px; }
 /* Header and footer adjustments apply only while the home route is present. */
-.app-shell:has(.home-page) .site-header { height: 76px; min-height: 76px; background: #fbfdff; border: 0; box-shadow: none; position: relative; }
-.app-shell:has(.home-page) .header-inner { max-width: 1440px; height: 76px; min-height: 76px; }
+.app-shell:has(.home-page) { --home-header-height: 76px; }
+.app-shell:has(.home-page) .site-header { height: var(--home-header-height); min-height: var(--home-header-height); background: #fbfdff; border: 0; box-shadow: none; position: relative; }
+.app-shell:has(.home-page) .header-inner { max-width: 1440px; height: var(--home-header-height); min-height: var(--home-header-height); }
 .app-shell:has(.home-page) .brand { min-width: 210px; width: 210px; gap: 0; }
 .app-shell:has(.home-page) .home-brand-image { display: block; width: 190px; height: 48px; object-fit: contain; }
 .app-shell:has(.home-page) .brand-copy[hidden] { display: none; }
@@ -39,14 +41,23 @@
 .app-shell:has(.home-page) .nav-link.active::after { width: 14px; height: 3px; background: var(--brand-gradient,linear-gradient(90deg,#8b4dff,#02d3e9)); bottom: 13px; }
 .app-shell:has(.home-page) .login-trigger { height: 36px; border-radius: 7px; padding: 0 17px; font-size: 16px; font-weight: 400; }
 /* Hero: fine orbital construction, translucent ribbons, overlapping figures. */
-.home-page .home-hero { padding: 24px 24px 0; overflow: visible; isolation: isolate; background: none; }
+.home-page .home-hero {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100svh - var(--home-header-height));
+  gap: clamp(12px, 2.5svh, 28px);
+  padding: clamp(12px, 3svh, 32px) 24px;
+  overflow: visible;
+  isolation: isolate;
+  background: none;
+}
 .home-page .home-hero::before { content: ''; position: absolute; z-index: -1; inset: 0 0 28px; background: url('../public/images/home/hero-surface.svg') center top / 100% 100% no-repeat; }
-.home-page .home-hero-inner { height: 464px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: center; }
+.home-page .home-hero-inner { flex: 1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: center; }
 .home-page .home-hero-copy { position: relative; z-index: 1; }
 .home-page .home-hero-copy h1 { font-size: clamp(44px,4.44vw,64px); line-height: 1.26; font-weight: 650; margin: 0 0 18px; letter-spacing: 1px; white-space: nowrap; }
 .home-page .home-hero-copy > p { font-size: 16px; line-height: 1.85; color: #75808f; max-width: 480px; margin: 0 0 34px; font-weight: 400; }
 .home-page .home-hero-actions { display: flex; gap: 24px; }
-.home-page .home-hero-orbit { position: relative; width: 540px; height: 500px; max-width: 100%; margin: 0 auto; }
+.home-page .home-hero-orbit { position: relative; width: min(100%, 540px, 58svh); height: auto; aspect-ratio: 540 / 500; margin: 0 auto; }
 .home-page .home-orbit-grid { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .home-page .orbit-spin, .home-page .orbit-node { animation: none; }
 .home-page .orbit-center { width: 158px; height: 158px; gap: 2px; background: linear-gradient(90deg,#8450ff 0%,#526cff 55%,#09bce9 100%); border: 7px solid #bdcfff90; background-clip: padding-box; box-shadow: 0 0 0 7px #c6dcff65, 0 8px 20px #6c91ff36; }
@@ -64,15 +75,80 @@
 .home-page .orbit-data { bottom: 95px; right: -48px; }
 .home-page .orbit-tools .orbit-node-icon { color: #08b8f2; }
 .home-page .orbit-data .orbit-node-icon { color: #4d82ff; }
-.home-page .home-metrics { margin: 24px auto 0; gap: 24px; grid-template-columns: repeat(4,minmax(0,1fr)); position: relative; z-index: 2; }
-.home-page .home-metric-card { height: 116px; padding: 18px 26px; border: 1px solid #e6e6ee; border-radius: 22px; background: #ffffffa6; box-shadow: 0 5px 14px #26293b14; gap: 26px; backdrop-filter: blur(16px); }
+.home-page .home-metrics { margin: 0 auto; gap: 24px; grid-template-columns: repeat(4,minmax(0,1fr)); position: relative; z-index: 2; }
+.home-page .home-metric-card { height: clamp(76px, 13svh, 116px); padding: 18px 26px; border: 1px solid #e6e6ee; border-radius: 22px; background: #ffffffa6; box-shadow: 0 5px 14px #26293b14; gap: 26px; backdrop-filter: blur(16px); }
 .home-page .home-metric-icon { width: 68px; height: 68px; border-radius: 17px; background: linear-gradient(145deg,#fcfcff,#e9ecff); border: 2px solid #e1e6ff; color: #7961ff; }
 .home-page .home-metric-icon > svg { width: 44px; height: 44px; overflow: visible; }
 .home-page .home-metric-copy p { margin: 0; display: flex; gap: 6px; align-items: baseline; white-space: nowrap; line-height: 1.1; }
 .home-page :is(.home-metric-copy,.home-subject-scale,.community-card-metrics) strong { font-family: 'DIN Condensed','Arial Narrow',Impact,sans-serif !important; font-weight: 700; font-stretch: condensed; color: #5b65ff; background: linear-gradient(100deg,#5a88ff,#4a35ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-.home-page .home-metric-copy p strong { font-size: 70px; letter-spacing: -1px; }
+.home-page .home-metric-copy p strong { font-size: clamp(36px, 7.7svh, 70px); letter-spacing: -1px; }
 .home-page .home-metric-copy em { line-height: 1; font-size: 22px; font-weight: 300; font-style: normal; color: #697384; }
 .home-page .home-metric-copy > span { display: block; line-height: 1.2; font-size: 16px; color: #798393; margin-top: 3px; }
+/* Jump to each homepage section without covering its heading. */
+.home-page > section[id] {
+  scroll-margin-top: var(--home-section-nav-height);
+}
+
+.home-section-nav {
+  position: sticky;
+  z-index: 25;
+  top: 0;
+  min-height: var(--home-section-nav-height);
+  padding-block: 12px;
+  background: #ffffffef;
+  backdrop-filter: blur(14px);
+}
+
+.home-section-nav-inner {
+  width: min(1200px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+.home-section-nav-links {
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  overflow-x: auto;
+  border-radius: 999px;
+  background: #f3f3fb;
+  scrollbar-width: none;
+}
+
+.home-section-nav-links::-webkit-scrollbar {
+  display: none;
+}
+
+.home-section-nav-links a {
+  flex: none;
+  padding: 7px clamp(15px, 1.55vw, 23px);
+  border-radius: 999px;
+  color: #535873;
+  font-size: 15px;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.home-section-nav-links a:hover {
+  color: #4543bc;
+}
+
+.home-section-nav-links a[aria-current='location'] {
+  color: #242850;
+  background: #fff;
+  font-weight: 600;
+}
+
+.home-page .home-section-nav-links a:focus-visible {
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.home-page) { scroll-behavior: auto; }
+}
+
 /* Demand collaboration: three deliberately staggered cards. */
 .home-page .home-demand { padding: 64px 24px 72px; background: radial-gradient(ellipse 420px 260px at 0 68%,#e7e8ffb0,transparent),radial-gradient(ellipse 550px 340px at 100% 82%,#eaf8ffbd,transparent),#fff; }
 .home-page .home-demand-inner { display: grid; grid-template-columns: 460px minmax(0,1fr); gap: 72px; align-items: center; }
@@ -233,8 +309,7 @@
   .app-shell:has(.home-page) .brand { min-width: 170px; width: 170px; }
   .app-shell:has(.home-page) .home-brand-image { width: 170px; }
   .app-shell:has(.home-page) .nav-link { font-size: 14px; }
-  .home-page .home-hero-inner { grid-template-columns: 1fr 1fr; }
-  .home-page .home-hero-orbit { transform: scale(.85); transform-origin: center; }
+  .home-page .home-hero-orbit { width: min(92%, 460px, 54svh); }
   .home-page .home-metric-card { padding: 16px; gap: 14px; }
   .home-page .home-metric-icon { width: 54px; height: 54px; }
   .home-page .home-metric-copy p strong { font-size: 48px; }
@@ -266,13 +341,12 @@
   .app-shell:has(.home-page) .desktop-nav { display: none; }
   .app-shell:has(.home-page) .mobile-toggle { display: inline-flex; }
   .app-shell:has(.home-page) .header-actions { margin-left: auto; }
-  .home-page .home-hero { padding-top: 44px; }
-  .home-page .home-hero-inner { height: auto; grid-template-columns: 1fr; gap: 20px; }
+  .home-page .home-hero-inner { grid-template-columns: 1fr; align-content: center; gap: 14px; }
   .home-page .home-hero-copy { text-align: center; }
   .home-page .home-hero-copy h1 { font-size: clamp(32px,6.5vw,54px); white-space: normal; }
   .home-page .home-hero-copy > p { margin-inline: auto; font-size: 14px; }
   .home-page .home-hero-actions { justify-content: center; }
-  .home-page .home-hero-orbit { width: 460px; height: 426px; }
+  .home-page .home-hero-orbit { width: min(100%, 460px, 36svh); }
   .home-page .orbit-node-icon { width: 56px; height: 56px; }
   .home-page .orbit-node-icon svg { width: 32px; height: 32px; }
   .home-page .orbit-node-copy strong { font-size: 17px; }
@@ -282,7 +356,9 @@
   .home-page .orbit-tools { bottom: 90px; left: 0; }
   .home-page .orbit-data { bottom: 80px; right: 0; }
   .home-page .home-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; margin-top: 0; }
-  .home-page .home-metric-card { gap: 18px; padding: 20px; }
+  .home-page .home-metric-card { height: clamp(64px, 10svh, 100px); gap: 14px; padding: 12px 16px; }
+  .home-page .home-metric-icon { width: 54px; height: 54px; }
+  .home-page .home-metric-copy p strong { font-size: clamp(36px, 5svh, 52px); }
   .home-page .home-demand { padding-top: 52px; }
   .home-page .home-demand-inner { grid-template-columns: 1fr; gap: 40px; }
   .home-page .home-demand-copy { text-align: center; }
@@ -306,10 +382,15 @@
   .app-shell:has(.home-page) .login-trigger { padding-inline: 12px; font-size: 13px; }
   .home-page :is(.home-hero,.home-demand,.home-flow,.home-subjects,.home-community,.home-quality) { padding-inline: 20px; }
   .home-page :is(.home-flow-inner,.home-subjects-inner,.home-community-inner,.home-quality-inner,.home-partners-inner) > h2 { font-size: 25px; margin-bottom: 32px; }
-  .home-page .home-hero-copy > p { font-size: 13px; }
+  .home-page { --home-section-nav-height: 60px; }
+  .home-section-nav { padding-block: 8px; }
+  .home-section-nav-inner { width: calc(100% - 40px); }
+  .home-section-nav-links a { padding-inline: 13px; font-size: 14px; }
+  .home-page .home-hero-copy h1 { font-size: clamp(27px, 8.2vw, 42px); margin-bottom: 12px; }
+  .home-page .home-hero-copy > p { margin-bottom: 18px; font-size: 13px; }
   .home-page .home-hero-actions { gap: 12px; }
   .home-page :is(.home-btn-dark,.home-btn-gradient) { font-size: 14px; height: 40px; padding-inline: 18px; }
-  .home-page .home-hero-orbit { width: 330px; height: 306px; }
+  .home-page .home-hero-orbit { width: min(100%, 330px, 33svh); }
   .home-page .orbit-center { width: 110px; height: 110px; border-width: 5px; }
   .home-page .orbit-center span { font-size: 12px; }.home-page .orbit-center strong { font-size: 24px; }
   .home-page .orbit-node { gap: 5px; }
@@ -319,7 +400,8 @@
   .home-page .orbit-node-copy small { font-size: 9px; }
   .home-page .orbit-talent { top: 48px; left: -4px; }.home-page .orbit-model { top: 54px; right: -2px; }
   .home-page .orbit-tools { bottom: 58px; left: -20px; }.home-page .orbit-data { bottom: 50px; right: -20px; }
-  .home-page .home-metric-card { height: 96px; padding: 12px; gap: 10px; border-radius: 16px; }
+  .home-page .home-metrics { gap: 10px; }
+  .home-page .home-metric-card { padding: 10px; gap: 10px; border-radius: 16px; }
   .home-page .home-metric-icon { width: 44px; height: 44px; border-radius: 12px; }
   .home-page .home-metric-icon > svg { width: 28px; height: 28px; }
   .home-page .home-metric-copy p strong { font-size: 36px; }
@@ -415,4 +497,53 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .home-page .home-hero-orbit .orbit-node { animation: none; }
+}
+
+@media (min-width: 901px) and (max-height: 720px) {
+  .home-page .home-hero-copy h1 { font-size: clamp(32px, 7svh, 52px); margin-bottom: 12px; }
+  .home-page .home-hero-copy > p { margin-bottom: 18px; font-size: 14px; }
+  .home-page .home-metric-card { padding: 10px 16px; gap: 16px; }
+  .home-page .home-metric-icon { width: 48px; height: 48px; }
+  .home-page .home-metric-icon > svg { width: 32px; height: 32px; }
+  .home-page .home-metric-copy p strong { font-size: clamp(32px, 6.7svh, 48px); }
+  .home-page .home-metric-copy em { font-size: 16px; }
+}
+
+@media (max-width: 900px) and (max-height: 820px) {
+  .home-page .home-hero-copy h1 { font-size: clamp(27px, min(8vw, 5.4svh), 40px); margin-bottom: 12px; }
+  .home-page .home-hero-copy > p { margin-bottom: 18px; }
+  .home-page .home-hero-orbit { width: min(100%, 360px, 30svh); }
+}
+
+@media (min-width: 641px) and (max-width: 900px) and (max-height: 700px) {
+  .home-page .home-hero-inner { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-page .home-hero-copy { text-align: left; }
+  .home-page .home-hero-actions { justify-content: flex-start; flex-wrap: wrap; gap: 10px; }
+  .home-page .home-hero-orbit { width: min(92%, 48svh); }
+}
+
+@media (max-width: 640px) and (max-height: 720px) {
+  .home-page .home-hero { padding-block: clamp(10px, 2.3svh, 16px); }
+  .home-page .home-hero-orbit { width: min(100%, 300px, 30svh); }
+  .home-page .home-hero-inner { gap: 8px; }
+}
+
+@media (max-width: 600px) and (max-height: 610px) {
+  .app-shell:has(.home-page) { --home-header-height: 64px; }
+  .home-page .home-hero { padding-block: 10px; }
+  .home-page .home-hero-copy h1 { margin-bottom: 8px; }
+  .home-page .home-hero-copy > p { margin-bottom: 12px; }
+  .home-page .home-hero-orbit { width: min(100%, 26svh); }
+  .home-page .orbit-center { width: 74px; height: 74px; border-width: 4px; }
+  .home-page .orbit-center span { font-size: 9px; }
+  .home-page .orbit-center strong { font-size: 17px; }
+  .home-page .orbit-center i { display: none; }
+  .home-page .home-hero-orbit .orbit-node { width: 30px; height: 30px; --caption-x: 52px; --caption-y: 31px; }
+  .home-page .orbit-node-icon { width: 30px; height: 30px; }
+  .home-page .orbit-node-icon svg { width: 19px; height: 19px; }
+  .home-page .orbit-node-copy strong { font-size: 12px; }
+  .home-page .home-metric-card { height: 57px; }
+  .home-page .home-metric-icon { width: 34px; height: 34px; }
+  .home-page .home-metric-icon > svg { width: 23px; height: 23px; }
+  .home-page .home-metric-copy p strong { font-size: 29px; }
 }

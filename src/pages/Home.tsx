@@ -23,6 +23,7 @@ import { Link, useNavigate } from 'react-router'
 import '../home-v2.css'
 import '../home-design.css'
 import HomeOrbit from '../components/home/HomeOrbit'
+import HomeSectionNav from '../components/home/HomeSectionNav'
 import HomeMetricIcon from '../components/home/HomeMetricIcon'
 import HomeEvaluation from '../components/home/HomeEvaluation'
 import CorpusCommunity, { PartnersSection } from '../components/CorpusCommunity'
@@ -130,7 +131,30 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-demand" aria-labelledby="home-demand-title">
+      <HomeSectionNav />
+
+      <section id="home-flow" className="home-flow" aria-labelledby="home-flow-title">
+        <div className="home-flow-inner">
+          <h2 id="home-flow-title">连接科学语料的<span className="text-gradient-alt">每一步</span></h2>
+          <div className="home-flow-row" aria-label="平台能力列表">
+            {flowSteps.map((step, index) => (
+              <div className="home-flow-item" key={step.title}>
+                {index > 0 && <span className="flow-connector" aria-hidden="true" />}
+                <article className="home-flow-card">
+                  <span className="home-flow-icon"><step.icon size={26} /></span>
+                  <h3>{step.title}</h3>
+                  <p>{step.description}</p>
+                </article>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <SubjectShowcase />
+      <HomeEvaluation />
+
+      <section id="home-demand" className="home-demand" aria-labelledby="home-demand-title">
         <div className="home-demand-inner">
           <div className="home-demand-copy">
             <h2 id="home-demand-title">
@@ -176,26 +200,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="home-flow" aria-labelledby="home-flow-title">
-        <div className="home-flow-inner">
-          <h2 id="home-flow-title">连接科学语料的<span className="text-gradient-alt">每一步</span></h2>
-          <div className="home-flow-row" aria-label="平台能力列表">
-            {flowSteps.map((step, index) => (
-              <div className="home-flow-item" key={step.title}>
-                {index > 0 && <span className="flow-connector" aria-hidden="true" />}
-                <article className="home-flow-card">
-                  <span className="home-flow-icon"><step.icon size={26} /></span>
-                  <h3>{step.title}</h3>
-                  <p>{step.description}</p>
-                </article>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <SubjectShowcase />
-      <HomeEvaluation />
       <CorpusCommunity />
       <QualityCorpusDiscovery />
       <PartnersSection />

@@ -30,7 +30,7 @@ export default function HomeEvaluation() {
   const topModels = [...rows].sort((a, b) => b.score - a.score).slice(0, 3)
 
   return (
-    <section className="home-evaluation" aria-labelledby="home-evaluation-title">
+    <section id="home-evaluation" className="home-evaluation" aria-labelledby="home-evaluation-title">
       <div className="home-evaluation-inner">
         <header className="home-evaluation-heading">
           <h2 id="home-evaluation-title">探索<span className="text-gradient-alt">科学评测</span></h2>

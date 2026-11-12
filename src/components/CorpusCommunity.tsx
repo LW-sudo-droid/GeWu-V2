@@ -242,7 +242,7 @@ export default function CorpusCommunity() {
   })), [activeProvince])
 
   return (
-    <section className="home-community" aria-labelledby="home-community-title">
+    <section id="home-community" className="home-community" aria-labelledby="home-community-title">
         <div className="home-community-inner">
           <h2 id="home-community-title">数据社区 · <span className="text-gradient-alt">共建共享</span></h2>
 
@@ -334,7 +334,7 @@ export default function CorpusCommunity() {
 
 export function PartnersSection() {
   return (
-    <section className="home-partners" aria-labelledby="home-partners-title">
+    <section id="home-partners" className="home-partners" aria-labelledby="home-partners-title">
       <div className="home-partners-inner">
         <h2 id="home-partners-title">合作伙伴</h2>
         <div className="partner-marquee-stack" aria-label="语料共建方列表">
