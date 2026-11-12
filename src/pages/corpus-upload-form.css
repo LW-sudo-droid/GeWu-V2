@@ -89,22 +89,29 @@
 .uf-success .uf-actions { justify-content: center; }
 .cr-dialog.uf-drafts-dialog { width: 680px; }
 .uf-draft-list { min-height: 280px; max-height: min(600px, 70vh); padding: 0 24px; overflow-y: auto; }
-.uf-draft-list > article { padding: 24px 0; border-bottom: 1px solid #e7eaf0; }
+.uf-draft-list > article { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 0; border-bottom: 1px solid #e7eaf0; }
 .uf-draft-list > article:last-child { border-bottom: 0; }
-.uf-draft-list h3 { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0 0 9px; color: #242a34; font-size: 18px; font-weight: 500; line-height: 1.5; }
-.uf-draft-list article > p { margin: 0 0 20px; color: #97a1b2; font-size: 14px; }
-.uf-draft-actions { display: flex; gap: 12px; }
+.uf-draft-info { min-width: 0; }
+.uf-draft-info h3 { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin: 0 0 9px; color: #242a34; font-size: 18px; font-weight: 500; line-height: 1.5; }
+.uf-draft-info p { margin: 0; color: #97a1b2; font-size: 14px; }
+.uf-draft-actions { display: flex; flex: 0 0 auto; gap: 12px; white-space: nowrap; }
 .cr-dialog .uf-draft-actions > button, .cr-dialog .uf-delete-wrap > button { height: 32px; padding: 0 20px; color: #5f6672; border: 1px solid #cdd3df; border-radius: 20px; background: white; font-size: 14px; }
 .cr-dialog .uf-draft-actions > .is-primary { color: white; border-color: #514cf5; background: #514cf5; }
 .uf-delete-wrap { position: relative; }
-.uf-delete-confirm { position: absolute; z-index: 5; bottom: 42px; left: 50%; width: 230px; padding: 17px; transform: translateX(-50%); border-radius: 14px; background: white; box-shadow: 0 4px 20px #20293829; }
-.uf-delete-confirm::after { content: ''; position: absolute; bottom: -5px; left: calc(50% - 5px); width: 10px; height: 10px; transform: rotate(45deg); background: white; }
+.uf-delete-confirm { position: absolute; z-index: 5; bottom: 42px; right: 0; width: 230px; padding: 17px; border-radius: 14px; background: white; box-shadow: 0 4px 20px #20293829; }
+.uf-delete-confirm::after { content: ''; position: absolute; bottom: -5px; right: 29px; width: 10px; height: 10px; transform: rotate(45deg); background: white; }
+.uf-draft-list > article:first-of-type .uf-delete-confirm { top: 42px; bottom: auto; }
+.uf-draft-list > article:first-of-type .uf-delete-confirm::after { top: -5px; bottom: auto; }
 .uf-delete-confirm > p { display: flex; align-items: center; gap: 6px; margin: 0 0 15px; color: #5f6672; font-size: 13px; white-space: nowrap; }
 .uf-delete-confirm > div { display: flex; justify-content: flex-end; gap: 8px; }
 .cr-dialog .uf-delete-confirm button { height: 30px; padding: 0 16px; color: #7c8797; border-radius: 18px; background: #f2f3f6; font-size: 13px; }
 .cr-dialog .uf-delete-confirm .is-danger { color: #fff; background: #ff4048; }
 .uf-draft-empty { display: flex; align-items: center; justify-content: center; flex-direction: column; height: 280px; color: #bac2d2; }
 .uf-draft-empty p { color: #9aa5b5; font-size: 15px; }
+@media (max-width: 520px) {
+  .uf-draft-list > article { align-items: stretch; flex-direction: column; gap: 12px; }
+  .uf-draft-actions { align-self: flex-end; }
+}
 .uf-auth-required { min-height: 40vh; padding-top: 80px; text-align: center; }
 @media (min-width: 1650px) { .uf-page { padding-inline: max(2.5vw, calc((100vw - 1620px) / 2)); } }
 @media (max-width: 1050px) { .uf-stepper li { gap: 10px; } .uf-page .uf-stepper { gap: 22px; padding: 26px 22px; } .uf-stepper h2 { font-size: 17px; } .uf-stepper p { font-size: 11px; } .uf-stepper i { flex-basis: 44px; width: 44px; height: 44px; } .uf-step-arrow { width: 16px; } .uf-author-row { gap: 14px; } .uf-author-field { flex-direction: column; gap: 6px; } .uf-author-field > div { width: 100%; } .uf-author-actions { margin-top: 35px; } .uf-basic-form { padding: 24px; } }

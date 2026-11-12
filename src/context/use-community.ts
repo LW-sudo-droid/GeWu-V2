@@ -2,6 +2,8 @@ import { useMemo, useSyncExternalStore } from 'react'
 import { useApp, type DemoUser } from './app-context'
 import { communityUsers, type CommunityUser } from '../data/community-users'
 
+export const defaultProfileBio = '生活里算是个好奇心很重的人。有空喜欢研究各种新奇工具，也爱规划旅行，提前做攻略、找搭子，盼着出门散心。平时饮食上比较在意，会简单看看食物热量。'
+
 const CHANGE_EVENT = 'gw-community-changed'
 
 function storedValue(key: string) {
@@ -31,6 +33,7 @@ export function notifyCommunityChanged() {
 function identityFromProfile(user: DemoUser | null, profile: Record<string, unknown>) {
   return {
     username: typeof profile.username === 'string' && profile.username.trim() ? profile.username : user?.name || '科学语料用户',
+    bio: typeof profile.bio === 'string' ? profile.bio : defaultProfileBio,
     avatar: typeof profile.avatar === 'string' ? profile.avatar : 'images/demand-users/lab-director.jpg',
   }
 }

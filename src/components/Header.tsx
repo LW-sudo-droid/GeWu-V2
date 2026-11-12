@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useNavigate, useLocation } from 'react-router'
-import { ChevronDown, LogOut, Menu, UserRound, X } from 'lucide-react'
+import { useState } from 'react'
+import { Link, NavLink, useLocation } from 'react-router'
+import { Menu, X } from 'lucide-react'
 import LogoMark from './LogoMark'
+import MessageCenter from './MessageCenter'
+import AvatarMenu from './AvatarMenu'
 import './header-layout.css'
 import { useApp } from '../context/app-context'
 
@@ -17,28 +19,18 @@ const navItems = [
 
 export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [userMenuOpen, setUserMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const navigate = useNavigate()
-  const isHome = useLocation().pathname === '/'
-  const { user, openAuth, signOut } = useApp()
-
-  useEffect(() => {
-    const closeMenu = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setUserMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', closeMenu)
-    return () => document.removeEventListener('mousedown', closeMenu)
-  }, [])
+  const [avatarReset, setAvatarReset] = useState(0)
+  const location = useLocation()
+  const isSettings = location.pathname === '/settings'
+  const showPlatformBrand = location.pathname === '/' || isSettings
+  const { user, openAuth } = useApp()
 
   return (
-    <header className="site-header">
+    <header className={`site-header${isSettings ? ' account-site-header' : ''}`}>
       <div className="header-inner">
         <Link className="brand" to="/" aria-label="格物·科学语料库首页">
-          {isHome ? <img className="home-brand-image" src={`${import.meta.env.BASE_URL}images/home/brand.svg`} alt="格物·科学语料库" /> : <LogoMark size={44} />}
-          <span className="brand-copy" hidden={isHome}>
+          {showPlatformBrand ? <img className="home-brand-image" src={`${import.meta.env.BASE_URL}images/home/brand.svg`} alt="格物·科学语料库" /> : <LogoMark size={44} />}
+          <span className="brand-copy" hidden={showPlatformBrand}>
             <strong>格物 · 科学语料库</strong>
             <small>科学语料共建共享平台</small>
           </span>
@@ -59,28 +51,10 @@ export default function Header() {
 
         <div className="header-actions">
           {user ? (
-            <div className="user-menu" ref={menuRef}>
-              <button
-                type="button"
-                className="user-trigger"
-                onClick={() => setUserMenuOpen((value) => !value)}
-                aria-expanded={userMenuOpen}
-              >
-                <span className="user-avatar">{user.name.slice(0, 1)}</span>
-                <span className="user-trigger-name" title={user.name}>{user.name}</span>
-                <ChevronDown size={15} />
-              </button>
-              {userMenuOpen && (
-                <div className="user-dropdown">
-                  <button type="button" onClick={() => { navigate('/profile'); setUserMenuOpen(false) }}>
-                    <UserRound size={16} />个人主页
-                  </button>
-                  <button type="button" onClick={() => { signOut(); setUserMenuOpen(false) }}>
-                    <LogOut size={16} />退出登录
-                  </button>
-                </div>
-              )}
-            </div>
+            <>
+              <MessageCenter key={user.account} account={user.account} onOpen={() => { setAvatarReset(value => value + 1); setMobileOpen(false) }} />
+              <AvatarMenu key={`${user.account}:${location.key}:${avatarReset}`} />
+            </>
           ) : (
             <button type="button" className="login-trigger" onClick={() => openAuth()}>
               登录体验

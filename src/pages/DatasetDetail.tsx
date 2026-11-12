@@ -311,7 +311,7 @@ export default function DatasetDetail() {
 
 function DatasetDetailContent() {
   const { id = '' } = useParams()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, openAuth, favorites, toggleFavorite } = useApp()
   const currentIdentity = useCurrentIdentity()
@@ -331,7 +331,16 @@ function DatasetDetailContent() {
   const openness = detailOpennessLabel(item.openness)
   const favorite = favorites.some((record) => record.id === item.id)
 
-  const [activeTab, setActiveTab] = useState<DetailTab>(() => searchParams.get('tab') === 'comments' ? 'comments' : 'intro')
+  const [localTab, setLocalTab] = useState<DetailTab>('intro')
+  const activeTab = searchParams.get('tab') === 'comments' ? 'comments' : localTab
+  const setActiveTab = (tab: DetailTab) => {
+    setLocalTab(tab)
+    if (tab !== 'comments' && searchParams.get('tab') === 'comments') {
+      const next = new URLSearchParams(searchParams)
+      next.delete('tab')
+      setSearchParams(next, { replace: true })
+    }
+  }
   const [downloadMethod, setDownloadMethod] = useState<'cli' | 'sdk'>('sdk')
   const [metadataMenuOpen, setMetadataMenuOpen] = useState(false)
   const metadataMenuRef = useRef<HTMLDivElement>(null)
@@ -339,7 +348,16 @@ function DatasetDetailContent() {
   const [previewSidebarCollapsed, setPreviewSidebarCollapsed] = useState(false)
   const [fullscreenBrowser, setFullscreenBrowser] = useState<'intro' | 'download' | null>(null)
   const [memberOpen, setMemberOpen] = useState(false)
-  const [uploadOpen, setUploadOpen] = useState(false)
+  const [localUploadOpen, setUploadOpen] = useState(false)
+  const requestedUpload = searchParams.get('upload') === '1' && Boolean(user) && detailRole === 'uploader'
+  const closeUpload = () => {
+    setUploadOpen(false)
+    if (requestedUpload) {
+      const next = new URLSearchParams(searchParams)
+      next.delete('upload')
+      setSearchParams(next, { replace: true })
+    }
+  }
   const [joinRequestOpen, setJoinRequestOpen] = useState(false)
   const [commentSort, setCommentSort] = useState<CommentSort>('time')
   const [commentDraft, setCommentDraft] = useState('')
@@ -1033,7 +1051,7 @@ corpusware download --corpus ${item.id} --output ./corpus`}</code></pre>
       {memberOpen && <MemberManagementDialog members={members} onCancel={() => setMemberOpen(false)} onConfirm={confirmMembers} />}
 
       {joinRequestOpen && <CorpusJoinDialog onCancel={() => setJoinRequestOpen(false)} onSubmit={submitJoinRequest} />}
-      {uploadOpen && <CorpusUploadDialog corpusId={item.id} onCancel={() => setUploadOpen(false)} onSubmit={submitUpload} notify={notify} />}
+      {(localUploadOpen || requestedUpload) && <CorpusUploadDialog corpusId={item.id} onCancel={closeUpload} onSubmit={submitUpload} notify={notify} />}
 
       {toast && <div className="dataset-toast"><Check size={16} />{toast}</div>}
     </div>

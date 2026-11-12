@@ -1,0 +1,43 @@
+.site-header .avatar-popover {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 7px);
+  right: 0;
+  width: min(320px, calc(100vw - 24px));
+  color: #242b35;
+  background: #dff1ff;
+  border: 1px solid #fff;
+  border-radius: 17px;
+  box-shadow: 0 5px 20px #23334b22;
+  animation: avatar-popover-in .15s ease-out;
+}
+.site-header .avatar-popover::before { content: ''; position: absolute; inset: -9px 0 auto; height: 9px; }
+@keyframes avatar-popover-in { from { opacity: 0; } to { opacity: 1; } }
+.avatar-popover-profile {
+  padding: 22px 19px 31px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(95deg, #eaf5fccc, #bfe7ff44 65%, #508af848), url('/images/search-hero-reference.png') right center / auto 145% no-repeat, #d8edff;
+}
+.avatar-popover-summary { display: flex; align-items: center; gap: 15px; }
+.site-header .avatar-popover-summary .user-avatar { width: 54px; height: 54px; flex: 0 0 54px; overflow: hidden; font-size: 20px; }
+.avatar-popover-identity { min-width: 0; flex: 1; }
+.avatar-popover-identity > div { display: flex; align-items: center; gap: 5px; }
+.avatar-popover-identity strong, .avatar-popover-identity p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.avatar-popover-identity strong { font-size: 17px; font-weight: 650; }
+.avatar-popover-identity p { margin: 5px 0 0; color: #61778d; font-size: 13px; }
+.avatar-popover-identity button { display: grid; flex: 0 0 26px; height: 26px; place-items: center; border-radius: 6px; color: #4b6178; background: transparent; cursor: pointer; }
+.avatar-popover-identity button:hover { color: #4948e9; background: #ffffff88; }
+.avatar-popover-stats { display: flex; align-items: center; margin-top: 16px; color: #637486; font-size: 13px; }
+.avatar-popover-stats span { white-space: nowrap; padding-inline: 10px; border-left: 1px solid #647e9826; }
+.avatar-popover-stats span:first-child { padding-left: 0; border: 0; }
+.avatar-popover-stats b { color: #293340; font-weight: 500; font-variant-numeric: tabular-nums; }
+.avatar-popover-actions { position: relative; margin-top: -7px; padding: 11px 18px 13px; border-radius: 13px 13px 16px 16px; background: linear-gradient(#fff 25%, #f0f9fc); }
+.avatar-popover-actions :is(a,button) { display: flex; align-items: center; gap: 13px; width: 100%; min-height: 47px; padding: 6px; border-radius: 7px; color: #465263; background: transparent; font-size: 16px; text-align: left; cursor: pointer; }
+.avatar-popover-actions svg { width: 19px; height: 19px; stroke-width: 1.7; }
+.avatar-popover-actions :is(a,button):hover { color: #4948e9; background: #edf0fa; }
+.avatar-popover-actions hr { margin: 10px 6px 11px; border: 0; border-top: 1px solid #e1e5ec; }
+.avatar-popover :is(a,button):focus-visible { outline: 2px solid #706bfa; outline-offset: 1px; }
+.avatar-share-toast { position: fixed; z-index: 210; top: 16px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 12px 20px; border: 1px solid #e8ebef; border-radius: 99px; color: #171a20; background: white; box-shadow: 0 5px 18px #17213326; font-size: 14px; white-space: nowrap; }
+.avatar-share-toast svg path { stroke: white; }
+@media (max-width: 540px) { .site-header .avatar-popover { right: -35px; } }
+@media (prefers-reduced-motion: reduce) { .site-header .avatar-popover { animation: none; } }

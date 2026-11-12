@@ -18,27 +18,28 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router'
 import { useApp } from '../context/app-context'
-import { notifyCommunityChanged, useCommunity } from '../context/use-community'
+import { useMessageReadState } from '../context/use-message-read-state'
+import { defaultProfileBio, notifyCommunityChanged, useCommunity } from '../context/use-community'
 import { avatarUrl, communityUsers } from '../data/community-users'
+import { commentNotices, commentNoticeTarget, notices, noticeView, type Notice } from '../data/messages'
+import { SystemMessageDialog } from '../components/MessageCenter'
 import { corpusRecords, type CorpusRecord } from './CorpusSearch'
 import { DemandPoster, initialDemandPosts, type DemandPost } from './DemandSquare'
 import { auditWorkStatusOptions, loadAuditItems, removeAuditItemByCorpus, type AuditWorkItem, type AuditWorkStatus } from '../data/audit-work'
 import { readEvaluationSubmissions } from '../data/evaluation-upload'
+import { copyText, profileShareUrl } from '../data/profile-share'
 import './profile-ui-v2.css'
 
 const ProfileEvaluations = lazy(() => import('./ProfileEvaluations'))
 
-type MainTab = 'corpora' | 'evaluations' | 'demands' | 'social' | 'submit' | 'audit' | 'privacy'
+type MainTab = 'corpora' | 'evaluations' | 'demands' | 'social' | 'submit' | 'audit'
 type CorpusTab = 'managed' | 'joined' | 'favorite' | 'commented'
 type DemandTab = 'published' | 'favorited' | 'commented'
 type SocialTab = '关注' | '粉丝'
 type NoticeTab = 'audit' | 'comment'
 type ModalType = 'avatar' | 'basic' | null
-type FavoritePrivacy = '全部公开' | '仅公开我收藏的语料库' | '仅公开我收藏的需求' | '全部私密'
-type CommentPrivacy = '全部公开' | '仅公开我评论的语料库' | '仅公开我评论的需求' | '全部私密'
-type FollowPrivacy = '全部公开' | '仅公开关注列表' | '仅公开粉丝列表' | '全部私密'
 
 type UserProfile = {
   username: string
@@ -50,27 +51,13 @@ type UserProfile = {
   avatar: string
 }
 
-type Notice = {
-  id: number
-  role: 'admin' | 'uploader' | 'member' | 'creator' | 'platform'
-  kind: 'pending' | 'approved' | 'rejected' | 'returned' | 'failed' | 'published' | 'modified' | 'withdrawn'
-  corpusId: string
-  corpusName: string
-  userName: string
-  time: string
-  reason?: string
-  permission?: '可管理' | '可上传'
-  createdAt?: string
-}
-type CommentNotice = { id: number; user: string; text: string; time: string; kind: 'corpus' | 'demand'; targetId: string }
-
 const emptyProfile = (username = ''): UserProfile => ({
   username: username || '科学语料用户',
   institution: '深势科技',
   contact: 'fengmeichen04@gmail.com',
   researchField: '工程与信息科学·人文社科·自然科学',
   position: '设计师',
-  bio: '生活里算是个好奇心很重的人。有空喜欢研究各种新奇工具，也爱规划旅行，提前做攻略、找搭子，盼着出门散心。平时饮食上比较在意，会简单看看食物热量。',
+  bio: defaultProfileBio,
   avatar: 'images/demand-users/lab-director.jpg',
 })
 
@@ -152,26 +139,6 @@ function visitorFallback(id: string): VisitorProfile {
   }
 }
 
-const notices: Notice[] = [
-  { id: 1, role: 'admin', kind: 'pending', corpusId: 'math-01', corpusName: '基础数学定理证明长思维链语料', userName: '李思远', time: '2026-09-05 14:22' },
-  { id: 2, role: 'admin', kind: 'pending', corpusId: 'physics-01', corpusName: '量子力学问题求解与推理过程语料', userName: '建设编辑', time: '2026-09-06 09:10', permission: '可上传' },
-  { id: 3, role: 'uploader', kind: 'approved', corpusId: 'math-02', corpusName: '概率论与数理统计问题求解语料', userName: '王磊', time: '2026-09-04 16:40' },
-  { id: 4, role: 'uploader', kind: 'rejected', corpusId: 'chem-04', corpusName: '环境化学专业问答与推理语料', userName: '何静', time: '2026-09-03 11:05', reason: '数据样例不足，请补充字段口径说明' },
-  { id: 5, role: 'member', kind: 'approved', corpusId: 'geo-04', corpusName: '城市空间结构与功能区识别语料', userName: '许青', time: '2026-09-02 10:18', permission: '可上传' },
-  { id: 6, role: 'member', kind: 'rejected', corpusId: 'bio-02', corpusName: '代谢小分子化合物结构语料', userName: '张伟', time: '2026-09-01 15:47', reason: '单位与实名信息不符', permission: '可管理' },
-  { id: 7, role: 'creator', kind: 'returned', corpusId: 'math-01', corpusName: '数学教育教学语料库', userName: '我', time: '2026-08-30 09:32', createdAt: '2026-08-28 10:00', reason: '请补充字段口径说明' },
-  { id: 8, role: 'creator', kind: 'rejected', corpusId: 'chem-02', corpusName: '天然产物结构语料库', userName: '我', time: '2026-08-31 14:05', createdAt: '2026-08-29 15:20', reason: '数据样例不足，请补充字段口径说明' },
-  { id: 9, role: 'creator', kind: 'failed', corpusId: 'geo-03', corpusName: '极端天气事件语料库', userName: '我', time: '2026-09-02 18:30', createdAt: '2026-09-01 09:40', reason: '系统发布服务超时，自动发布失败，请稍后重试' },
-  { id: 10, role: 'creator', kind: 'published', corpusId: 'astro-04', corpusName: '天文观测语料库', userName: '我', time: '2026-08-27 10:00', createdAt: '2026-08-25 11:30' },
-]
-
-const commentNotices: CommentNotice[] = [
-  { id: 1, user: '医学语料联合实验室', text: '建议增加数据质量报告和版本间差异说明，方便长期引用。', time: '2026-09-05', kind: 'corpus', targetId: 'math-01' },
-  { id: 2, user: '林知远', text: '样例数据结构很清楚，期待后续补充更多字段说明。', time: '2026-09-03', kind: 'corpus', targetId: 'physics-01' },
-  { id: 3, user: '陈明', text: '已经按建议提交了联合申请，感谢答疑！', time: '2026-09-02', kind: 'demand', targetId: 'demand-math-001' },
-  { id: 4, user: '李思远', text: '请问可以扩展语音方言类的共建需求吗？', time: '2026-08-30', kind: 'demand', targetId: 'demand-geo-001' },
-]
-
 type SubmitStatus = '审核中' | '待修改' | '已通过' | '未通过' | '发布异常' | '已撤回' | '已上传'
 type SubmitRecord = {
   id: number
@@ -201,9 +168,6 @@ const submitRecords: SubmitRecord[] = [
 ]
 
 
-const favoritePrivacyOptions: FavoritePrivacy[] = ['全部公开', '仅公开我收藏的语料库', '仅公开我收藏的需求', '全部私密']
-const commentPrivacyOptions: CommentPrivacy[] = ['全部公开', '仅公开我评论的语料库', '仅公开我评论的需求', '全部私密']
-const followPrivacyOptions: FollowPrivacy[] = ['全部公开', '仅公开关注列表', '仅公开粉丝列表', '全部私密']
 
 const demandPageSize = 4
 
@@ -256,40 +220,6 @@ function Pager({ total, pageSize, current, onChange, span = 5 }: { total: number
   )
 }
 
-function noticeView(notice: Notice) {
-  if (notice.role === 'admin' && notice.kind === 'pending') {
-    const title = notice.permission ? '您有一条加入语料库的申请待审核' : '您有一条上传语料的申请待审核'
-    const body = notice.permission
-      ? `“${notice.userName}”向您管理的“${notice.corpusName}”提交了${notice.permission}权限的加入语料库申请，请查看申请内容并进行审核。`
-      : `“${notice.userName}”向您管理的“${notice.corpusName}”提交了语料上传申请，请查看上传内容并进行审核。`
-    return { title, body, action: '查看申请', to: `/search/datasets/${notice.corpusId}/audit` }
-  }
-  if (notice.role === 'uploader' && notice.kind === 'approved') {
-    return { title: '您的语料上传审核已通过', body: `您向“${notice.corpusName}”提交的语料上传申请已通过审核，相关语料已成功加入该语料库`, action: '查看语料', to: `/search/datasets/${notice.corpusId}` }
-  }
-  if (notice.role === 'uploader' && notice.kind === 'rejected') {
-    return { title: '您的语料上传申请未通过', body: `您向“${notice.corpusName}”提交的语料上传申请未通过审核，请根据审核意见修改后重新提交。审核意见：${notice.reason}；`, action: '继续申请', to: `/search/datasets/${notice.corpusId}` }
-  }
-  if (notice.role === 'member' && notice.kind === 'approved') {
-    return { title: `您的加入${notice.corpusName}（${notice.permission}）审核已通过`, body: `您向“${notice.corpusName}”提交的加入申请已通过审核`, action: '查看语料', to: `/search/datasets/${notice.corpusId}` }
-  }
-  if (notice.role === 'member' && notice.kind === 'rejected') {
-    return { title: `您的加入${notice.corpusName}（${notice.permission}）未通过审核`, body: `您向“${notice.corpusName}”提交的加入申请未通过审核；审核意见：${notice.reason}；`, action: '查看语料', to: `/search/datasets/${notice.corpusId}` }
-  }
-  if (notice.role === 'creator') {
-    if (notice.kind === 'returned') return { title: `您申请创建的${notice.corpusName}待修改`, body: `您于${notice.createdAt}创建的“${notice.corpusName}”提交内容需要补充或修改材料，请根据审核意见调整后重新提交。审核意见：${notice.reason}`, action: '查看意见', to: '/profile?tab=submit&sstatus=待修改' }
-    if (notice.kind === 'rejected') return { title: `您申请创建的${notice.corpusName}未通过审核`, body: `您于${notice.createdAt}创建的“${notice.corpusName}”申请未通过，请查看审核意见。审核意见：${notice.reason}`, action: '查看原因', to: '/profile?tab=submit&sstatus=未通过' }
-    if (notice.kind === 'failed') return { title: `您申请创建的${notice.corpusName}发布异常`, body: `您于${notice.createdAt}创建的“${notice.corpusName}”已通过审核，但发布未完成，请查看处理进度。`, action: '查看进度', to: '/profile?tab=submit&sstatus=发布异常' }
-    return { title: `您创建的${notice.corpusName}已正式发布`, body: `您于${notice.createdAt}创建的“${notice.corpusName}”已通过审核并发布成功，可在个人主页和语料详情页查看。`, action: '查看语料', to: `/search/datasets/${notice.corpusId}` }
-  }
-  if (notice.role === 'platform') {
-    if (notice.kind === 'modified') return { title: '语料申请已修改并重新提交', body: `用户“${notice.userName}”已根据审核意见修改“${notice.corpusName}”的申请，请重新审核。`, action: '前往审核', to: '/profile?tab=audit' }
-    if (notice.kind === 'withdrawn') return { title: '语料申请已撤回', body: `用户“${notice.userName}”已撤回“${notice.corpusName}”的申请，该申请无需继续审核。`, action: '查看记录', to: '/profile?tab=audit' }
-    if (notice.kind === 'failed') return { title: '语料发布异常', body: `“${notice.corpusName}”的申请已通过审核，但发布未完成，请查看原因并处理。`, action: '查看异常', to: '/profile?tab=audit' }
-  }
-  return { title: '您有一条语料申请待审核', body: `“${notice.userName}”提交了“${notice.corpusName}”的创建申请，请查看申请内容并进行审核。`, action: '查看申请', to: '/profile?tab=audit' }
-}
-
 export default function Profile() {
   const { user, openAuth, favorites } = useApp()
   const { people, isFollowing, followLabel, followerCount, toggleFollow } = useCommunity()
@@ -309,16 +239,17 @@ export default function Profile() {
     setSearchParams(next, { replace: true })
   }
   const tabParam = searchParams.get('tab')
-  const activeTab: MainTab = tabParam === 'demands' || tabParam === 'social' || tabParam === 'submit' || tabParam === 'audit' || tabParam === 'privacy' || (tabParam === 'evaluations' && !isVisitor) ? tabParam : 'corpora'
+  const activeTab: MainTab = tabParam === 'demands' || tabParam === 'social' || tabParam === 'submit' || tabParam === 'audit' || (tabParam === 'evaluations' && !isVisitor) ? tabParam : 'corpora'
   const setActiveTab = (tab: MainTab) => updateParams({ tab: tab === 'corpora' ? null : tab, ...(tab === 'evaluations' ? {} : { collection: null }) })
-  const [corpusTab, setCorpusTab] = useState<CorpusTab>('managed')
+  const corpusParam = searchParams.get('corpus')
+  const corpusTab: CorpusTab = corpusParam === 'joined' || corpusParam === 'favorite' || corpusParam === 'commented' ? corpusParam : 'managed'
   const evaluationTab = searchParams.get('collection') === 'favorite' ? 'favorite' : 'uploaded'
   const [demandTab, setDemandTab] = useState<DemandTab>('published')
   const [noticeTab, setNoticeTab] = useState<NoticeTab>('audit')
   const [socialTab, setSocialTab] = useState<SocialTab>('关注')
   const [modal, setModal] = useState<ModalType>(null)
   const [noticeItem, setNoticeItem] = useState<Notice | null>(null)
-  const [readNotices, setReadNotices] = useState<Set<number>>(new Set())
+  const { isUnread, markRead } = useMessageReadState(user?.account)
   const [profile, setProfile] = useState<UserProfile>(() => user ? loadProfile(user.account, user.name) : emptyProfile())
   const [draft, setDraft] = useState<UserProfile>(profile)
   const [avatarDraft, setAvatarDraft] = useState('')
@@ -328,11 +259,8 @@ export default function Profile() {
   const [profileToast, setProfileToast] = useState('')
   const [formErrors, setFormErrors] = useState<Record<'username' | 'institution' | 'contact', boolean>>({ username: false, institution: false, contact: false })
   const cropStageRef = useRef<HTMLDivElement>(null)
-  const [corpusPage, setCorpusPage] = useState(1)
+  const setCorpusPage = (page: number) => updateParams({ page: page > 1 ? String(page) : null })
   const [demandPage, setDemandPage] = useState(1)
-  const [privacyFavorite, setPrivacyFavorite] = useState<FavoritePrivacy>('全部公开')
-  const [privacyCommented, setPrivacyCommented] = useState<CommentPrivacy>('全部公开')
-  const [privacyFollow, setPrivacyFollow] = useState<FollowPrivacy>('全部公开')
   const evaluationSubmissions = activeTab === 'submit' && user && !isVisitor ? readEvaluationSubmissions().filter(record => record.account === user.account) : []
   const submitStatusParam = searchParams.get('sstatus')
   const submitStatus: '全部' | SubmitStatus = (['审核中', '待修改', '已通过', '未通过', '发布异常', '已撤回'] as SubmitStatus[]).includes(submitStatusParam as SubmitStatus) ? submitStatusParam as SubmitStatus : '全部'
@@ -386,6 +314,7 @@ export default function Profile() {
 
   const commentedCorpora = corpusByIds(commentedCorpusIds)
   const corpusList = corpusTab === 'managed' ? managedCorpora : corpusTab === 'joined' ? joinedCorpora : corpusTab === 'commented' ? commentedCorpora : favoriteCorpora
+  const corpusPage = Math.min(Math.max(1, Math.trunc(Number(searchParams.get('page'))) || 1), Math.max(1, Math.ceil(corpusList.length / 4)))
   const visibleCorpora = corpusList.slice((corpusPage - 1) * 4, corpusPage * 4)
 
   const demandOffset = visitor?.demandOffset ?? 0
@@ -419,12 +348,7 @@ export default function Profile() {
   }
 
   const copyProfileText = async (text: string, message: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-    } catch {
-      // Clipboard can be unavailable in an insecure local preview.
-    }
-    flashProfileToast(message)
+    flashProfileToast(await copyText(text) ? message : '复制失败，请重试')
   }
 
   const openModal = (type: Exclude<ModalType, null>) => {
@@ -560,6 +484,8 @@ export default function Profile() {
     flashProfileToast('资料已更新')
   }
 
+  if (!isVisitor && tabParam === 'privacy') return <Navigate replace to="/settings?tab=privacy" />
+
   if (!user && !isVisitor) {
     return (
       <main className="profile-page profile-guest-page">
@@ -615,12 +541,12 @@ export default function Profile() {
             ) : (
               <div className="profile-summary-actions">
                 <button className="profile-edit-basic" type="button" onClick={() => openModal('basic')}><Pencil size={15} />编辑资料</button>
-                <button className="profile-share-button" type="button" onClick={() => void copyProfileText(window.location.href, '已复制链接 可以分享')}><Share2 size={15} />分享主页</button>
+                <button className="profile-share-button" type="button" onClick={() => void copyProfileText(profileShareUrl(profile), '已复制链接 可以分享')}><Share2 size={15} />分享主页</button>
               </div>
             )}
           </section>
 
-          <section className="profile-messages">
+          {!isVisitor && <section className="profile-messages">
             <header><Bell size={17} /><h2>消息</h2></header>
             <nav className="profile-notice-tabs">
               <button type="button" className={noticeTab === 'audit' ? 'is-active' : ''} onClick={() => setNoticeTab('audit')}><ShieldCheck size={14} />系统通知</button>
@@ -629,8 +555,8 @@ export default function Profile() {
             {noticeTab === 'audit' ? (
               <div className="profile-notice-list">
                 {notices.map((notice) => (
-                  <button type="button" className="profile-notice-item" key={notice.id} onClick={() => { setNoticeItem(notice); setReadNotices((current) => new Set(current).add(notice.id)) }}>
-                    <strong>系统通知{!readNotices.has(notice.id) && <i className="profile-notice-dot" aria-label="未读" />}</strong>
+                  <button type="button" className="profile-notice-item" key={notice.id} onClick={() => { setNoticeItem(notice); markRead('audit', notice.id) }}>
+                    <strong>系统通知{isUnread('audit', notice.id) && <i className="profile-notice-dot" aria-label="未读" />}</strong>
                     <p>{notice.role === 'admin' && notice.kind === 'pending' ? `您有一条${notice.permission ? '加入语料库' : '上传语料'}的申请待审核` : noticeView(notice).title}</p>
                     <small>{notice.time}</small>
                   </button>
@@ -639,10 +565,10 @@ export default function Profile() {
             ) : (
               <div className="profile-notice-list">
                 {commentNotices.map((item) => (
-                  <button type="button" className="profile-comment-item" key={item.id} onClick={() => navigate(item.kind === 'corpus' ? `/search/datasets/${item.targetId}?tab=comments` : `/demands/${item.targetId}`)}>
+                  <button type="button" className="profile-comment-item" key={item.id} onClick={() => { markRead('comment', item.id); navigate(commentNoticeTarget(item)) }}>
                     <span className="profile-comment-avatar">{item.user.slice(0, 1)}</span>
                     <div>
-                      <strong>{item.user}</strong>
+                      <strong>{item.user}{isUnread('comment', item.id) && <i className="profile-notice-dot" aria-label="未读" />}</strong>
                       <p>{item.text}</p>
                       <small>{item.time}</small>
                     </div>
@@ -650,12 +576,12 @@ export default function Profile() {
                 ))}
               </div>
             )}
-          </section>
+          </section>}
         </aside>
 
         <section className="profile-main">
           <nav className="profile-main-tabs">
-            <button type="button" className={activeTab === 'corpora' ? 'is-active' : ''} onClick={() => { setActiveTab('corpora'); setCorpusPage(1) }}>{isVisitor ? '语料库' : '我的语料库'}</button>
+            <button type="button" className={activeTab === 'corpora' ? 'is-active' : ''} onClick={() => updateParams({ tab: null, collection: null, page: null })}>{isVisitor ? '语料库' : '我的语料库'}</button>
             {!isVisitor && <button type="button" className={activeTab === 'evaluations' ? 'is-active' : ''} onClick={() => setActiveTab('evaluations')}>我的评测集</button>}
             <button type="button" className={activeTab === 'demands' ? 'is-active' : ''} onClick={() => { setActiveTab('demands'); setDemandPage(1) }}>需求动态</button>
             <button type="button" className={activeTab === 'social' ? 'is-active' : ''} onClick={() => setActiveTab('social')}>关注与粉丝</button>
@@ -675,7 +601,7 @@ export default function Profile() {
                 <h2>{isVisitor ? '语料库' : '我的语料库'}</h2>
                 <div className="profile-sub-tabs">
                   {([['managed', '我管理的'], ['joined', '我加入的'], ['favorite', '我收藏的'], ['commented', '我评论的']] as Array<[CorpusTab, string]>).map(([key, label]) => (
-                    <button type="button" className={corpusTab === key ? 'is-active' : ''} key={key} onClick={() => { setCorpusTab(key); setCorpusPage(1) }}>{isVisitor ? label.replace('我', 'TA ') : label}</button>
+                    <button type="button" className={corpusTab === key ? 'is-active' : ''} key={key} onClick={() => updateParams({ corpus: key === 'managed' ? null : key, page: null })}>{isVisitor ? label.replace('我', 'TA ') : label}</button>
                   ))}
                 </div>
               </header>
@@ -1015,29 +941,6 @@ export default function Profile() {
             )
           })()}
 
-          {activeTab === 'privacy' && (
-            <div className="profile-privacy">
-              <p className="profile-privacy-intro">设置个人主页对外展示内容的可见范围</p>
-              <label className="profile-privacy-row">
-                <span>我收藏的</span>
-                <select value={privacyFavorite} onChange={(event) => setPrivacyFavorite(event.target.value as FavoritePrivacy)}>
-                  {favoritePrivacyOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="profile-privacy-row">
-                <span>我评论的</span>
-                <select value={privacyCommented} onChange={(event) => setPrivacyCommented(event.target.value as CommentPrivacy)}>
-                  {commentPrivacyOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-              <label className="profile-privacy-row">
-                <span>关注与粉丝列表</span>
-                <select value={privacyFollow} onChange={(event) => setPrivacyFollow(event.target.value as FollowPrivacy)}>
-                  {followPrivacyOptions.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </label>
-            </div>
-          )}
         </section>
       </div>
 
@@ -1113,26 +1016,7 @@ export default function Profile() {
         </div>
       )}
 
-      {noticeItem && (
-        <div className="dataset-modal-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) setNoticeItem(null) }}>
-          <section className="dataset-modal profile-notice-modal" role="dialog" aria-modal="true">
-            <div className="dataset-modal-title"><div><ShieldCheck size={21} /><h2>审核通知</h2></div><button type="button" onClick={() => setNoticeItem(null)} aria-label="关闭"><X size={18} /></button></div>
-            {(() => {
-              const view = noticeView(noticeItem)
-              return (
-                <>
-                  <h3 className="profile-notice-title">{view.title}</h3>
-                  <p className="profile-notice-body">{view.body}</p>
-                  <div className="dataset-modal-actions">
-                    <button type="button" onClick={() => { setNoticeItem(null); navigate(view.to) }}>{view.action}</button>
-                    <button type="button" className="is-primary" onClick={() => setNoticeItem(null)}>知道了</button>
-                  </div>
-                </>
-              )
-            })()}
-          </section>
-        </div>
-      )}
+      <SystemMessageDialog notice={noticeItem} onClose={() => setNoticeItem(null)} onFollow={to => { setNoticeItem(null); navigate(to) }} />
       {profileToast && <div className="profile-copy-toast"><span>✓</span>{profileToast}</div>}
     </main>
   )

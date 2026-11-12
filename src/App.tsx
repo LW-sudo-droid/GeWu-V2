@@ -13,6 +13,8 @@ import CorpusUpload from './pages/CorpusUpload'
 import CorpusUploadLanding from './pages/CorpusUploadLanding'
 import EvaluationUpload from './pages/EvaluationUpload'
 import Profile from './pages/Profile'
+import AccountSettings from './pages/AccountSettings'
+import SharedProfile from './pages/SharedProfile'
 import DemandSquare from './pages/DemandSquare'
 import DemandDetail from './pages/DemandDetail'
 import DemandCreate from './pages/DemandCreate'
@@ -48,6 +50,8 @@ export default function App() {
         <Route path="/demands/new/poster" element={<DemandPosterMaker />} />
         <Route path="/demands/:id" element={<DemandDetail />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+        <Route path="/profile/shared" element={<SharedProfile />} />
         <Route path="/profile/:profileId" element={<Profile />} />
         <Route path="/tools" element={<ToolMarket />} />
         <Route path="/about" element={<About />} />
