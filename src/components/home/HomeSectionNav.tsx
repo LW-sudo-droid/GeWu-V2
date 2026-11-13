@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 const homeSections = [
-  { id: 'home-flow', label: '语料流程' },
+  { id: 'home-flow', label: '功能介绍' },
   { id: 'home-subjects', label: '学科特色' },
   { id: 'home-evaluation', label: '语料评测' },
   { id: 'home-demand', label: '需求广场' },
